@@ -2,7 +2,10 @@ id: example
 display-name: "<gradient:#FFD700:#8B0000>Example Voucher</gradient>"
 item:
   material: PAPER
-  custom-model-data: 1001
+  # custom-model-data only changes the icon when a resource pack maps the number
+  # to a model. With no pack it has no visible effect, so it is left out here.
+  # Uncomment and set your pack's value to use a custom texture.
+  # custom-model-data: 1001
   glow: true
 lore:
   - "<gray>Right-click to redeem"
