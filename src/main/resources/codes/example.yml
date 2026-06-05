@@ -1,0 +1,11 @@
+code: WELCOME2026
+case-sensitive: false
+# Global redemption cap across all players; -1 for unlimited.
+max-uses: 100
+# How many times a single player may redeem this code.
+uses-per-player: 1
+expiry: ""
+conditions: [ ]
+rewards:
+  - "message: <green>Welcome aboard! Here is a starter reward."
+  - "command: give %player% cooked_beef 16"

@@ -1,0 +1,64 @@
+package so.alaz.provouchers.util;
+
+import org.jetbrains.annotations.Nullable;
+
+import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * Substitutes the dynamic tokens ProVouchers supports inside reward and message
+ * strings: {@code %player%} and {@code {player}} for the redeemer's name,
+ * {@code {arg}} for a parametric voucher's argument, and {@code {random:min-max}}
+ * for a random integer in the inclusive range.
+ *
+ * <p>MiniMessage markup and PlaceholderAPI placeholders are intentionally left
+ * untouched here; those are resolved later by Strata's text renderer.
+ */
+public final class Tokens {
+
+    private static final Pattern RANDOM = Pattern.compile("\\{random:(-?\\d+)-(-?\\d+)}");
+
+    private Tokens() {
+    }
+
+    /** Applies all tokens using the shared thread-local random for {@code {random:}}. */
+    public static String apply(String input, String playerName, @Nullable String arg) {
+        return apply(input, playerName, arg, ThreadLocalRandom.current());
+    }
+
+    /** Applies all tokens, drawing {@code {random:min-max}} values from {@code random}. */
+    public static String apply(String input, String playerName, @Nullable String arg, Random random) {
+        if (input == null || input.isEmpty()) {
+            return input;
+        }
+        String result = input
+            .replace("%player%", playerName)
+            .replace("{player}", playerName)
+            .replace("{arg}", arg == null ? "" : arg);
+        return applyRandom(result, random);
+    }
+
+    private static String applyRandom(String input, Random random) {
+        if (input.indexOf("{random:") < 0) {
+            return input;
+        }
+        Matcher matcher = RANDOM.matcher(input);
+        StringBuilder out = new StringBuilder();
+        while (matcher.find()) {
+            long low = Long.parseLong(matcher.group(1));
+            long high = Long.parseLong(matcher.group(2));
+            if (low > high) {
+                long swap = low;
+                low = high;
+                high = swap;
+            }
+            long span = high - low + 1L;
+            long value = low + Math.floorMod(random.nextLong(), span);
+            matcher.appendReplacement(out, Long.toString(value));
+        }
+        matcher.appendTail(out);
+        return out.toString();
+    }
+}

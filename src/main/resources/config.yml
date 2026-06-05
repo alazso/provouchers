@@ -1,0 +1,18 @@
+# ProVouchers configuration.
+
+storage:
+  # Backend: sqlite | mysql | mariadb | postgres
+  # SQLite is file-based and needs no extra setup; the others connect to a server.
+  backend: sqlite
+  # The settings below are used only by the networked backends.
+  host: localhost
+  port: 5432
+  database: provouchers
+  username: provouchers
+  password: ""
+  pool-size: 10
+
+anti-dupe:
+  # When a duplicate voucher is detected on redeem, remove the item instead of
+  # returning it to the player.
+  remove-on-discovery: true

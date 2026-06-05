@@ -1,0 +1,26 @@
+id: example
+display-name: "<gradient:#FFD700:#8B0000>Example Voucher</gradient>"
+item:
+  material: PAPER
+  custom-model-data: 1001
+  glow: true
+lore:
+  - "<gray>Right-click to redeem"
+unredeemable: false
+owner-only: false
+cooldown: 0
+expiry: ""
+conditions:
+  - type: permission
+    value: "provouchers.use.example"
+rewards:
+  - "command: give %player% diamond 1"
+  - "message: <green>You redeemed the example voucher!"
+random-rewards:
+  - weight: 70
+    rewards:
+      - "command: give %player% gold_ingot {random:1-3}"
+  - weight: 30
+    rewards:
+      - "command: give %player% emerald 1"
+      - "broadcast: <gold>%player% <yellow>hit the rare reward!"
