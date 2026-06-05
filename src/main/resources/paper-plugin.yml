@@ -2,7 +2,7 @@ name: ProVouchers
 version: "${version}"
 description: Feature-rich voucher plugin for Paper and Folia.
 authors: [ Alazso ]
-website: https://github.com/alazso/ProVouchers
+website: https://github.com/alazso/provouchers
 api-version: "26.1"
 folia-supported: true
 load: POSTWORLD

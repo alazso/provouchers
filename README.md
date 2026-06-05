@@ -18,7 +18,7 @@ ProVouchers automatically.
 ## Installation
 
 1. Download `Strata` and drop it into `plugins/`.
-2. Download the latest `provouchers-<version>.jar` from [Releases](https://github.com/alazso/ProVouchers/releases).
+2. Download the latest `provouchers-<version>.jar` from [Releases](https://github.com/alazso/provouchers/releases).
 3. Drop it into `plugins/` and restart the server.
 
 ## Building
