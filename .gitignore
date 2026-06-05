@@ -64,3 +64,4 @@ docs/next-env.d.ts
 
 # Claude local state
 .claude/
+VOUCHER_SPEC.md
