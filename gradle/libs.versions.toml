@@ -1,0 +1,20 @@
+[versions]
+foojay          = "0.9.0"
+paper           = "26.1.2.build.66-stable"
+annotations     = "24.1.0"
+strata          = "0.2.3"
+junit           = "5.11.4"
+assertj         = "3.26.3"
+mockito         = "5.14.2"
+
+[libraries]
+paper-api                = { module = "io.papermc.paper:paper-api",             version.ref = "paper" }
+jetbrains-annotations    = { module = "org.jetbrains:annotations",              version.ref = "annotations" }
+strata-api               = { module = "so.alaz.strata:strata-api",              version.ref = "strata" }
+junit-jupiter            = { module = "org.junit.jupiter:junit-jupiter",        version.ref = "junit" }
+junit-platform-launcher  = { module = "org.junit.platform:junit-platform-launcher" }
+assertj-core             = { module = "org.assertj:assertj-core",               version.ref = "assertj" }
+mockito-core             = { module = "org.mockito:mockito-core",               version.ref = "mockito" }
+
+[plugins]
+foojay  = { id = "org.gradle.toolchains.foojay-resolver-convention", version.ref = "foojay" }

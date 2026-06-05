@@ -1,0 +1,30 @@
+name: ProVouchers
+version: "${version}"
+description: Feature-rich voucher plugin for Paper and Folia.
+authors: [ Alazso ]
+website: https://github.com/alazso/ProVouchers
+api-version: "26.1"
+folia-supported: true
+load: POSTWORLD
+main: so.alaz.provouchers.ProVouchersPlugin
+
+dependencies:
+  server:
+    Strata:
+      load: BEFORE
+      required: true
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+    WorldGuard:
+      load: BEFORE
+      required: false
+    LuckPerms:
+      load: BEFORE
+      required: false
+    Oraxen:
+      load: BEFORE
+      required: false
+    ItemsAdder:
+      load: BEFORE
+      required: false
