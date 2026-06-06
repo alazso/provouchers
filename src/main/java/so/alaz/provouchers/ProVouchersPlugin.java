@@ -7,6 +7,7 @@ import so.alaz.provouchers.antidupe.VoucherStamp;
 import so.alaz.provouchers.command.VoucherCommand;
 import so.alaz.provouchers.config.ConfigManager;
 import so.alaz.provouchers.listener.VoucherInteractListener;
+import so.alaz.provouchers.metrics.VoucherMetrics;
 import so.alaz.provouchers.redeem.RedeemHandler;
 import so.alaz.provouchers.redeem.RewardExecutor;
 import so.alaz.provouchers.storage.VoucherStorage;
@@ -14,6 +15,7 @@ import so.alaz.provouchers.voucher.VoucherItemFactory;
 import so.alaz.provouchers.voucher.VoucherRegistry;
 import so.alaz.strata.api.StrataApi;
 import so.alaz.strata.api.cooldown.Cooldowns;
+import so.alaz.strata.api.metrics.Metrics;
 import so.alaz.strata.api.storage.Backend;
 import so.alaz.strata.api.storage.StorageConfig;
 
@@ -33,6 +35,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
     private static final int MINIMUM_JAVA_FEATURE = 25;
 
     private VoucherStorage storage;
+    private Metrics metrics;
 
     @Override
     public void onEnable() {
@@ -51,7 +54,8 @@ public final class ProVouchersPlugin extends JavaPlugin {
         saveExample("vouchers/example.yml");
         saveExample("codes/example.yml");
 
-        storage = new VoucherStorage(StrataApi.storage().create(buildStorageConfig()));
+        Backend backend = parseBackend(getConfig().getString("storage.backend", "sqlite"));
+        storage = new VoucherStorage(StrataApi.storage().create(buildStorageConfig(backend)));
         storage.init().whenComplete((ignored, error) -> {
             if (error != null) {
                 getComponentLogger().error(text("Failed to open ProVouchers storage; duplicate and code "
@@ -85,21 +89,24 @@ public final class ProVouchersPlugin extends JavaPlugin {
         new VoucherCommand(registry, factory, redeemHandler, configManager, StrataApi.scheduler(this))
             .register(this);
 
+        metrics = VoucherMetrics.start(this, registry, () -> backend.name().toLowerCase(Locale.ROOT));
+
         getComponentLogger().info(text("ProVouchers enabled with " + registry.voucherCount()
             + " voucher(s) and " + registry.codeCount() + " code(s).", NamedTextColor.GOLD));
     }
 
     @Override
     public void onDisable() {
+        if (metrics != null) {
+            metrics.shutdown();
+        }
         if (storage != null) {
             storage.shutdown();
         }
         getComponentLogger().info(text("ProVouchers disabled.", NamedTextColor.GOLD));
     }
 
-    private StorageConfig buildStorageConfig() {
-        String backendName = getConfig().getString("storage.backend", "sqlite");
-        Backend backend = parseBackend(backendName);
+    private StorageConfig buildStorageConfig(Backend backend) {
         if (backend == Backend.SQLITE) {
             return StorageConfig.sqlite(new File(getDataFolder(), "data.db").getAbsolutePath());
         }

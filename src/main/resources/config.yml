@@ -16,3 +16,8 @@ anti-dupe:
   # When a duplicate voucher is detected on redeem, remove the item instead of
   # returning it to the player.
   remove-on-discovery: true
+
+metrics:
+  # Submit anonymous usage statistics through Strata (bStats and FastStats).
+  # Set to false to opt out entirely.
+  enabled: true
