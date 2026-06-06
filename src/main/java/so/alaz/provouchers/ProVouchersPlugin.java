@@ -6,6 +6,8 @@ import so.alaz.provouchers.antidupe.DupeDetector;
 import so.alaz.provouchers.antidupe.VoucherStamp;
 import so.alaz.provouchers.command.VoucherCommand;
 import so.alaz.provouchers.config.ConfigManager;
+import so.alaz.provouchers.cooldown.CooldownService;
+import so.alaz.provouchers.listener.CooldownLoadListener;
 import so.alaz.provouchers.listener.VoucherInteractListener;
 import so.alaz.provouchers.metrics.VoucherMetrics;
 import so.alaz.provouchers.redeem.RedeemHandler;
@@ -75,6 +77,9 @@ public final class ProVouchersPlugin extends JavaPlugin {
             getComponentLogger());
         VoucherItemFactory factory = new VoucherItemFactory(StrataApi.text(), stamp, itemResolver);
 
+        CooldownService cooldowns = new CooldownService(
+            Cooldowns.create(), storage, StrataApi.scheduler(this));
+
         RedeemHandler redeemHandler = new RedeemHandler(
             registry,
             stamp,
@@ -83,13 +88,15 @@ public final class ProVouchersPlugin extends JavaPlugin {
             rewardExecutor,
             StrataApi.scheduler(this),
             StrataApi.text(),
-            Cooldowns.create(),
+            cooldowns,
             StrataApi.conditions(),
             getConfig().getBoolean("anti-dupe.remove-on-discovery", true)
         );
 
         getServer().getPluginManager().registerEvents(
             new VoucherInteractListener(stamp, redeemHandler), this);
+        getServer().getPluginManager().registerEvents(new CooldownLoadListener(cooldowns), this);
+        getServer().getOnlinePlayers().forEach(player -> cooldowns.hydrate(player.getUniqueId()));
         new VoucherCommand(registry, factory, redeemHandler, configManager, StrataApi.scheduler(this))
             .register(this);
 

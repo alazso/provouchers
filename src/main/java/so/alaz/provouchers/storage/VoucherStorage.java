@@ -6,6 +6,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -28,7 +30,7 @@ public final class VoucherStorage {
 
     /** Opens the pool and applies pending migrations. */
     public CompletableFuture<Void> init() {
-        provider.migrations().register(new InitialSchema());
+        provider.migrations().register(new InitialSchema()).register(new CooldownSchema());
         return provider.init().thenCompose(ignored -> provider.migrations().migrate())
             .thenApply(applied -> null);
     }
@@ -141,5 +143,48 @@ public final class VoucherStorage {
                 return result.next() ? result.getInt(1) : 0;
             }
         }
+    }
+
+    /** Stores (or replaces) a player's cooldown expiry for a voucher, in epoch millis. */
+    public void setCooldown(UUID player, String voucherId, long expiresAt) throws SQLException {
+        try (Connection connection = provider.dataSource().getConnection()) {
+            int updated;
+            try (PreparedStatement statement = connection.prepareStatement(
+                "UPDATE provouchers_cooldowns SET expires_at = ? WHERE player_uuid = ? "
+                    + "AND voucher_id = ?")) {
+                statement.setLong(1, expiresAt);
+                statement.setString(2, player.toString());
+                statement.setString(3, voucherId);
+                updated = statement.executeUpdate();
+            }
+            if (updated == 0) {
+                try (PreparedStatement statement = connection.prepareStatement(
+                    "INSERT INTO provouchers_cooldowns (player_uuid, voucher_id, expires_at) "
+                        + "VALUES (?, ?, ?)")) {
+                    statement.setString(1, player.toString());
+                    statement.setString(2, voucherId);
+                    statement.setLong(3, expiresAt);
+                    statement.executeUpdate();
+                }
+            }
+        }
+    }
+
+    /** A player's still-active cooldowns: voucher id to expiry epoch millis (after {@code now}). */
+    public Map<String, Long> activeCooldowns(UUID player, long now) throws SQLException {
+        Map<String, Long> cooldowns = new HashMap<>();
+        try (Connection connection = provider.dataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                 "SELECT voucher_id, expires_at FROM provouchers_cooldowns WHERE player_uuid = ? "
+                     + "AND expires_at > ?")) {
+            statement.setString(1, player.toString());
+            statement.setLong(2, now);
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    cooldowns.put(result.getString(1), result.getLong(2));
+                }
+            }
+        }
+        return cooldowns;
     }
 }

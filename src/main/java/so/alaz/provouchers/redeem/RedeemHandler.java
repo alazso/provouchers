@@ -24,12 +24,11 @@ import so.alaz.strata.api.condition.ConditionContext;
 import so.alaz.strata.api.condition.ConditionRegistry;
 import so.alaz.strata.api.condition.ConditionResult;
 import so.alaz.strata.api.condition.Conditions;
-import so.alaz.strata.api.cooldown.CooldownManager;
+import so.alaz.provouchers.cooldown.CooldownService;
 import so.alaz.strata.api.scheduler.PlatformScheduler;
 import so.alaz.strata.api.text.TextRenderer;
 
 import java.sql.SQLException;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -49,7 +48,7 @@ public final class RedeemHandler {
     private final RewardExecutor rewardExecutor;
     private final PlatformScheduler scheduler;
     private final TextRenderer text;
-    private final CooldownManager cooldowns;
+    private final CooldownService cooldowns;
     private final ConditionRegistry conditions;
     private final boolean removeOnDiscovery;
 
@@ -61,7 +60,7 @@ public final class RedeemHandler {
         RewardExecutor rewardExecutor,
         PlatformScheduler scheduler,
         TextRenderer text,
-        CooldownManager cooldowns,
+        CooldownService cooldowns,
         ConditionRegistry conditions,
         boolean removeOnDiscovery
     ) {
@@ -111,9 +110,9 @@ public final class RedeemHandler {
             send(player, "<red>You cannot redeem vouchers in this game mode.");
             return;
         }
-        String cooldownKey = cooldownKey(player, voucher.id());
-        if (onCooldown(player, cooldownKey)) {
-            long seconds = cooldowns.remaining(cooldownKey).toSeconds();
+        if (!player.hasPermission("provouchers.bypass.cooldown")
+            && cooldowns.isOnCooldown(player.getUniqueId(), voucher.id())) {
+            long seconds = cooldowns.remaining(player.getUniqueId(), voucher.id()).toSeconds();
             send(player, "<red>You must wait " + Math.max(1, seconds) + "s before redeeming this again.");
             return;
         }
@@ -141,12 +140,12 @@ public final class RedeemHandler {
             boolean finalAllowed = allowed;
             StampStatus finalStatus = status;
             scheduler.entity(player, () ->
-                finishItemRedeem(player, voucher, consumed, finalAllowed, finalStatus, cooldownKey));
+                finishItemRedeem(player, voucher, consumed, finalAllowed, finalStatus));
         });
     }
 
     private void finishItemRedeem(Player player, Voucher voucher, ItemStack consumed, boolean allowed,
-                                  StampStatus status, String cooldownKey) {
+                                  StampStatus status) {
         if (!allowed) {
             if (status == StampStatus.DUPLICATE) {
                 send(player, "<red>This voucher has already been redeemed.");
@@ -161,7 +160,7 @@ public final class RedeemHandler {
             return;
         }
         if (voucher.cooldownSeconds() > 0) {
-            cooldowns.set(cooldownKey, Duration.ofSeconds(voucher.cooldownSeconds()));
+            cooldowns.apply(player.getUniqueId(), voucher.id(), voucher.cooldownSeconds());
         }
         grant(player, "voucher '" + voucher.id() + "'", voucher.rewards(), voucher.randomRewards(), null);
     }
@@ -263,10 +262,6 @@ public final class RedeemHandler {
         }
     }
 
-    private boolean onCooldown(Player player, String key) {
-        return !player.hasPermission("provouchers.bypass.cooldown") && cooldowns.isOnCooldown(key);
-    }
-
     private boolean ownsVoucher(Player player, ItemMeta meta) {
         if (player.hasPermission("provouchers.bypass.owner")) {
             return true;
@@ -293,10 +288,6 @@ public final class RedeemHandler {
     private String readNonce(ItemStack item) {
         ItemMeta meta = item.getItemMeta();
         return meta == null ? null : stamp.nonce(meta);
-    }
-
-    private static String cooldownKey(Player player, String voucherId) {
-        return player.getUniqueId() + ":" + voucherId;
     }
 
     private void replyFailure(Player player, ConditionResult result) {
