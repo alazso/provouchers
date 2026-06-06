@@ -163,7 +163,7 @@ public final class RedeemHandler {
         if (voucher.cooldownSeconds() > 0) {
             cooldowns.set(cooldownKey, Duration.ofSeconds(voucher.cooldownSeconds()));
         }
-        grant(player, voucher.rewards(), voucher.randomRewards(), null);
+        grant(player, "voucher '" + voucher.id() + "'", voucher.rewards(), voucher.randomRewards(), null);
     }
 
     /** Attempts to redeem a typeable code by its literal input and optional argument. */
@@ -212,16 +212,16 @@ public final class RedeemHandler {
                     send(player, finalDeny);
                     return;
                 }
-                grant(player, code.rewards(), code.randomRewards(), argument);
+                grant(player, "code '" + code.code() + "'", code.rewards(), code.randomRewards(), argument);
                 send(player, "<green>Code redeemed.");
             });
         });
     }
 
-    private void grant(Player player, List<RewardLine> always, List<RewardSet> random,
+    private void grant(Player player, String source, List<RewardLine> always, List<RewardSet> random,
                        @Nullable String argument) {
         List<RewardLine> granted = RewardSelection.gather(always, random, ThreadLocalRandom.current());
-        rewardExecutor.execute(player, granted, argument);
+        rewardExecutor.execute(player, source, granted, argument);
     }
 
     private ConditionResult evaluate(List<java.util.Map<String, Object>> conditionMaps, Player player) {

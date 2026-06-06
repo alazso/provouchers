@@ -3,12 +3,16 @@ package so.alaz.provouchers.redeem;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
+import so.alaz.provouchers.reward.RewardItemPayload;
 import so.alaz.provouchers.reward.RewardLine;
 import so.alaz.provouchers.util.Tokens;
+import so.alaz.provouchers.voucher.ItemResolver;
 import so.alaz.strata.api.scheduler.PlatformScheduler;
 import so.alaz.strata.api.text.TextRenderer;
 
@@ -18,9 +22,13 @@ import java.util.List;
 /**
  * Runs reward actions for a player. Command dispatch and broadcasts are routed
  * through Strata's scheduler so the plugin stays Folia-safe; messages, titles,
- * action bars, and sounds act directly on the player. Tokens such as
- * {@code %player%}, {@code {arg}}, and {@code {random:min-max}} are substituted
- * first, then MiniMessage and PlaceholderAPI are resolved by Strata's renderer.
+ * action bars, sounds, and item grants act on the player (the caller already runs
+ * this on the player's region thread). Tokens such as {@code %player%},
+ * {@code {arg}}, and {@code {random:min-max}} are substituted first, then
+ * MiniMessage and PlaceholderAPI are resolved by Strata's renderer.
+ *
+ * <p>Each reward is executed independently: a single failing reward is logged
+ * with its source and never aborts the others.
  */
 public final class RewardExecutor {
 
@@ -29,16 +37,29 @@ public final class RewardExecutor {
 
     private final PlatformScheduler scheduler;
     private final TextRenderer text;
+    private final ItemResolver items;
+    private final ComponentLogger logger;
 
-    public RewardExecutor(PlatformScheduler scheduler, TextRenderer text) {
+    public RewardExecutor(PlatformScheduler scheduler, TextRenderer text, ItemResolver items,
+                          ComponentLogger logger) {
         this.scheduler = scheduler;
         this.text = text;
+        this.items = items;
+        this.logger = logger;
     }
 
-    /** Runs every reward line for {@code player}, substituting {@code arg} where present. */
-    public void execute(Player player, List<RewardLine> rewards, @Nullable String arg) {
+    /**
+     * Runs every reward line for {@code player}, substituting {@code arg}. A reward
+     * that fails is logged against {@code source} (the voucher or code) and skipped.
+     */
+    public void execute(Player player, String source, List<RewardLine> rewards, @Nullable String arg) {
         for (RewardLine reward : rewards) {
-            execute(player, reward, arg);
+            try {
+                execute(player, reward, arg);
+            } catch (RuntimeException ex) {
+                logger.warn("Reward '{}: {}' in {} failed: {}",
+                    reward.type().name().toLowerCase(), reward.payload(), source, ex.getMessage());
+            }
         }
     }
 
@@ -61,7 +82,15 @@ public final class RewardExecutor {
             }
             case ACTIONBAR -> player.sendActionBar(text.render(payload, player));
             case SOUND -> playSound(player, payload);
+            case ITEM -> giveItem(player, payload);
         }
+    }
+
+    private void giveItem(Player player, String payload) {
+        RewardItemPayload spec = RewardItemPayload.parse(payload);
+        ItemStack item = items.give(spec.reference(), spec.amount());
+        player.getInventory().addItem(item).values()
+            .forEach(leftover -> player.getWorld().dropItemNaturally(player.getLocation(), leftover));
     }
 
     private void playSound(Player player, String payload) {

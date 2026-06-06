@@ -9,11 +9,8 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.antidupe.VoucherStamp;
 import so.alaz.strata.api.gui.ItemBuilder;
-import so.alaz.strata.api.hook.HookRegistry;
-import so.alaz.strata.api.hook.ItemHook;
 import so.alaz.strata.api.text.TextRenderer;
 
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -27,12 +24,12 @@ public final class VoucherItemFactory {
 
     private final TextRenderer text;
     private final VoucherStamp stamp;
-    private final HookRegistry hooks;
+    private final ItemResolver items;
 
-    public VoucherItemFactory(TextRenderer text, VoucherStamp stamp, HookRegistry hooks) {
+    public VoucherItemFactory(TextRenderer text, VoucherStamp stamp, ItemResolver items) {
         this.text = text;
         this.stamp = stamp;
-        this.hooks = hooks;
+        this.items = items;
     }
 
     /**
@@ -53,7 +50,7 @@ public final class VoucherItemFactory {
     }
 
     private ItemStack buildBase(Voucher voucher, int amount, @Nullable Player viewer) {
-        ItemStack custom = resolveCustomItem(voucher.item().customItem());
+        ItemStack custom = items.custom(voucher.item().customItem());
         if (custom != null) {
             custom.setAmount(amount);
             decorateProvidedItem(custom, voucher, viewer);
@@ -101,37 +98,5 @@ public final class VoucherItemFactory {
                 meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             }
         });
-    }
-
-    @Nullable
-    private ItemStack resolveCustomItem(@Nullable String reference) {
-        if (reference == null) {
-            return null;
-        }
-        CustomItemRef ref = CustomItemRef.parse(reference);
-        List<ItemHook> providers = hooks.all(ItemHook.class);
-        if (ref.providerHint() != null) {
-            for (ItemHook provider : providers) {
-                if (provider.isAvailable() && provider.name().equalsIgnoreCase(ref.providerHint())) {
-                    ItemStack item = provider.createItem(ref.id());
-                    if (item != null) {
-                        return item;
-                    }
-                }
-            }
-        }
-        for (ItemHook provider : providers) {
-            if (!provider.isAvailable()) {
-                continue;
-            }
-            ItemStack item = provider.createItem(reference);
-            if (item == null && ref.providerHint() != null) {
-                item = provider.createItem(ref.id());
-            }
-            if (item != null) {
-                return item;
-            }
-        }
-        return null;
     }
 }

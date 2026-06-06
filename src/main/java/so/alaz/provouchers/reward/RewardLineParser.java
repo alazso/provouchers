@@ -1,11 +1,15 @@
 package so.alaz.provouchers.reward;
 
 import org.jetbrains.annotations.Nullable;
+import so.alaz.provouchers.voucher.CustomItemRef;
+import so.alaz.provouchers.voucher.Materials;
 
 /**
  * Parses reward strings of the form {@code "<type>: <payload>"} into
  * {@link RewardLine}s. The keyword is everything before the first colon; the
- * payload is the remainder, with a single leading space trimmed.
+ * payload is the remainder, with a single leading space trimmed. A provider
+ * keyword (such as {@code itemsadder}) is folded into the item reference, and
+ * item rewards are validated so material typos and bad amounts fail at load.
  */
 public final class RewardLineParser {
 
@@ -36,7 +40,24 @@ public final class RewardLineParser {
         if (payload.startsWith(" ")) {
             payload = payload.substring(1);
         }
+        String providerPrefix = RewardType.providerPrefix(keyword);
+        if (providerPrefix != null) {
+            payload = providerPrefix + ":" + payload;
+        }
+        if (type == RewardType.ITEM) {
+            validateItemPayload(payload);
+        }
         return new RewardLine(type, payload);
+    }
+
+    private static void validateItemPayload(String payload) {
+        RewardItemPayload parsed = RewardItemPayload.parse(payload);
+        String reference = parsed.reference();
+        if (reference.indexOf(':') < 0) {
+            Materials.resolve(reference);   // vanilla material must exist
+        } else {
+            CustomItemRef.parse(reference); // provider item: syntax only (existence checked at runtime)
+        }
     }
 
     /** Parses a line, returning {@code null} instead of throwing on a bad line. */

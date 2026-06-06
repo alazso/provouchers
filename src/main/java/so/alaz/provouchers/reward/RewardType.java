@@ -24,7 +24,9 @@ public enum RewardType {
     /** Show an action bar message to the player. */
     ACTIONBAR,
     /** Play a sound (a namespaced key) to the player. */
-    SOUND;
+    SOUND,
+    /** Give an item: a vanilla material or a {@code provider:id} custom item. */
+    ITEM;
 
     /**
      * Resolves a reward keyword (case-insensitive) to its type, or {@code null}
@@ -40,6 +42,22 @@ public enum RewardType {
             case "title" -> TITLE;
             case "actionbar", "action-bar" -> ACTIONBAR;
             case "sound" -> SOUND;
+            case "item", "give-item", "itemsadder", "ia", "oraxen", "nexo" -> ITEM;
+            default -> null;
+        };
+    }
+
+    /**
+     * If {@code keyword} is a provider alias (such as {@code itemsadder}), the
+     * canonical provider prefix to prepend to the item reference; otherwise
+     * {@code null}. This lets {@code "itemsadder: foo"} mean {@code "item: itemsadder:foo"}.
+     */
+    @Nullable
+    public static String providerPrefix(String keyword) {
+        return switch (keyword.trim().toLowerCase(Locale.ROOT)) {
+            case "itemsadder", "ia" -> "itemsadder";
+            case "oraxen" -> "oraxen";
+            case "nexo" -> "nexo";
             default -> null;
         };
     }

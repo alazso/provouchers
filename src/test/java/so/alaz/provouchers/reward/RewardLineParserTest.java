@@ -29,6 +29,45 @@ class RewardLineParserTest {
     }
 
     @Test
+    void parsesGenericItemReward() {
+        RewardLine reward = RewardLineParser.parse("item: DIAMOND 5");
+        assertThat(reward.type()).isEqualTo(RewardType.ITEM);
+        assertThat(reward.payload()).isEqualTo("DIAMOND 5");
+    }
+
+    @Test
+    void parsesProviderItemReward() {
+        RewardLine reward = RewardLineParser.parse("item: itemsadder:ax_wings_pack:phoenix_wings");
+        assertThat(reward.type()).isEqualTo(RewardType.ITEM);
+        assertThat(reward.payload()).isEqualTo("itemsadder:ax_wings_pack:phoenix_wings");
+    }
+
+    @Test
+    void foldsProviderKeywordIntoReference() {
+        RewardLine fromItemsAdder = RewardLineParser.parse("itemsadder: ax_wings_pack:phoenix_wings");
+        assertThat(fromItemsAdder.type()).isEqualTo(RewardType.ITEM);
+        assertThat(fromItemsAdder.payload()).isEqualTo("itemsadder:ax_wings_pack:phoenix_wings");
+
+        RewardLine fromAlias = RewardLineParser.parse("ia: ax_wings_pack:phoenix_wings 3");
+        assertThat(fromAlias.payload()).isEqualTo("itemsadder:ax_wings_pack:phoenix_wings 3");
+
+        RewardLine fromOraxen = RewardLineParser.parse("oraxen: cool_sword");
+        assertThat(fromOraxen.payload()).isEqualTo("oraxen:cool_sword");
+    }
+
+    @Test
+    void rejectsItemRewardWithUnknownMaterial() {
+        assertThatThrownBy(() -> RewardLineParser.parse("item: DIMAOND"))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void rejectsItemRewardWithBadAmount() {
+        assertThatThrownBy(() -> RewardLineParser.parse("item: DIAMOND lots"))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void rejectsMissingSeparator() {
         assertThatThrownBy(() -> RewardLineParser.parse("give diamond"))
             .isInstanceOf(IllegalArgumentException.class);

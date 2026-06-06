@@ -64,6 +64,7 @@ val coverageExclusions = listOf(
     "**/redeem/**",
     "**/metrics/**",
     "**/voucher/VoucherItemFactory.class",
+    "**/voucher/ItemResolver.class",
     "**/config/ConfigManager.class",
 )
 

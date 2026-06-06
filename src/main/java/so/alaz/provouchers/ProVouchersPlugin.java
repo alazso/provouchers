@@ -11,6 +11,7 @@ import so.alaz.provouchers.metrics.VoucherMetrics;
 import so.alaz.provouchers.redeem.RedeemHandler;
 import so.alaz.provouchers.redeem.RewardExecutor;
 import so.alaz.provouchers.storage.VoucherStorage;
+import so.alaz.provouchers.voucher.ItemResolver;
 import so.alaz.provouchers.voucher.VoucherItemFactory;
 import so.alaz.provouchers.voucher.VoucherRegistry;
 import so.alaz.strata.api.StrataApi;
@@ -68,8 +69,10 @@ public final class ProVouchersPlugin extends JavaPlugin {
         reportErrors(configManager.reload());
 
         VoucherStamp stamp = new VoucherStamp(this);
-        RewardExecutor rewardExecutor = new RewardExecutor(StrataApi.scheduler(this), StrataApi.text());
-        VoucherItemFactory factory = new VoucherItemFactory(StrataApi.text(), stamp, StrataApi.hooks());
+        ItemResolver itemResolver = new ItemResolver(StrataApi.hooks());
+        RewardExecutor rewardExecutor = new RewardExecutor(
+            StrataApi.scheduler(this), StrataApi.text(), itemResolver, getComponentLogger());
+        VoucherItemFactory factory = new VoucherItemFactory(StrataApi.text(), stamp, itemResolver);
 
         RedeemHandler redeemHandler = new RedeemHandler(
             registry,
