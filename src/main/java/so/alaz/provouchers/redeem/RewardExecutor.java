@@ -10,12 +10,15 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.reward.CurrencyRewardPayload;
+import so.alaz.provouchers.reward.GroupRewardPayload;
+import so.alaz.provouchers.reward.PermissionRewardPayload;
 import so.alaz.provouchers.reward.RewardItemPayload;
 import so.alaz.provouchers.reward.RewardLine;
 import so.alaz.provouchers.util.Tokens;
 import so.alaz.provouchers.voucher.ItemResolver;
 import so.alaz.strata.api.hook.EconomyHook;
 import so.alaz.strata.api.hook.HookRegistry;
+import so.alaz.strata.api.hook.PermissionHook;
 import so.alaz.strata.api.scheduler.PlatformScheduler;
 import so.alaz.strata.api.text.TextRenderer;
 
@@ -60,15 +63,14 @@ public final class RewardExecutor {
     public void execute(Player player, String source, List<RewardLine> rewards, @Nullable String arg) {
         for (RewardLine reward : rewards) {
             try {
-                execute(player, reward, arg);
+                execute(player, source, reward, arg);
             } catch (RuntimeException ex) {
-                logger.warn("Reward '{}: {}' in {} failed: {}",
-                    reward.type().name().toLowerCase(), reward.payload(), source, ex.getMessage());
+                warn(source, reward.type().name().toLowerCase(), reward.payload(), ex.getMessage());
             }
         }
     }
 
-    private void execute(Player player, RewardLine reward, @Nullable String arg) {
+    private void execute(Player player, String source, RewardLine reward, @Nullable String arg) {
         String payload = Tokens.apply(reward.payload(), player.getName(), arg);
         switch (reward.type()) {
             case CONSOLE_COMMAND -> scheduler.global(() ->
@@ -89,6 +91,8 @@ public final class RewardExecutor {
             case SOUND -> playSound(player, payload);
             case ITEM -> giveItem(player, payload);
             case CURRENCY -> applyCurrency(player, payload);
+            case GROUP -> applyGroup(player, source, payload);
+            case PERMISSION -> applyPermission(player, source, payload);
         }
     }
 
@@ -113,6 +117,43 @@ public final class RewardExecutor {
         if (!applied) {
             throw new IllegalStateException("economy transaction was rejected");
         }
+    }
+
+    private void applyGroup(Player player, String source, String payload) {
+        GroupRewardPayload spec = GroupRewardPayload.parse(payload);
+        PermissionHook perms = hooks.get(PermissionHook.class);
+        // Permission writes hit the data store, so run them off the main thread.
+        scheduler.async(() -> {
+            boolean applied = perms != null && switch (spec.action()) {
+                case ADD -> spec.isTemporary()
+                    ? perms.addTempGroup(player, spec.group(), spec.duration())
+                    : perms.addGroup(player, spec.group());
+                case REMOVE -> perms.removeGroup(player, spec.group());
+            };
+            if (!applied) {
+                warn(source, "group", payload,
+                    "no group-capable permission provider (LuckPerms), or no change");
+            }
+        });
+    }
+
+    private void applyPermission(Player player, String source, String payload) {
+        PermissionRewardPayload spec = PermissionRewardPayload.parse(payload);
+        PermissionHook perms = hooks.get(PermissionHook.class);
+        scheduler.async(() -> {
+            boolean applied = perms != null && switch (spec.action()) {
+                case SET -> perms.setPermission(player, spec.node(), spec.value());
+                case UNSET -> perms.unsetPermission(player, spec.node());
+            };
+            if (!applied) {
+                warn(source, "permission", payload,
+                    "no write-capable permission provider (LuckPerms), or no change");
+            }
+        });
+    }
+
+    private void warn(String source, String type, String payload, String reason) {
+        logger.warn("Reward '{}: {}' in {} failed: {}", type, payload, source, reason);
     }
 
     private void playSound(Player player, String payload) {

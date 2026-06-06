@@ -82,6 +82,24 @@ class RewardLineParserTest {
     }
 
     @Test
+    void parsesGroupAndPermissionRewards() {
+        assertThat(RewardLineParser.parse("group: add vip 7d").type()).isEqualTo(RewardType.GROUP);
+        assertThat(RewardLineParser.parse("rank: remove vip").type()).isEqualTo(RewardType.GROUP);
+        assertThat(RewardLineParser.parse("permission: add some.node").type())
+            .isEqualTo(RewardType.PERMISSION);
+        assertThat(RewardLineParser.parse("perm: set some.node false").type())
+            .isEqualTo(RewardType.PERMISSION);
+    }
+
+    @Test
+    void rejectsMalformedGroupAndPermissionRewards() {
+        assertThatThrownBy(() -> RewardLineParser.parse("group: add vip soon"))
+            .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> RewardLineParser.parse("permission: set some.node maybe"))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void rejectsMissingSeparator() {
         assertThatThrownBy(() -> RewardLineParser.parse("give diamond"))
             .isInstanceOf(IllegalArgumentException.class);

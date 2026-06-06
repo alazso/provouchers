@@ -44,10 +44,12 @@ public final class RewardLineParser {
         if (providerPrefix != null) {
             payload = providerPrefix + ":" + payload;
         }
-        if (type == RewardType.ITEM) {
-            validateItemPayload(payload);
-        } else if (type == RewardType.CURRENCY) {
-            CurrencyRewardPayload.parse(payload);
+        switch (type) {
+            case ITEM -> validateItemPayload(payload);
+            case CURRENCY -> CurrencyRewardPayload.parse(payload);
+            case GROUP -> GroupRewardPayload.parse(payload);
+            case PERMISSION -> PermissionRewardPayload.parse(payload);
+            default -> { /* other reward types have free-form payloads */ }
         }
         return new RewardLine(type, payload);
     }

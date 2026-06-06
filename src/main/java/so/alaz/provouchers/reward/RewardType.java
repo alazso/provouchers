@@ -28,7 +28,11 @@ public enum RewardType {
     /** Give an item: a vanilla material or a {@code provider:id} custom item. */
     ITEM,
     /** Give or take currency through the server's economy (Vault and compatibles). */
-    CURRENCY;
+    CURRENCY,
+    /** Add or remove a permission group (LuckPerms), optionally for a duration. */
+    GROUP,
+    /** Set or clear a permission node (LuckPerms). */
+    PERMISSION;
 
     /**
      * Resolves a reward keyword (case-insensitive) to its type, or {@code null}
@@ -46,6 +50,8 @@ public enum RewardType {
             case "sound" -> SOUND;
             case "item", "give-item", "itemsadder", "ia", "oraxen", "nexo" -> ITEM;
             case "currency", "economy", "money", "eco" -> CURRENCY;
+            case "group", "rank" -> GROUP;
+            case "permission", "perm" -> PERMISSION;
             default -> null;
         };
     }

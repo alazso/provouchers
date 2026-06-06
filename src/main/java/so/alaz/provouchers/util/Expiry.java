@@ -31,7 +31,7 @@ public final class Expiry {
         if (value.isEmpty()) {
             return null;
         }
-        Duration relative = tryParseRelative(value);
+        Duration relative = Durations.parseOrNull(value);
         if (relative != null) {
             return now.plus(relative);
         }
@@ -46,28 +46,5 @@ public final class Expiry {
     /** Returns {@code true} if {@code expiry} is non-null and not after {@code now}. */
     public static boolean isExpired(@Nullable Instant expiry, Instant now) {
         return expiry != null && !expiry.isAfter(now);
-    }
-
-    @Nullable
-    private static Duration tryParseRelative(String value) {
-        int splitAt = value.length() - 1;
-        if (splitAt <= 0) {
-            return null;
-        }
-        char unit = Character.toLowerCase(value.charAt(splitAt));
-        String number = value.substring(0, splitAt);
-        long amount;
-        try {
-            amount = Long.parseLong(number);
-        } catch (NumberFormatException ex) {
-            return null;
-        }
-        return switch (unit) {
-            case 's' -> Duration.ofSeconds(amount);
-            case 'm' -> Duration.ofMinutes(amount);
-            case 'h' -> Duration.ofHours(amount);
-            case 'd' -> Duration.ofDays(amount);
-            default -> null;
-        };
     }
 }
