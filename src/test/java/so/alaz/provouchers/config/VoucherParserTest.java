@@ -67,7 +67,7 @@ class VoucherParserTest {
     @Test
     void defaultsApplyWhenKeysOmitted() throws Exception {
         Voucher voucher = VoucherParser.parseVoucher(yaml("item:\n  material: PAPER\n"), "plain");
-        assertThat(voucher.displayName()).isEqualTo("plain");
+        assertThat(voucher.displayName()).isNull();   // null lets a custom item keep its own name
         assertThat(voucher.cooldownSeconds()).isZero();
         assertThat(voucher.expiry()).isNull();
         assertThat(voucher.hasRewards()).isFalse();

@@ -23,11 +23,15 @@ public final class VoucherStamp {
     private final PdcKey<String, String> idKey;
     private final PdcKey<String, String> batchKey;
     private final PdcKey<String, String> nonceKey;
+    private final PdcKey<Long, Long> givenAtKey;
+    private final PdcKey<String, String> ownerKey;
 
     public VoucherStamp(Plugin plugin) {
         this.idKey = new PdcKey<>(new NamespacedKey(plugin, "voucher_id"), PersistentDataType.STRING);
         this.batchKey = new PdcKey<>(new NamespacedKey(plugin, "batch_id"), PersistentDataType.STRING);
         this.nonceKey = new PdcKey<>(new NamespacedKey(plugin, "nonce"), PersistentDataType.STRING);
+        this.givenAtKey = new PdcKey<>(new NamespacedKey(plugin, "given_at"), PersistentDataType.LONG);
+        this.ownerKey = new PdcKey<>(new NamespacedKey(plugin, "owner"), PersistentDataType.STRING);
     }
 
     /** A fresh, globally unique nonce for a single voucher item. */
@@ -68,5 +72,27 @@ public final class VoucherStamp {
     /** Writes a nonce onto the meta (caller must persist it with {@code setItemMeta}). */
     public void setNonce(ItemMeta meta, String nonce) {
         nonceKey.set(meta, nonce);
+    }
+
+    /** Stamps the epoch-millis time the item was given, used to anchor relative expiry. */
+    public void setGivenAt(ItemMeta meta, long epochMillis) {
+        givenAtKey.set(meta, epochMillis);
+    }
+
+    /** The epoch-millis give time, or {@code null} if the item predates give-time stamping. */
+    @Nullable
+    public Long givenAt(ItemMeta meta) {
+        return givenAtKey.get(meta);
+    }
+
+    /** Stamps the owning player's UUID, used to enforce owner-only vouchers. */
+    public void setOwner(ItemMeta meta, UUID owner) {
+        ownerKey.set(meta, owner.toString());
+    }
+
+    /** The owning player's UUID string, or {@code null} if the item has no owner stamp. */
+    @Nullable
+    public String owner(ItemMeta meta) {
+        return ownerKey.get(meta);
     }
 }

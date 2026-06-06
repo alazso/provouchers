@@ -96,8 +96,14 @@ public final class RedeemHandler {
             send(player, "<red>This voucher cannot be redeemed.");
             return;
         }
+        if (voucher.ownerOnly() && !ownsVoucher(player, meta)) {
+            send(player, "<red>This voucher belongs to someone else.");
+            return;
+        }
         Instant now = Instant.now();
-        if (Expiry.isExpired(Expiry.resolve(voucher.expiry(), now), now)) {
+        Long givenAtMillis = stamp.givenAt(meta);
+        Instant reference = givenAtMillis != null ? Instant.ofEpochMilli(givenAtMillis) : now;
+        if (Expiry.isExpired(Expiry.resolve(voucher.expiry(), reference), now)) {
             send(player, "<red>This voucher has expired.");
             return;
         }
@@ -259,6 +265,14 @@ public final class RedeemHandler {
 
     private boolean onCooldown(Player player, String key) {
         return !player.hasPermission("provouchers.bypass.cooldown") && cooldowns.isOnCooldown(key);
+    }
+
+    private boolean ownsVoucher(Player player, ItemMeta meta) {
+        if (player.hasPermission("provouchers.bypass.owner")) {
+            return true;
+        }
+        String owner = stamp.owner(meta);
+        return owner == null || owner.equals(player.getUniqueId().toString());
     }
 
     private static boolean gameModeAllowed(Player player) {

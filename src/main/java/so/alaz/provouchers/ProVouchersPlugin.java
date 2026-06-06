@@ -65,7 +65,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
 
         VoucherStamp stamp = new VoucherStamp(this);
         RewardExecutor rewardExecutor = new RewardExecutor(StrataApi.scheduler(this), StrataApi.text());
-        VoucherItemFactory factory = new VoucherItemFactory(StrataApi.text(), stamp);
+        VoucherItemFactory factory = new VoucherItemFactory(StrataApi.text(), stamp, StrataApi.hooks());
 
         RedeemHandler redeemHandler = new RedeemHandler(
             registry,

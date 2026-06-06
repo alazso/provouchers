@@ -13,7 +13,8 @@ import java.util.Map;
  * stays independent of the running server.
  *
  * @param id            the unique voucher id (its file name without extension)
- * @param displayName   the MiniMessage display name
+ * @param displayName   the MiniMessage display name, or {@code null} to keep the
+ *                      base item's own name (relevant for custom provider items)
  * @param lore          the MiniMessage lore lines
  * @param item          the item appearance
  * @param conditionMaps raw condition sections, each a {@code type} plus its keys
@@ -27,7 +28,7 @@ import java.util.Map;
  */
 public record Voucher(
     String id,
-    String displayName,
+    @Nullable String displayName,
     List<String> lore,
     VoucherItem item,
     List<Map<String, Object>> conditionMaps,

@@ -15,7 +15,7 @@ cooldown: 0
 expiry: ""
 conditions:
   - type: permission
-    value: "provouchers.use.example"
+    permission: "provouchers.use.example"
 rewards:
   - "command: give %player% diamond 1"
   - "message: <green>You redeemed the example voucher!"

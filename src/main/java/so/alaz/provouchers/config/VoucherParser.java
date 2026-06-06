@@ -38,7 +38,7 @@ public final class VoucherParser {
 
         return new Voucher(
             voucherId,
-            section.getString("display-name", voucherId),
+            section.getString("display-name"),
             section.getStringList("lore"),
             item,
             parseConditions(section, voucherId),

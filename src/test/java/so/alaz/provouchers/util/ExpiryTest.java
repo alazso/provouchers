@@ -2,6 +2,7 @@ package so.alaz.provouchers.util;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,6 +37,17 @@ class ExpiryTest {
     void rejectsGarbage() {
         assertThatThrownBy(() -> Expiry.resolve("not-a-date", NOW))
             .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void relativeExpiryIsAnchoredToTheReferenceInstant() {
+        // Mirrors how RedeemHandler resolves "30d" against the item's give time
+        // rather than the redeem moment, so the voucher can actually expire.
+        Instant giveTime = Instant.parse("2026-01-01T00:00:00Z");
+        Instant expiry = Expiry.resolve("30d", giveTime);
+        assertThat(expiry).isEqualTo(giveTime.plus(Duration.ofDays(30)));
+        assertThat(Expiry.isExpired(expiry, giveTime.plus(Duration.ofDays(31)))).isTrue();
+        assertThat(Expiry.isExpired(expiry, giveTime.plus(Duration.ofDays(29)))).isFalse();
     }
 
     @Test
