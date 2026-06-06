@@ -22,11 +22,11 @@ import java.util.function.Supplier;
  */
 public final class VoucherMetrics {
 
-    /** ProVouchers' bStats service id. Set this once registered at https://bstats.org. */
-    private static final int BSTATS_ID = 0;
+    /** ProVouchers' bStats service id. */
+    private static final int BSTATS_ID = 31826;
 
-    /** ProVouchers' FastStats project token. Set this once a FastStats project exists. */
-    private static final String FASTSTATS_TOKEN = "";
+    /** ProVouchers' FastStats project token. */
+    private static final String FASTSTATS_TOKEN = "48a6198b8f241382cb9989b18d039776";
 
     private VoucherMetrics() {
     }
