@@ -9,10 +9,13 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
+import so.alaz.provouchers.reward.CurrencyRewardPayload;
 import so.alaz.provouchers.reward.RewardItemPayload;
 import so.alaz.provouchers.reward.RewardLine;
 import so.alaz.provouchers.util.Tokens;
 import so.alaz.provouchers.voucher.ItemResolver;
+import so.alaz.strata.api.hook.EconomyHook;
+import so.alaz.strata.api.hook.HookRegistry;
 import so.alaz.strata.api.scheduler.PlatformScheduler;
 import so.alaz.strata.api.text.TextRenderer;
 
@@ -38,13 +41,15 @@ public final class RewardExecutor {
     private final PlatformScheduler scheduler;
     private final TextRenderer text;
     private final ItemResolver items;
+    private final HookRegistry hooks;
     private final ComponentLogger logger;
 
     public RewardExecutor(PlatformScheduler scheduler, TextRenderer text, ItemResolver items,
-                          ComponentLogger logger) {
+                          HookRegistry hooks, ComponentLogger logger) {
         this.scheduler = scheduler;
         this.text = text;
         this.items = items;
+        this.hooks = hooks;
         this.logger = logger;
     }
 
@@ -83,6 +88,7 @@ public final class RewardExecutor {
             case ACTIONBAR -> player.sendActionBar(text.render(payload, player));
             case SOUND -> playSound(player, payload);
             case ITEM -> giveItem(player, payload);
+            case CURRENCY -> applyCurrency(player, payload);
         }
     }
 
@@ -91,6 +97,22 @@ public final class RewardExecutor {
         ItemStack item = items.give(spec.reference(), spec.amount());
         player.getInventory().addItem(item).values()
             .forEach(leftover -> player.getWorld().dropItemNaturally(player.getLocation(), leftover));
+    }
+
+    private void applyCurrency(Player player, String payload) {
+        CurrencyRewardPayload spec = CurrencyRewardPayload.parse(payload);
+        EconomyHook economy = hooks.get(EconomyHook.class);
+        if (economy == null) {
+            throw new IllegalStateException("no economy provider is installed");
+        }
+        double amount = spec.resolveAmount();
+        boolean applied = switch (spec.action()) {
+            case GIVE -> economy.deposit(player, amount);
+            case TAKE -> economy.withdraw(player, amount);
+        };
+        if (!applied) {
+            throw new IllegalStateException("economy transaction was rejected");
+        }
     }
 
     private void playSound(Player player, String payload) {

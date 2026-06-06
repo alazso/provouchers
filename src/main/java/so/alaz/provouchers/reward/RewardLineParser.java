@@ -46,6 +46,8 @@ public final class RewardLineParser {
         }
         if (type == RewardType.ITEM) {
             validateItemPayload(payload);
+        } else if (type == RewardType.CURRENCY) {
+            CurrencyRewardPayload.parse(payload);
         }
         return new RewardLine(type, payload);
     }

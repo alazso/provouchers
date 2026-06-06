@@ -68,6 +68,20 @@ class RewardLineParserTest {
     }
 
     @Test
+    void parsesCurrencyReward() {
+        RewardLine give = RewardLineParser.parse("currency: give 250");
+        assertThat(give.type()).isEqualTo(RewardType.CURRENCY);
+        assertThat(give.payload()).isEqualTo("give 250");
+        assertThat(RewardLineParser.parse("economy: 100").type()).isEqualTo(RewardType.CURRENCY);
+    }
+
+    @Test
+    void rejectsCurrencyRewardWithBadAmount() {
+        assertThatThrownBy(() -> RewardLineParser.parse("currency: give lots"))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void rejectsMissingSeparator() {
         assertThatThrownBy(() -> RewardLineParser.parse("give diamond"))
             .isInstanceOf(IllegalArgumentException.class);

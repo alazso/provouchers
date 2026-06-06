@@ -26,7 +26,9 @@ public enum RewardType {
     /** Play a sound (a namespaced key) to the player. */
     SOUND,
     /** Give an item: a vanilla material or a {@code provider:id} custom item. */
-    ITEM;
+    ITEM,
+    /** Give or take currency through the server's economy (Vault and compatibles). */
+    CURRENCY;
 
     /**
      * Resolves a reward keyword (case-insensitive) to its type, or {@code null}
@@ -43,6 +45,7 @@ public enum RewardType {
             case "actionbar", "action-bar" -> ACTIONBAR;
             case "sound" -> SOUND;
             case "item", "give-item", "itemsadder", "ia", "oraxen", "nexo" -> ITEM;
+            case "currency", "economy", "money", "eco" -> CURRENCY;
             default -> null;
         };
     }
