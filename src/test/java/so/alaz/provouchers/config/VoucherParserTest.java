@@ -106,6 +106,45 @@ class VoucherParserTest {
     }
 
     @Test
+    void invalidMaterialIsRejectedAtLoad() throws Exception {
+        assertThatThrownBy(() -> VoucherParser.parseVoucher(yaml("item:\n  material: DIMAOND\n"), "bad"))
+            .isInstanceOf(VoucherParseException.class)
+            .hasMessageContaining("material");
+    }
+
+    @Test
+    void malformedCustomItemIsRejectedAtLoad() throws Exception {
+        YamlConfiguration config = yaml("""
+            item:
+              material: PAPER
+              custom: "itemsadder:"
+            """);
+        assertThatThrownBy(() -> VoucherParser.parseVoucher(config, "bad"))
+            .isInstanceOf(VoucherParseException.class)
+            .hasMessageContaining("custom");
+    }
+
+    @Test
+    void malformedExpiryIsRejectedAtLoad() throws Exception {
+        YamlConfiguration config = yaml("item:\n  material: PAPER\nexpiry: \"1 month\"\n");
+        assertThatThrownBy(() -> VoucherParser.parseVoucher(config, "bad"))
+            .isInstanceOf(VoucherParseException.class)
+            .hasMessageContaining("expiry");
+    }
+
+    @Test
+    void validCustomItemAndRelativeExpiryAccepted() throws Exception {
+        Voucher voucher = VoucherParser.parseVoucher(yaml("""
+            item:
+              material: PAPER
+              custom: "itemsadder:ax_wings_pack:phoenix_wings"
+            expiry: "30d"
+            """), "ok");
+        assertThat(voucher.item().customItem()).isEqualTo("itemsadder:ax_wings_pack:phoenix_wings");
+        assertThat(voucher.expiry()).isEqualTo("30d");
+    }
+
+    @Test
     void parsesACode() throws Exception {
         YamlConfiguration config = yaml("""
             code: WELCOME

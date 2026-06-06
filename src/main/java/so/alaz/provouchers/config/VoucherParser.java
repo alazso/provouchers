@@ -5,10 +5,14 @@ import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.reward.RewardLine;
 import so.alaz.provouchers.reward.RewardLineParser;
 import so.alaz.provouchers.reward.RewardSet;
+import so.alaz.provouchers.util.Expiry;
+import so.alaz.provouchers.voucher.CustomItemRef;
+import so.alaz.provouchers.voucher.Materials;
 import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.provouchers.voucher.VoucherCode;
 import so.alaz.provouchers.voucher.VoucherItem;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,7 +51,7 @@ public final class VoucherParser {
             section.getBoolean("unredeemable", false),
             section.getBoolean("owner-only", false),
             section.getLong("cooldown", 0L),
-            emptyToNull(section.getString("expiry", "")),
+            parseExpiry(section, voucherId),
             section.getBoolean("has-argument", false)
         );
     }
@@ -67,7 +71,7 @@ public final class VoucherParser {
             section.getBoolean("case-sensitive", false),
             section.getInt("max-uses", -1),
             usesPerPlayer,
-            emptyToNull(section.getString("expiry", "")),
+            parseExpiry(section, code),
             parseConditions(section, code),
             parseRewards(section.getStringList("rewards"), code),
             parseRandomRewards(section, code),
@@ -77,13 +81,40 @@ public final class VoucherParser {
 
     private static VoucherItem parseItem(ConfigurationSection item, String id) {
         String custom = emptyToNull(item.getString("custom", ""));
+        if (custom != null) {
+            try {
+                CustomItemRef.parse(custom);
+            } catch (IllegalArgumentException ex) {
+                throw new VoucherParseException("voucher '" + id + "': item.custom " + ex.getMessage(), ex);
+            }
+        }
         String material = item.getString("material", "PAPER");
-        if ((material == null || material.isBlank()) && custom == null) {
-            throw new VoucherParseException("voucher '" + id + "': item.material must not be blank");
+        if (material == null || material.isBlank()) {
+            if (custom == null) {
+                throw new VoucherParseException("voucher '" + id + "': item.material must not be blank");
+            }
+            material = "PAPER";
+        }
+        try {
+            Materials.resolve(material);
+        } catch (IllegalArgumentException ex) {
+            throw new VoucherParseException("voucher '" + id + "': item.material " + ex.getMessage(), ex);
         }
         Integer cmd = item.contains("custom-model-data") ? item.getInt("custom-model-data") : null;
-        return new VoucherItem(material == null ? "PAPER" : material, custom, cmd,
-            item.getBoolean("glow", false));
+        return new VoucherItem(material, custom, cmd, item.getBoolean("glow", false));
+    }
+
+    @Nullable
+    private static String parseExpiry(ConfigurationSection section, String id) {
+        String raw = emptyToNull(section.getString("expiry", ""));
+        if (raw != null) {
+            try {
+                Expiry.resolve(raw, Instant.now());
+            } catch (IllegalArgumentException ex) {
+                throw new VoucherParseException("voucher '" + id + "': expiry " + ex.getMessage(), ex);
+            }
+        }
+        return raw;
     }
 
     private static List<RewardLine> parseRewards(List<String> lines, String id) {

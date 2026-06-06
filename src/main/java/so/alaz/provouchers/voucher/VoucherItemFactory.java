@@ -14,7 +14,6 @@ import so.alaz.strata.api.hook.ItemHook;
 import so.alaz.strata.api.text.TextRenderer;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -60,7 +59,11 @@ public final class VoucherItemFactory {
             decorateProvidedItem(custom, voucher, viewer);
             return custom;
         }
-        Material material = resolveMaterial(voucher.item().material());
+        Material material = Materials.resolve(voucher.item().material());
+        if (!material.isItem()) {
+            throw new IllegalArgumentException(
+                "material '" + material.name() + "' is not an obtainable item");
+        }
         String name = voucher.displayName() != null ? voucher.displayName() : voucher.id();
         ItemBuilder builder = new ItemBuilder(material)
             .amount(amount)
@@ -130,16 +133,5 @@ public final class VoucherItemFactory {
             }
         }
         return null;
-    }
-
-    private static Material resolveMaterial(String name) {
-        Material material = Material.matchMaterial(name);
-        if (material == null) {
-            material = Material.getMaterial(name.toUpperCase(Locale.ROOT));
-        }
-        if (material == null || !material.isItem()) {
-            throw new IllegalArgumentException("Unknown or non-item material '" + name + "'");
-        }
-        return material;
     }
 }
