@@ -11,21 +11,37 @@ class RewardItemPayloadTest {
     void defaultsAmountToOne() {
         RewardItemPayload payload = RewardItemPayload.parse("DIAMOND");
         assertThat(payload.reference()).isEqualTo("DIAMOND");
-        assertThat(payload.amount()).isEqualTo(1);
+        assertThat(payload.amount()).isEqualTo("1");
+        assertThat(payload.resolveAmount()).isEqualTo(1);
     }
 
     @Test
     void readsTrailingAmount() {
         RewardItemPayload payload = RewardItemPayload.parse("DIAMOND 5");
         assertThat(payload.reference()).isEqualTo("DIAMOND");
-        assertThat(payload.amount()).isEqualTo(5);
+        assertThat(payload.resolveAmount()).isEqualTo(5);
     }
 
     @Test
     void keepsProviderReferenceIntact() {
         RewardItemPayload payload = RewardItemPayload.parse("itemsadder:ax_wings_pack:phoenix_wings 2");
         assertThat(payload.reference()).isEqualTo("itemsadder:ax_wings_pack:phoenix_wings");
-        assertThat(payload.amount()).isEqualTo(2);
+        assertThat(payload.resolveAmount()).isEqualTo(2);
+    }
+
+    @Test
+    void acceptsTokenAmountAtParseTime() {
+        // The token is only resolved at redeem time, after substitution, so it must
+        // parse without error at load (mirroring currency).
+        RewardItemPayload payload = RewardItemPayload.parse("GOLD_INGOT {random:1-3}");
+        assertThat(payload.reference()).isEqualTo("GOLD_INGOT");
+        assertThat(payload.amount()).isEqualTo("{random:1-3}");
+    }
+
+    @Test
+    void resolvesAmountAfterSubstitution() {
+        // What the executor sees once the token has been substituted to a number.
+        assertThat(RewardItemPayload.parse("GOLD_INGOT 3").resolveAmount()).isEqualTo(3);
     }
 
     @Test
@@ -35,7 +51,7 @@ class RewardItemPayloadTest {
     }
 
     @Test
-    void rejectsNonNumericAmount() {
+    void rejectsNonNumericLiteralAmount() {
         assertThatThrownBy(() -> RewardItemPayload.parse("DIAMOND lots"))
             .isInstanceOf(IllegalArgumentException.class);
     }
