@@ -98,7 +98,7 @@ public final class RewardExecutor {
 
     private void giveItem(Player player, String payload) {
         RewardItemPayload spec = RewardItemPayload.parse(payload);
-        ItemStack item = items.give(spec.reference(), spec.amount());
+        ItemStack item = items.give(spec.reference(), spec.resolveAmount());
         player.getInventory().addItem(item).values()
             .forEach(leftover -> player.getWorld().dropItemNaturally(player.getLocation(), leftover));
     }
