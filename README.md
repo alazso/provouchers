@@ -1,25 +1,31 @@
 # ProVouchers
 
-A feature-rich voucher plugin for Paper and Folia 26.1+ (Java 25).
+Item vouchers and redeemable codes for Paper and Folia 26.1+ (Java 25).
 
-ProVouchers gives server operators item vouchers and typeable codes with a
-config-driven reward and condition system, persistent anti-dupe protection, a
-preview GUI, and a migration path from CrazyVouchers.
+ProVouchers lets server operators hand out rewards as items players right-click
+(vouchers) or words players type (codes). Both are defined in plain YAML, share a
+typed reward and condition system, and are backed by persistent storage with
+anti-dupe protection.
 
 ## Requirements
 
 - Paper or Folia 26.1+ (Java 25)
-- [Strata](https://github.com/alazso/strata) installed on the server
+- [Strata](https://github.com/alazso/strata) 0.9.0+ installed on the server
 
-ProVouchers builds on Strata for scheduling, storage, text rendering,
-conditions, hooks, GUIs, and metrics. Install Strata first; it loads before
-ProVouchers automatically.
+ProVouchers builds on Strata for scheduling, storage, text rendering, conditions,
+integrations, and metrics. Install Strata first; it loads before ProVouchers
+automatically.
 
 ## Installation
 
-1. Download `Strata` and drop it into `plugins/`.
+1. Download Strata and drop it into `plugins/`.
 2. Download the latest `provouchers-<version>.jar` from [Releases](https://github.com/alazso/provouchers/releases).
 3. Drop it into `plugins/` and restart the server.
+
+## Documentation
+
+Full documentation is at https://alaz.so/provouchers/docs, including a
+[developer API](https://alaz.so/provouchers/docs/developers) for other plugins.
 
 ## Building
 
@@ -29,13 +35,13 @@ ProVouchers automatically.
 ```
 
 The build compiles, runs tests, checks coverage, and produces the plugin jar.
-Strata's API is a compile-only dependency, resolved from `https://repo.alaz.so/releases`.
+The public API module is published as `so.alaz.provouchers:provouchers-api`.
 
 ## Releasing
 
 1. Update `version` in `gradle.properties`.
 2. Push a tag matching `v<version>`. CI validates the tag against the version,
-   builds, and creates a GitHub release.
+   builds, creates a GitHub release, and publishes the API artifact.
 
 ## License
 
