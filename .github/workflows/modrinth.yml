@@ -1,0 +1,40 @@
+name: Publish to Modrinth
+
+# Runs after a GitHub release is published (the release workflow does that on a
+# v* tag). mc-publish reads the release's jar asset, name, version, and notes, and
+# creates a matching version on Modrinth.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  modrinth:
+    name: Upload to Modrinth
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          # Your Modrinth project id or slug. Confirm this matches the project.
+          modrinth-id: provouchers
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+
+          # The jar attached to the GitHub release by release.yml.
+          files: provouchers-*.jar
+
+          # Supported platforms. These must match values Modrinth recognises.
+          loaders: |
+            paper
+            folia
+          game-versions: |
+            26.1
+
+          # Required dependency. Confirm the Strata Modrinth slug, or remove this.
+          dependencies: |
+            strata(required)
+
+          # Version name, number, changelog, and release/beta type are taken from
+          # the GitHub release automatically.
