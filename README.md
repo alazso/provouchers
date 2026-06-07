@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/alazso/provouchers/main/.github/assets/banner.png" alt="ProVouchers — Item vouchers and redeemable codes for Paper and Folia" width="720">
+<img src="https://raw.githubusercontent.com/alazso/provouchers/main/.github/assets/banner.png" alt="ProVouchers — a powerful ecosystem of integrations for your server" width="720">
 
 [![Build](https://img.shields.io/github/actions/workflow/status/alazso/provouchers/ci.yml?branch=main&style=for-the-badge&label=build)](https://github.com/alazso/provouchers/actions)
 [![Downloads](https://img.shields.io/modrinth/dt/iOogVoaR?style=for-the-badge&logo=modrinth&label=downloads)](https://modrinth.com/plugin/provouchers)
@@ -17,7 +17,7 @@
 
 <br>
 
-Hand out rewards as **items players right-click** or **codes players type**. Define everything in plain YAML, reload it live, and let ProVouchers handle the rest: persistent anti-dupe, cooldowns that survive restarts, and clean integrations with the plugins you already run.
+Create vouchers and redeemable codes backed by a **powerful ecosystem of integrations**, built to help your server stand out. Hand out rewards as **items players right-click** or **codes players type**, define everything in plain YAML, and reload it live, with persistent anti-dupe and cooldowns that survive restarts.
 
 <br>
 

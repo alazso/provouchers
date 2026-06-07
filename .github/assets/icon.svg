@@ -1,0 +1,43 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1f1710"/>
+      <stop offset="1" stop-color="#0f0a06"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.3" cy="0.22" r="0.85">
+      <stop offset="0" stop-color="#FF9A2E" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#FF9A2E" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ticket" x1="120" y1="150" x2="392" y2="372" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFE7A0"/>
+      <stop offset="0.45" stop-color="#FFD034"/>
+      <stop offset="0.8" stop-color="#FF7F32"/>
+      <stop offset="1" stop-color="#FF4500"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="512" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFD700"/>
+      <stop offset="0.5" stop-color="#FF7F50"/>
+      <stop offset="1" stop-color="#FF4500"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <rect width="512" height="512" fill="url(#glow)"/>
+
+  <!-- ticket emblem -->
+  <g transform="rotate(-7 256 256)">
+    <!-- soft drop shadow -->
+    <rect x="118" y="166" width="284" height="184" rx="34" fill="#000000" opacity="0.28"/>
+    <!-- ticket body -->
+    <rect x="112" y="158" width="284" height="184" rx="34" fill="url(#ticket)"/>
+    <!-- perforation: stub on the right, notch circles cut from bg -->
+    <circle cx="318" cy="158" r="20" fill="url(#bg)"/>
+    <circle cx="318" cy="342" r="20" fill="url(#bg)"/>
+    <line x1="318" y1="190" x2="318" y2="310" stroke="#1a130b" stroke-width="7" stroke-dasharray="10 14" stroke-linecap="round" opacity="0.85"/>
+    <!-- star cutout on the main face -->
+    <path d="M205 200 l16 34 37 4.5 -27.5 26 7 37.5 -33.5 -18.5 -33.5 18.5 7 -37.5 -27.5 -26 37 -4.5 Z" fill="#1a130b" opacity="0.92"/>
+  </g>
+
+  <!-- bottom accent bar -->
+  <rect x="0" y="496" width="512" height="16" fill="url(#bar)"/>
+</svg>
