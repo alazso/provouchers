@@ -15,8 +15,7 @@
 
 <br>
 
-> [!IMPORTANT]
-> **Requires [Strata](https://github.com/alazso/strata) v0.9.0+.** Strata is the shared library ProVouchers builds on (scheduling, storage, integrations, conditions, text). It is currently under review on Modrinth, so for now grab **Strata API v0.9.0** from [GitHub releases](https://github.com/alazso/strata/releases/tag/v0.9.0).
+> ⚠️ &nbsp; **Requires [Strata](https://github.com/alazso/strata) v0.9.0+.** Strata is the shared library ProVouchers builds on (scheduling, storage, integrations, conditions, text). It is currently under review on Modrinth, so for now grab **Strata API v0.9.0** from [GitHub releases](https://github.com/alazso/strata/releases/tag/v0.9.0).
 
 <br>
 
