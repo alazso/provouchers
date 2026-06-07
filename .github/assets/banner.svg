@@ -1,0 +1,55 @@
+<svg width="1600" height="400" viewBox="0 0 1600 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1c150d"/>
+      <stop offset="1" stop-color="#110c08"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.32" cy="-0.1" r="0.9">
+      <stop offset="0" stop-color="#FF9A2E" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#FF9A2E" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="330" y1="120" x2="1180" y2="230" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFE899"/>
+      <stop offset="0.35" stop-color="#FFD700"/>
+      <stop offset="0.72" stop-color="#FF7F50"/>
+      <stop offset="1" stop-color="#FF4500"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1600" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFD700"/>
+      <stop offset="0.45" stop-color="#FF7F50"/>
+      <stop offset="0.75" stop-color="#FF4500"/>
+      <stop offset="1" stop-color="#8B0000"/>
+    </linearGradient>
+    <linearGradient id="ticket" x1="150" y1="150" x2="340" y2="250" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFDD7A"/>
+      <stop offset="1" stop-color="#FF6A1F"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="400" fill="url(#bg)"/>
+  <rect width="1600" height="400" fill="url(#glow)"/>
+  <rect x="0" y="0" width="1600" height="6" fill="url(#bar)"/>
+  <rect x="0" y="394" width="1600" height="6" fill="url(#bar)" opacity="0.55"/>
+
+  <!-- ticket emblem -->
+  <g transform="translate(150 158)">
+    <rect x="0" y="0" width="190" height="84" rx="18" fill="url(#ticket)"/>
+    <circle cx="126" cy="0" r="11" fill="#15100b"/>
+    <circle cx="126" cy="84" r="11" fill="#15100b"/>
+    <line x1="126" y1="16" x2="126" y2="68" stroke="#15100b" stroke-width="3.5" stroke-dasharray="5 7" stroke-linecap="round"/>
+    <path d="M55 24 l6.5 13.6 15 1.7 -11 10.4 2.9 14.8 -13.4 -7.4 -13.4 7.4 2.9 -14.8 -11 -10.4 15 -1.7 Z" fill="#15100b" opacity="0.9"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="392" y="210" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="118" font-weight="800" letter-spacing="-3" fill="url(#gold)">ProVouchers</text>
+
+  <!-- tagline -->
+  <text x="396" y="266" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="33" font-weight="500" letter-spacing="0.4" fill="#d2c4b0">Item vouchers and redeemable codes for Paper · Folia · Purpur</text>
+
+  <!-- sparkles -->
+  <circle cx="1430" cy="110" r="4" fill="#FFD700" opacity="0.8"/>
+  <circle cx="1480" cy="150" r="2.5" fill="#FF7F50" opacity="0.7"/>
+  <circle cx="1390" cy="170" r="2.5" fill="#FFE899" opacity="0.6"/>
+  <circle cx="1500" cy="250" r="3.5" fill="#FF4500" opacity="0.65"/>
+  <circle cx="1440" cy="285" r="2.5" fill="#FFD700" opacity="0.6"/>
+</svg>

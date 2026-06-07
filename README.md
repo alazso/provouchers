@@ -1,8 +1,6 @@
 <div align="center">
 
-# 🎟️ ProVouchers
-
-#### Item vouchers and redeemable codes for Paper and Folia
+<img src="https://raw.githubusercontent.com/alazso/provouchers/main/.github/assets/banner.png" alt="ProVouchers — Item vouchers and redeemable codes for Paper and Folia" width="720">
 
 [![Build](https://img.shields.io/github/actions/workflow/status/alazso/provouchers/ci.yml?branch=main&style=for-the-badge&label=build)](https://github.com/alazso/provouchers/actions)
 [![Downloads](https://img.shields.io/modrinth/dt/iOogVoaR?style=for-the-badge&logo=modrinth&label=downloads)](https://modrinth.com/plugin/provouchers)
