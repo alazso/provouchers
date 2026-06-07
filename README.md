@@ -15,7 +15,7 @@
 
 <br>
 
-> ⚠️ &nbsp; **Requires [Strata](https://github.com/alazso/strata) v0.9.0+.** Strata is the shared library ProVouchers builds on (scheduling, storage, integrations, conditions, text). It is currently under review on Modrinth, so for now grab **Strata API v0.9.0** from [GitHub releases](https://github.com/alazso/strata/releases/tag/v0.9.0).
+> ⚠️ **Requires [Strata](https://github.com/alazso/strata) v0.9.0+.** Strata is the shared library ProVouchers builds on (scheduling, storage, integrations, conditions, text). It is currently under review on Modrinth, so for now grab **Strata API v0.9.0** from [GitHub releases](https://github.com/alazso/strata/releases/tag/v0.9.0).
 
 <br>
 
@@ -23,7 +23,7 @@ Hand out rewards as **items players right-click** or **codes players type**. Def
 
 <br>
 
-## ✨ Highlights
+## Features
 
 |   |   |
 |---|---|
@@ -81,7 +81,9 @@ That is a working voucher, top to bottom. The **[documentation](https://alaz.so/
 
 ## 🗺️ Roadmap
 
-A paginated preview GUI, an offline-give queue, and a `/voucher fromhand` serializer.
+* A paginated preview GUI
+* An offline-give queue
+* `/voucher fromhand` serializer.
 
 <br>
 
