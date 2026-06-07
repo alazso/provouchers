@@ -145,6 +145,31 @@ class VoucherParserTest {
     }
 
     @Test
+    void parsesSkullItem() throws Exception {
+        YamlConfiguration config = yaml("""
+            item:
+              skull:
+                source: texture
+                value: "eyJ0ZXh0dXJlcyI6..."
+            """);
+        var voucher = VoucherParser.parseVoucher(config, "head");
+        assertThat(voucher.item().skull()).isNotNull();
+        assertThat(voucher.item().skull().source())
+            .isEqualTo(so.alaz.provouchers.voucher.SkullSpec.Source.TEXTURE);
+    }
+
+    @Test
+    void rejectsSkullWithUnknownSourceOrBadUuid() throws Exception {
+        assertThatThrownBy(() -> VoucherParser.parseVoucher(
+            yaml("item:\n  skull:\n    source: hologram\n    value: x\n"), "bad"))
+            .isInstanceOf(VoucherParseException.class)
+            .hasMessageContaining("skull");
+        assertThatThrownBy(() -> VoucherParser.parseVoucher(
+            yaml("item:\n  skull:\n    source: uuid\n    value: not-a-uuid\n"), "bad"))
+            .isInstanceOf(VoucherParseException.class);
+    }
+
+    @Test
     void parsesACode() throws Exception {
         YamlConfiguration config = yaml("""
             code: WELCOME

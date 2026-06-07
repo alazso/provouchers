@@ -8,6 +8,7 @@ import so.alaz.provouchers.reward.RewardSet;
 import so.alaz.provouchers.util.Expiry;
 import so.alaz.provouchers.voucher.CustomItemRef;
 import so.alaz.provouchers.voucher.Materials;
+import so.alaz.provouchers.voucher.SkullSpec;
 import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.provouchers.voucher.VoucherCode;
 import so.alaz.provouchers.voucher.VoucherItem;
@@ -101,7 +102,24 @@ public final class VoucherParser {
             throw new VoucherParseException("voucher '" + id + "': item.material " + ex.getMessage(), ex);
         }
         Integer cmd = item.contains("custom-model-data") ? item.getInt("custom-model-data") : null;
-        return new VoucherItem(material, custom, cmd, item.getBoolean("glow", false));
+        SkullSpec skull = parseSkull(item.getConfigurationSection("skull"), id);
+        return new VoucherItem(material, custom, cmd, item.getBoolean("glow", false), skull);
+    }
+
+    @Nullable
+    private static SkullSpec parseSkull(@Nullable ConfigurationSection skull, String id) {
+        if (skull == null) {
+            return null;
+        }
+        String sourceRaw = skull.getString("source");
+        if (sourceRaw == null || sourceRaw.isBlank()) {
+            throw new VoucherParseException("voucher '" + id + "': item.skull.source is required");
+        }
+        try {
+            return new SkullSpec(SkullSpec.source(sourceRaw), skull.getString("value", ""));
+        } catch (IllegalArgumentException ex) {
+            throw new VoucherParseException("voucher '" + id + "': item.skull " + ex.getMessage(), ex);
+        }
     }
 
     @Nullable

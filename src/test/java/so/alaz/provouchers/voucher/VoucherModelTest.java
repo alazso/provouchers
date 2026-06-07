@@ -11,13 +11,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class VoucherModelTest {
 
     private static Voucher voucher(String id, long cooldown) {
-        return new Voucher(id, id, List.of(), new VoucherItem("PAPER", null, null, false),
+        return new Voucher(id, id, List.of(), new VoucherItem("PAPER", null, null, false, null),
             List.of(), List.of(), List.of(), false, false, cooldown, null, false);
     }
 
     @Test
     void blankItemMaterialRejected() {
-        assertThatThrownBy(() -> new VoucherItem("  ", null, null, false))
+        assertThatThrownBy(() -> new VoucherItem("  ", null, null, false, null))
             .isInstanceOf(IllegalArgumentException.class);
     }
 

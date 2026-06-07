@@ -12,12 +12,15 @@ import org.jetbrains.annotations.Nullable;
  *                        {@code oraxen:my_item}), resolved through a Strata item hook
  * @param customModelData an optional custom model data value, or {@code null}
  * @param glow            whether the item should have the enchant glint
+ * @param skull           an optional player-head specification; when set the item is
+ *                        a custom head, built through Strata's skull builder
  */
 public record VoucherItem(
     String material,
     @Nullable String customItem,
     @Nullable Integer customModelData,
-    boolean glow
+    boolean glow,
+    @Nullable SkullSpec skull
 ) {
 
     public VoucherItem {

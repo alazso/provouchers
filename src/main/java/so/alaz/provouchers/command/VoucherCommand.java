@@ -1,7 +1,6 @@
 package so.alaz.provouchers.command;
 
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.config.ConfigManager;
@@ -126,9 +125,9 @@ public final class VoucherCommand {
 
     private void giveItem(Voucher voucher, int amount, Player target) {
         UUID batchId = UUID.randomUUID();
-        ItemStack item = factory.createItem(voucher, amount, target, batchId);
-        scheduler.entity(target, () -> target.getInventory().addItem(item).values()
-            .forEach(leftover -> target.getWorld().dropItemNaturally(target.getLocation(), leftover)));
+        factory.createItem(voucher, amount, target, batchId).thenAccept(item ->
+            scheduler.entity(target, () -> target.getInventory().addItem(item).values()
+                .forEach(leftover -> target.getWorld().dropItemNaturally(target.getLocation(), leftover))));
     }
 
     private void redeem(CommandContext ctx, @Nullable String arg) {

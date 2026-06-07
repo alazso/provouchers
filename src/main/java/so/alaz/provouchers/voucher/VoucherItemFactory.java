@@ -9,16 +9,23 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.antidupe.VoucherStamp;
 import so.alaz.strata.api.gui.ItemBuilder;
+import so.alaz.strata.api.item.SkullBuilder;
 import so.alaz.strata.api.text.TextRenderer;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
- * Builds the physical {@link ItemStack} for a voucher. When the voucher names a
- * custom provider item (Oraxen, ItemsAdder, and so on via a Strata item hook) that
- * item is used as the base; otherwise a vanilla material is used. Either way the
- * voucher's name, lore, and glow are applied on top, and the persistent-data stamp
- * (id, batch, give time, and owner for owner-only vouchers) is written.
+ * Builds the physical {@link ItemStack} for a voucher. The base item is, in order
+ * of precedence, a custom provider item ({@code custom:}), a player head
+ * ({@code skull:}), or a vanilla material. The voucher's name, lore, and glow are
+ * applied on top, and the persistent-data stamp (id, batch, give time, owner) is
+ * written.
+ *
+ * <p>The result is a {@link CompletableFuture} because some skull sources (player
+ * name or UUID) resolve a skin from Mojang off-thread. For every other source the
+ * future is already complete. The returned item may be built off the main thread,
+ * so callers must add it to an inventory on the owning region thread.
  */
 public final class VoucherItemFactory {
 
@@ -37,25 +44,38 @@ public final class VoucherItemFactory {
      * Names and lore are rendered for {@code viewer} when non-null; for an owner-only
      * voucher, {@code viewer} is recorded as the owner.
      */
-    public ItemStack createItem(Voucher voucher, int amount, @Nullable Player viewer, UUID batchId) {
-        ItemStack item = buildBase(voucher, amount, viewer);
-        item.editMeta(meta -> {
-            stamp.stamp(meta, voucher.id(), batchId);
-            stamp.setGivenAt(meta, System.currentTimeMillis());
-            if (voucher.ownerOnly() && viewer != null) {
-                stamp.setOwner(meta, viewer.getUniqueId());
-            }
+    public CompletableFuture<ItemStack> createItem(Voucher voucher, int amount, @Nullable Player viewer,
+                                                   UUID batchId) {
+        return buildBase(voucher, amount, viewer).thenApply(item -> {
+            item.editMeta(meta -> {
+                stamp.stamp(meta, voucher.id(), batchId);
+                stamp.setGivenAt(meta, System.currentTimeMillis());
+                if (voucher.ownerOnly() && viewer != null) {
+                    stamp.setOwner(meta, viewer.getUniqueId());
+                }
+            });
+            return item;
         });
-        return item;
     }
 
-    private ItemStack buildBase(Voucher voucher, int amount, @Nullable Player viewer) {
+    private CompletableFuture<ItemStack> buildBase(Voucher voucher, int amount, @Nullable Player viewer) {
         ItemStack custom = items.custom(voucher.item().customItem());
         if (custom != null) {
             custom.setAmount(amount);
-            decorateProvidedItem(custom, voucher, viewer);
-            return custom;
+            decorate(custom, voucher, viewer, false);
+            return CompletableFuture.completedFuture(custom);
         }
+        SkullSpec skull = voucher.item().skull();
+        if (skull != null) {
+            return buildSkull(skull, amount).thenApply(head -> {
+                decorate(head, voucher, viewer, true);
+                return head;
+            });
+        }
+        return CompletableFuture.completedFuture(buildMaterial(voucher, amount, viewer));
+    }
+
+    private ItemStack buildMaterial(Voucher voucher, int amount, @Nullable Player viewer) {
         Material material = Materials.resolve(voucher.item().material());
         if (!material.isItem()) {
             throw new IllegalArgumentException(
@@ -77,12 +97,25 @@ public final class VoucherItemFactory {
         return item;
     }
 
+    private CompletableFuture<ItemStack> buildSkull(SkullSpec skull, int amount) {
+        CompletableFuture<ItemStack> head = switch (skull.source()) {
+            case TEXTURE -> CompletableFuture.completedFuture(SkullBuilder.fromTexture(skull.value()));
+            case URL -> CompletableFuture.completedFuture(SkullBuilder.fromUrl(skull.value()));
+            case NAME -> SkullBuilder.fromName(skull.value());
+            case UUID -> SkullBuilder.fromUuid(UUID.fromString(skull.value()));
+        };
+        return head.thenApply(item -> {
+            item.setAmount(amount);
+            return item;
+        });
+    }
+
     /**
-     * Applies the voucher's name, lore, and glow onto a provider-supplied item.
-     * The provider's own model and custom model data are kept; the display name is
-     * only overridden when the voucher sets one.
+     * Applies the voucher's name, lore, and glow onto an already-built base item
+     * (a custom provider item or a skull). The display name is only overridden when
+     * the voucher sets one; custom model data is applied only when {@code applyModelData}.
      */
-    private void decorateProvidedItem(ItemStack item, Voucher voucher, @Nullable Player viewer) {
+    private void decorate(ItemStack item, Voucher voucher, @Nullable Player viewer, boolean applyModelData) {
         item.editMeta(meta -> {
             if (voucher.displayName() != null) {
                 meta.displayName(text.render(voucher.displayName(), viewer)
@@ -96,6 +129,10 @@ public final class VoucherItemFactory {
             if (voucher.item().glow() && !meta.hasEnchants()) {
                 meta.addEnchant(Enchantment.UNBREAKING, 1, true);
                 meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            }
+            Integer customModelData = voucher.item().customModelData();
+            if (applyModelData && customModelData != null) {
+                meta.setCustomModelData(customModelData);
             }
         });
     }
