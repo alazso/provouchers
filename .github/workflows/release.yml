@@ -121,6 +121,38 @@ jobs:
               "$STAGING"/*
           fi
 
+      - name: Publish to Modrinth
+        if: steps.published.outputs.skip != 'true' && (github.event_name == 'push' || inputs.dry_run != true)
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          # ProVouchers (https://modrinth.com/plugin/provouchers)
+          modrinth-id: iOogVoaR
+          # Organization-level secret, available to this repo with no per-repo setup.
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+
+          # The jar built and staged earlier in this job.
+          files: release-artifacts/provouchers-*.jar
+          name: v${{ steps.version.outputs.version }}
+          version: ${{ steps.version.outputs.version }}
+          version-type: release
+
+          # Pull the generated GitHub release body in as the changelog.
+          github-token: ${{ github.token }}
+
+          loaders: |
+            paper
+            folia
+            purpur
+          game-versions: |
+            26.1
+            26.1.1
+            26.1.2
+
+          # Strata is a required dependency (Modrinth slug: strata-api).
+          # Uncomment once strata-api is approved on Modrinth (PV-10).
+          # dependencies: |
+          #   strata-api(required)
+
       - name: Publish to repo.alaz.so
         if: steps.published.outputs.skip != 'true' && (github.event_name == 'push' || inputs.dry_run != true)
         env:
