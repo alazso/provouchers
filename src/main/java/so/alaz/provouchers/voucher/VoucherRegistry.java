@@ -63,6 +63,11 @@ public final class VoucherRegistry {
         return List.copyOf(codes.values());
     }
 
+    /** All loaded vouchers, in no particular order. */
+    public Collection<Voucher> vouchers() {
+        return List.copyOf(vouchers.values());
+    }
+
     public int voucherCount() {
         return vouchers.size();
     }

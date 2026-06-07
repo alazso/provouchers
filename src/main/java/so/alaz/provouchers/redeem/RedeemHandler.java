@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.antidupe.DupeDetector;
 import so.alaz.provouchers.antidupe.StampStatus;
 import so.alaz.provouchers.antidupe.VoucherStamp;
+import so.alaz.provouchers.metrics.MetricCounters;
 import so.alaz.provouchers.api.event.VoucherCodePreRedeemEvent;
 import so.alaz.provouchers.api.event.VoucherCodeRedeemEvent;
 import so.alaz.provouchers.api.event.VoucherPreRedeemEvent;
@@ -54,6 +55,7 @@ public final class RedeemHandler {
     private final TextRenderer text;
     private final CooldownService cooldowns;
     private final ConditionRegistry conditions;
+    private final MetricCounters counters;
     private final boolean removeOnDiscovery;
 
     public RedeemHandler(
@@ -66,6 +68,7 @@ public final class RedeemHandler {
         TextRenderer text,
         CooldownService cooldowns,
         ConditionRegistry conditions,
+        MetricCounters counters,
         boolean removeOnDiscovery
     ) {
         this.registry = registry;
@@ -77,6 +80,7 @@ public final class RedeemHandler {
         this.text = text;
         this.cooldowns = cooldowns;
         this.conditions = conditions;
+        this.counters = counters;
         this.removeOnDiscovery = removeOnDiscovery;
     }
 
@@ -122,6 +126,7 @@ public final class RedeemHandler {
         }
         ConditionResult conditionResult = evaluate(voucher.conditionMaps(), player);
         if (!conditionResult.getPassed()) {
+            counters.recordConditionDenial();
             replyFailure(player, conditionResult);
             return;
         }
@@ -155,6 +160,7 @@ public final class RedeemHandler {
                                   StampStatus status) {
         if (!allowed) {
             if (status == StampStatus.DUPLICATE) {
+                counters.recordDuplicateBlocked();
                 send(player, "<red>This voucher has already been redeemed.");
                 notifyStaff(player.getName() + " tried to redeem a duplicate '" + voucher.id() + "'.");
                 if (!removeOnDiscovery) {
@@ -170,6 +176,7 @@ public final class RedeemHandler {
             cooldowns.apply(player.getUniqueId(), voucher.id(), voucher.cooldownSeconds());
         }
         grant(player, "voucher '" + voucher.id() + "'", voucher.rewards(), voucher.randomRewards(), null);
+        counters.recordVoucherRedemption();
         new VoucherRedeemEvent(player, voucher, readBatch(consumed), readNonce(consumed)).callEvent();
     }
 
@@ -191,6 +198,7 @@ public final class RedeemHandler {
         }
         ConditionResult conditionResult = evaluate(code.conditionMaps(), player);
         if (!conditionResult.getPassed()) {
+            counters.recordConditionDenial();
             replyFailure(player, conditionResult);
             return;
         }
@@ -223,6 +231,7 @@ public final class RedeemHandler {
                     return;
                 }
                 grant(player, "code '" + code.code() + "'", code.rewards(), code.randomRewards(), argument);
+                counters.recordCodeRedemption();
                 new VoucherCodeRedeemEvent(player, code, argument).callEvent();
                 send(player, "<green>Code redeemed.");
             });
@@ -232,6 +241,9 @@ public final class RedeemHandler {
     private void grant(Player player, String source, List<RewardLine> always, List<RewardSet> random,
                        @Nullable String argument) {
         List<RewardLine> granted = RewardSelection.gather(always, random, ThreadLocalRandom.current());
+        for (RewardLine line : granted) {
+            counters.recordRewardGranted(line.type());
+        }
         rewardExecutor.execute(player, source, granted, argument);
     }
 

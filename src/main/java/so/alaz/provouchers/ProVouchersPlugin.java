@@ -12,6 +12,7 @@ import so.alaz.provouchers.service.VoucherServiceImpl;
 import so.alaz.provouchers.cooldown.CooldownService;
 import so.alaz.provouchers.listener.CooldownLoadListener;
 import so.alaz.provouchers.listener.VoucherInteractListener;
+import so.alaz.provouchers.metrics.MetricCounters;
 import so.alaz.provouchers.metrics.VoucherMetrics;
 import so.alaz.provouchers.redeem.RedeemHandler;
 import so.alaz.provouchers.redeem.RewardExecutor;
@@ -83,6 +84,8 @@ public final class ProVouchersPlugin extends JavaPlugin {
         CooldownService cooldowns = new CooldownService(
             Cooldowns.create(), storage, StrataApi.scheduler(this));
 
+        MetricCounters counters = new MetricCounters();
+
         RedeemHandler redeemHandler = new RedeemHandler(
             registry,
             stamp,
@@ -93,6 +96,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
             StrataApi.text(),
             cooldowns,
             StrataApi.conditions(),
+            counters,
             getConfig().getBoolean("anti-dupe.remove-on-discovery", true)
         );
 
@@ -107,7 +111,8 @@ public final class ProVouchersPlugin extends JavaPlugin {
             new VoucherServiceImpl(registry, factory, StrataApi.scheduler(this)), this,
             ServicePriority.Normal);
 
-        metrics = VoucherMetrics.start(this, registry, () -> backend.name().toLowerCase(Locale.ROOT));
+        metrics = VoucherMetrics.start(this, registry, counters,
+            () -> backend.name().toLowerCase(Locale.ROOT));
 
         getComponentLogger().info(text("ProVouchers enabled with " + registry.voucherCount()
             + " voucher(s) and " + registry.codeCount() + " code(s).", NamedTextColor.GOLD));
