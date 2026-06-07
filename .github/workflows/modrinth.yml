@@ -18,23 +18,28 @@ jobs:
       - name: Publish
         uses: Kir-Antipov/mc-publish@v3.3
         with:
-          # Your Modrinth project id or slug. Confirm this matches the project.
-          modrinth-id: provouchers
+          # ProVouchers (https://modrinth.com/plugin/provouchers)
+          modrinth-id: iOogVoaR
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
 
           # The jar attached to the GitHub release by release.yml.
           files: provouchers-*.jar
 
-          # Supported platforms. These must match values Modrinth recognises.
+          # Matches the project's configured platforms.
           loaders: |
             paper
             folia
+            purpur
           game-versions: |
             26.1
+            26.1.1
+            26.1.2
 
-          # Required dependency. Confirm the Strata Modrinth slug, or remove this.
-          dependencies: |
-            strata(required)
+          # Strata is a required dependency, but the public "strata" Modrinth slug
+          # is an unrelated project. Set this to the Strata library's real Modrinth
+          # project id and uncomment it, or leave the dependency set on the project page.
+          # dependencies: |
+          #   <strata-modrinth-id>(required)
 
           # Version name, number, changelog, and release/beta type are taken from
           # the GitHub release automatically.
