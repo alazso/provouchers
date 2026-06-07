@@ -10,7 +10,6 @@ build/
 .settings/
 .classpath
 .project
-.claude/
 
 # OS
 .DS_Store
@@ -61,7 +60,3 @@ docs/.source/
 docs/coverage/
 docs/*.tsbuildinfo
 docs/next-env.d.ts
-
-# Claude local state
-.claude/
-VOUCHER_SPEC.md

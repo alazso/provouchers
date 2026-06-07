@@ -1,4 +1,5 @@
 [versions]
+shadow          = "9.4.2"
 foojay          = "0.9.0"
 paper           = "26.1.2.build.66-stable"
 annotations     = "24.1.0"
@@ -17,4 +18,5 @@ assertj-core             = { module = "org.assertj:assertj-core",               
 mockito-core             = { module = "org.mockito:mockito-core",               version.ref = "mockito" }
 
 [plugins]
+shadow  = { id = "com.gradleup.shadow",                              version.ref = "shadow" }
 foojay  = { id = "org.gradle.toolchains.foojay-resolver-convention", version.ref = "foojay" }

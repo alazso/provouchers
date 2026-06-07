@@ -1,9 +1,10 @@
 plugins {
     java
     jacoco
+    alias(libs.plugins.shadow)
 }
 
-description = "Feature-rich voucher plugin for Paper and Folia, built on Strata."
+description = "Feature-rich voucher plugin for Paper and Folia."
 
 java {
     toolchain {
@@ -14,6 +15,10 @@ java {
 }
 
 dependencies {
+    // The public API module, bundled into the plugin jar (consumers compile against
+    // the published provouchers-api; the plugin provides it at runtime).
+    implementation(project(":provouchers-api"))
+
     compileOnly(libs.paper.api)
     compileOnly(libs.jetbrains.annotations)
 
@@ -64,6 +69,7 @@ val coverageExclusions = listOf(
     "**/redeem/**",
     "**/metrics/**",
     "**/cooldown/**",
+    "**/service/**",
     "**/voucher/VoucherItemFactory.class",
     "**/voucher/ItemResolver.class",
     "**/config/ConfigManager.class",
@@ -111,4 +117,19 @@ tasks.withType<Jar>().configureEach {
     from(rootProject.file("LICENSE")) {
         into("META-INF")
     }
+}
+
+// The shadow jar is the deliverable: the plugin classes plus the bundled
+// provouchers-api module (no relocation, so the api stays at so.alaz.provouchers.api).
+tasks.shadowJar {
+    archiveClassifier.set("")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.named<Jar>("jar") {
+    enabled = false
+}
+
+tasks.named("assemble") {
+    dependsOn(tasks.shadowJar)
 }

@@ -33,7 +33,7 @@ public record VoucherCode(
     List<RewardLine> rewards,
     List<RewardSet> randomRewards,
     boolean hasArgument
-) {
+) implements so.alaz.provouchers.api.VoucherCode {
 
     public VoucherCode {
         if (code == null || code.isBlank()) {

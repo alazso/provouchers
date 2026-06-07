@@ -11,6 +11,10 @@ import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.antidupe.DupeDetector;
 import so.alaz.provouchers.antidupe.StampStatus;
 import so.alaz.provouchers.antidupe.VoucherStamp;
+import so.alaz.provouchers.api.event.VoucherCodePreRedeemEvent;
+import so.alaz.provouchers.api.event.VoucherCodeRedeemEvent;
+import so.alaz.provouchers.api.event.VoucherPreRedeemEvent;
+import so.alaz.provouchers.api.event.VoucherRedeemEvent;
 import so.alaz.provouchers.reward.RewardLine;
 import so.alaz.provouchers.reward.RewardSelection;
 import so.alaz.provouchers.reward.RewardSet;
@@ -121,6 +125,9 @@ public final class RedeemHandler {
             replyFailure(player, conditionResult);
             return;
         }
+        if (!new VoucherPreRedeemEvent(player, voucher).callEvent()) {
+            return;
+        }
 
         ItemStack consumed = consumeOne(player, hand, inHand);
         String batchId = readBatch(consumed);
@@ -163,6 +170,7 @@ public final class RedeemHandler {
             cooldowns.apply(player.getUniqueId(), voucher.id(), voucher.cooldownSeconds());
         }
         grant(player, "voucher '" + voucher.id() + "'", voucher.rewards(), voucher.randomRewards(), null);
+        new VoucherRedeemEvent(player, voucher, readBatch(consumed), readNonce(consumed)).callEvent();
     }
 
     /** Attempts to redeem a typeable code by its literal input and optional argument. */
@@ -184,6 +192,9 @@ public final class RedeemHandler {
         ConditionResult conditionResult = evaluate(code.conditionMaps(), player);
         if (!conditionResult.getPassed()) {
             replyFailure(player, conditionResult);
+            return;
+        }
+        if (!new VoucherCodePreRedeemEvent(player, code, argument).callEvent()) {
             return;
         }
         scheduler.async(() -> {
@@ -212,6 +223,7 @@ public final class RedeemHandler {
                     return;
                 }
                 grant(player, "code '" + code.code() + "'", code.rewards(), code.randomRewards(), argument);
+                new VoucherCodeRedeemEvent(player, code, argument).callEvent();
                 send(player, "<green>Code redeemed.");
             });
         });

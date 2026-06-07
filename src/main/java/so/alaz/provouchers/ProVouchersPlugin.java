@@ -1,11 +1,14 @@
 package so.alaz.provouchers;
 
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 import so.alaz.provouchers.antidupe.DupeDetector;
 import so.alaz.provouchers.antidupe.VoucherStamp;
+import so.alaz.provouchers.api.VoucherService;
 import so.alaz.provouchers.command.VoucherCommand;
 import so.alaz.provouchers.config.ConfigManager;
+import so.alaz.provouchers.service.VoucherServiceImpl;
 import so.alaz.provouchers.cooldown.CooldownService;
 import so.alaz.provouchers.listener.CooldownLoadListener;
 import so.alaz.provouchers.listener.VoucherInteractListener;
@@ -99,6 +102,10 @@ public final class ProVouchersPlugin extends JavaPlugin {
         getServer().getOnlinePlayers().forEach(player -> cooldowns.hydrate(player.getUniqueId()));
         new VoucherCommand(registry, factory, redeemHandler, configManager, StrataApi.scheduler(this))
             .register(this);
+
+        getServer().getServicesManager().register(VoucherService.class,
+            new VoucherServiceImpl(registry, factory, StrataApi.scheduler(this)), this,
+            ServicePriority.Normal);
 
         metrics = VoucherMetrics.start(this, registry, () -> backend.name().toLowerCase(Locale.ROOT));
 

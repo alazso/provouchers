@@ -16,3 +16,5 @@ dependencyResolutionManagement {
         maven("https://repo.alaz.so/snapshots") { name = "alazso-snapshots" }
     }
 }
+
+include(":provouchers-api")

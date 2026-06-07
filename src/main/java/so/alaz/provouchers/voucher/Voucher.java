@@ -39,7 +39,7 @@ public record Voucher(
     long cooldownSeconds,
     @Nullable String expiry,
     boolean hasArgument
-) {
+) implements so.alaz.provouchers.api.Voucher {
 
     public Voucher {
         if (id == null || id.isBlank()) {

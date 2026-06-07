@@ -121,11 +121,9 @@ jobs:
               "$STAGING"/*
           fi
 
-      # Optional: publish a library API module to repo.alaz.so
-      # Uncomment and adapt if your plugin exposes a public API for other plugins.
-      # - name: Publish to repo.alaz.so
-      #   if: steps.published.outputs.skip != 'true' && (github.event_name == 'push' || inputs.dry_run != true)
-      #   env:
-      #     ALAZSO_REPO_USER: ${{ secrets.ALAZSO_REPO_USER }}
-      #     ALAZSO_REPO_TOKEN: ${{ secrets.ALAZSO_REPO_TOKEN }}
-      #   run: ./gradlew :provouchers-api:publishLibraryPublicationToAlazsoRepository --no-configuration-cache --stacktrace
+      - name: Publish to repo.alaz.so
+        if: steps.published.outputs.skip != 'true' && (github.event_name == 'push' || inputs.dry_run != true)
+        env:
+          ALAZSO_REPO_USER: ${{ secrets.ALAZSO_REPO_USER }}
+          ALAZSO_REPO_TOKEN: ${{ secrets.ALAZSO_REPO_TOKEN }}
+        run: ./gradlew :provouchers-api:publishLibraryPublicationToAlazsoRepository --no-configuration-cache --stacktrace
