@@ -1,48 +1,93 @@
-# ProVouchers
+<div align="center">
 
-Item vouchers and redeemable codes for Paper and Folia 26.1+ (Java 25).
+# 🎟️ ProVouchers
 
-ProVouchers lets server operators hand out rewards as items players right-click
-(vouchers) or words players type (codes). Both are defined in plain YAML, share a
-typed reward and condition system, and are backed by persistent storage with
-anti-dupe protection.
+#### Item vouchers and redeemable codes for Paper and Folia
 
-## Requirements
+[![Build](https://img.shields.io/github/actions/workflow/status/alazso/provouchers/ci.yml?branch=main&style=for-the-badge&label=build)](https://github.com/alazso/provouchers/actions)
+[![Downloads](https://img.shields.io/modrinth/dt/iOogVoaR?style=for-the-badge&logo=modrinth&label=downloads)](https://modrinth.com/plugin/provouchers)
+[![Minecraft](https://img.shields.io/badge/Paper%20·%20Folia%20·%20Purpur-26.1%2B-2b2d31?style=for-the-badge)](https://papermc.io/)
+[![License](https://img.shields.io/github/license/alazso/provouchers?style=for-the-badge&label=license)](LICENSE)
 
-- Paper or Folia 26.1+ (Java 25)
-- [Strata](https://github.com/alazso/strata) 0.9.0+ installed on the server
+**[📖 Documentation](https://alaz.so/provouchers/docs)**  ·  **[💻 Source](https://github.com/alazso/provouchers)**
 
-ProVouchers builds on Strata for scheduling, storage, text rendering, conditions,
-integrations, and metrics. Install Strata first; it loads before ProVouchers
-automatically.
+</div>
 
-## Installation
+<br>
 
-1. Download Strata and drop it into `plugins/`.
-2. Download the latest `provouchers-<version>.jar` from [Releases](https://github.com/alazso/provouchers/releases).
-3. Drop it into `plugins/` and restart the server.
+> [!IMPORTANT]
+> **Requires [Strata](https://github.com/alazso/strata) v0.9.0+.** Strata is the shared library ProVouchers builds on (scheduling, storage, integrations, conditions, text). It is currently under review on Modrinth, so for now grab **Strata API v0.9.0** from [GitHub releases](https://github.com/alazso/strata/releases/tag/v0.9.0).
 
-## Documentation
+<br>
 
-Full documentation is at https://alaz.so/provouchers/docs, including a
-[developer API](https://alaz.so/provouchers/docs/developers) for other plugins.
+Hand out rewards as **items players right-click** or **codes players type**. Define everything in plain YAML, reload it live, and let ProVouchers handle the rest: persistent anti-dupe, cooldowns that survive restarts, and clean integrations with the plugins you already run.
 
-## Building
+<br>
 
-```bash
-./gradlew build
-# Output: build/libs/provouchers-<version>.jar
+## ✨ Highlights
+
+|   |   |
+|---|---|
+| 🎁 **Vouchers and codes** | One reward system, two ways to deliver it. |
+| 🧩 **Typed rewards** | Items, currency, ranks, permissions, commands, titles, sounds, and weighted random sets. |
+| 🛡️ **Anti-dupe that holds** | Per-item stamps in persistent storage. Clones are rejected; creative and item frames are blocked. |
+| ⏳ **Persistent limits** | Cooldowns and code uses survive restarts, and apply network-wide on a shared database. |
+| 🖼️ **Custom items and heads** | ItemsAdder, Oraxen, Nexo, Head Database, and vanilla player heads. |
+| 🔌 **Drop-in integrations** | Vault economy, LuckPerms ranks, PlaceholderAPI, MiniPlaceholders, WorldGuard regions. |
+| 🧰 **Developer API** | A published API and redeem events for other plugins. |
+| 🪶 **Folia-ready** | Off-thread storage, region-safe rewards. |
+
+<br>
+
+## 🚀 Quick start
+
+1. Drop **Strata** and **ProVouchers** into `plugins/`.
+2. Start the server. Example `vouchers/` and `codes/` files are created for you.
+3. Edit a file, run `/voucher reload`, then `/voucher give <id>`.
+
+<br>
+
+## 📝 A complete voucher
+
+```yaml
+# plugins/ProVouchers/vouchers/daily.yml
+id: daily
+display-name: "<gradient:#FFD700:#FF8A00>Daily Reward</gradient>"
+item:
+  material: SUNFLOWER
+  glow: true
+lore:
+  - "<gray>Right-click to claim today's reward"
+cooldown: 86400          # once per day, survives restarts
+rewards:
+  - "currency: give 250"
+  - "item: DIAMOND 1"
+  - "message: <green>Thanks for playing today!"
 ```
 
-The build compiles, runs tests, checks coverage, and produces the plugin jar.
-The public API module is published as `so.alaz.provouchers:provouchers-api`.
+That is a working voucher, top to bottom. The **[documentation](https://alaz.so/provouchers/docs)** covers every reward, condition, and option, with examples.
 
-## Releasing
+<br>
 
-1. Update `version` in `gradle.properties`.
-2. Push a tag matching `v<version>`. CI validates the tag against the version,
-   builds, creates a GitHub release, and publishes the API artifact.
+## 📦 Requirements
 
-## License
+|   |   |
+|---|---|
+| **Server** | Paper, Folia, or Purpur |
+| **Minecraft** | 26.1 or newer |
+| **Java** | 25 |
+| **Dependency** | Strata 0.9.0+ |
 
-[MIT](LICENSE)
+<br>
+
+## 🗺️ Roadmap
+
+A paginated preview GUI, an offline-give queue, and a `/voucher fromhand` serializer.
+
+<br>
+
+<div align="center">
+
+Made with care for the Minecraft server community.  ·  Released under the [MIT License](LICENSE).
+
+</div>
