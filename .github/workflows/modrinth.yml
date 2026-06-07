@@ -35,11 +35,11 @@ jobs:
             26.1.1
             26.1.2
 
-          # Strata is a required dependency, but the public "strata" Modrinth slug
-          # is an unrelated project. Set this to the Strata library's real Modrinth
-          # project id and uncomment it, or leave the dependency set on the project page.
+          # Strata is a required dependency (Modrinth slug: strata-api). It is still
+          # under review, so it 404s on the API and mc-publish cannot resolve it yet.
+          # Uncomment this once strata-api is approved on Modrinth.
           # dependencies: |
-          #   <strata-modrinth-id>(required)
+          #   strata-api(required)
 
           # Version name, number, changelog, and release/beta type are taken from
           # the GitHub release automatically.
