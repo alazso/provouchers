@@ -13,7 +13,7 @@
 
 <br>
 
-> ⚠️ **Requires [Strata](https://github.com/alazso/strata) v0.9.0+.** Strata is the shared library ProVouchers builds on (scheduling, storage, integrations, conditions, text). It is currently under review on Modrinth, so for now grab **Strata API v0.9.0** from [GitHub releases](https://github.com/alazso/strata/releases/tag/v0.9.0).
+> ⚠️ **Requires [Strata](https://github.com/alazso/strata) v0.10.0+.** Strata is the shared library ProVouchers builds on (scheduling, storage, integrations, conditions, text). It is currently under review on Modrinth, so for now grab **Strata v0.10.0** from [GitHub releases](https://github.com/alazso/strata/releases/tag/v0.10.0).
 
 <br>
 
@@ -73,7 +73,7 @@ That is a working voucher, top to bottom. The **[documentation](https://alaz.so/
 | **Server** | Paper, Folia, or Purpur |
 | **Minecraft** | 26.1 or newer |
 | **Java** | 25 |
-| **Dependency** | Strata 0.9.0+ |
+| **Dependency** | Strata 0.10.0+ |
 
 <br>
 
