@@ -112,13 +112,20 @@ jobs:
           TAG="${{ steps.version.outputs.tag }}"
           STAGING="release-artifacts"
 
+          # Extract this version's section from CHANGELOG.md for the release notes.
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" {f=1; next}
+            /^## \[/ {f=0}
+            f
+          ' CHANGELOG.md > release-notes.md || true
+
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$STAGING"/* --clobber
+          elif [ -s release-notes.md ]; then
+            gh release create "$TAG" --title "v${VERSION}" --notes-file release-notes.md "$STAGING"/*
           else
-            gh release create "$TAG" \
-              --title "v${VERSION}" \
-              --generate-notes \
-              "$STAGING"/*
+            # Fallback if the changelog has no entry for this version.
+            gh release create "$TAG" --title "v${VERSION}" --generate-notes "$STAGING"/*
           fi
 
       - name: Publish to Modrinth
@@ -136,7 +143,9 @@ jobs:
           version: ${{ steps.version.outputs.version }}
           version-type: release
 
-          # Pull the generated GitHub release body in as the changelog.
+          # Use the same curated notes as the GitHub release (this version's
+          # CHANGELOG.md section, written to release-notes.md above).
+          changelog-file: release-notes.md
           github-token: ${{ github.token }}
 
           loaders: |
