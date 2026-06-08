@@ -60,3 +60,4 @@ docs/.source/
 docs/coverage/
 docs/*.tsbuildinfo
 docs/next-env.d.ts
+/samples
