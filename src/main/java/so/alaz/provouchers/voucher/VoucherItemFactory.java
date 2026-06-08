@@ -6,12 +6,15 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.antidupe.VoucherStamp;
 import so.alaz.strata.api.gui.ItemBuilder;
 import so.alaz.strata.api.item.SkullBuilder;
 import so.alaz.strata.api.text.TextRenderer;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -40,39 +43,61 @@ public final class VoucherItemFactory {
     }
 
     /**
-     * Creates {@code amount} copies of {@code voucher}, stamped with {@code batchId}.
+     * Creates the items for giving {@code amount} of {@code voucher}. A stackable
+     * voucher yields a single stack of {@code amount}; an anti-dupe voucher
+     * ({@code stackable: false}) yields {@code amount} separate items, each stamped
+     * with its own unique id so they are individually dupe-tracked and do not stack.
      * Names and lore are rendered for {@code viewer} when non-null; for an owner-only
      * voucher, {@code viewer} is recorded as the owner.
      */
-    public CompletableFuture<ItemStack> createItem(Voucher voucher, int amount, @Nullable Player viewer,
-                                                   UUID batchId) {
-        return buildBase(voucher, amount, viewer).thenApply(item -> {
-            item.editMeta(meta -> {
-                stamp.stamp(meta, voucher.id(), batchId);
-                stamp.setGivenAt(meta, System.currentTimeMillis());
-                if (voucher.ownerOnly() && viewer != null) {
-                    stamp.setOwner(meta, viewer.getUniqueId());
+    public CompletableFuture<List<ItemStack>> createItems(Voucher voucher, int amount,
+                                                          @Nullable Player viewer) {
+        return buildBase(voucher, viewer).thenApply(base -> {
+            long now = System.currentTimeMillis();
+            List<ItemStack> result = new ArrayList<>();
+            if (voucher.stackable()) {
+                ItemStack stack = base.clone();
+                stack.setAmount(amount);
+                stack.editMeta(meta -> stampCommon(meta, voucher, viewer, now));
+                result.add(stack);
+            } else {
+                for (int i = 0; i < amount; i++) {
+                    ItemStack single = base.clone();
+                    single.setAmount(1);
+                    single.editMeta(meta -> {
+                        stampCommon(meta, voucher, viewer, now);
+                        stamp.setUid(meta, VoucherStamp.newUid());
+                    });
+                    result.add(single);
                 }
-            });
-            return item;
+            }
+            return result;
         });
     }
 
-    private CompletableFuture<ItemStack> buildBase(Voucher voucher, int amount, @Nullable Player viewer) {
+    private void stampCommon(ItemMeta meta, Voucher voucher, @Nullable Player viewer, long now) {
+        stamp.stamp(meta, voucher.id());
+        stamp.setGivenAt(meta, now);
+        if (voucher.ownerOnly() && viewer != null) {
+            stamp.setOwner(meta, viewer.getUniqueId());
+        }
+    }
+
+    private CompletableFuture<ItemStack> buildBase(Voucher voucher, @Nullable Player viewer) {
         ItemStack custom = items.custom(voucher.item().customItem());
         if (custom != null) {
-            custom.setAmount(amount);
+            custom.setAmount(1);
             decorate(custom, voucher, viewer, false);
             return CompletableFuture.completedFuture(custom);
         }
         SkullSpec skull = voucher.item().skull();
         if (skull != null) {
-            return buildSkull(skull, amount).thenApply(head -> {
+            return buildSkull(skull, 1).thenApply(head -> {
                 decorate(head, voucher, viewer, true);
                 return head;
             });
         }
-        return CompletableFuture.completedFuture(buildMaterial(voucher, amount, viewer));
+        return CompletableFuture.completedFuture(buildMaterial(voucher, 1, viewer));
     }
 
     private ItemStack buildMaterial(Voucher voucher, int amount, @Nullable Player viewer) {

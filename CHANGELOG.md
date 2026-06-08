@@ -4,6 +4,27 @@ All notable changes to ProVouchers are documented here. This project follows
 [Semantic Versioning](https://semver.org). Releases before 0.5.0 are listed on the
 [GitHub releases](https://github.com/alazso/provouchers/releases) page.
 
+## [0.6.0] - unreleased
+
+### Changed
+- **Anti-dupe is now per voucher, via a `stackable` flag (default `true`).** A
+  stackable voucher stacks freely and is not dupe-tracked. Setting `stackable: false`
+  stamps each item with a unique id stamped at give time, recorded once on redeem,
+  so duplicates are caught; those items do not stack. This replaces the previous
+  always-on batch/nonce scheme and resolves the stacking complaints, at the cost of
+  anti-dupe being opt-in.
+- The redeem event now exposes a single `uid` in place of `batchId` and `nonce`.
+
+### Added
+- **Duplicate warning lore** (`anti-dupe.warning.enabled` / `anti-dupe.warning.text`):
+  when a returned duplicate is detected, append a marker line to its lore, to deter
+  resale scams.
+
+### Migration
+- A schema migration adds the used-voucher table and drops the old stamp table.
+  Vouchers minted before the upgrade redeem as ungoverned (they carry the old data,
+  not a `uid`).
+
 ## [0.5.0] - 2026-06-07
 
 ### Added

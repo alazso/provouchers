@@ -71,6 +71,14 @@ class VoucherParserTest {
         assertThat(voucher.cooldownSeconds()).isZero();
         assertThat(voucher.expiry()).isNull();
         assertThat(voucher.hasRewards()).isFalse();
+        assertThat(voucher.stackable()).isTrue();      // stackable (anti-dupe off) by default
+    }
+
+    @Test
+    void stackableCanBeDisabledForAntiDupe() throws Exception {
+        Voucher antiDupe = VoucherParser.parseVoucher(
+            yaml("item:\n  material: PAPER\nstackable: false\n"), "guarded");
+        assertThat(antiDupe.stackable()).isFalse();
     }
 
     @Test

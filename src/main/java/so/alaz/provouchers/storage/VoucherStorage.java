@@ -30,7 +30,10 @@ public final class VoucherStorage {
 
     /** Opens the pool and applies pending migrations. */
     public CompletableFuture<Void> init() {
-        provider.migrations().register(new InitialSchema()).register(new CooldownSchema());
+        provider.migrations()
+            .register(new InitialSchema())
+            .register(new CooldownSchema())
+            .register(new UsedVoucherSchema());
         return provider.init().thenCompose(ignored -> provider.migrations().migrate())
             .thenApply(applied -> null);
     }
@@ -40,33 +43,31 @@ public final class VoucherStorage {
         return provider.shutdown();
     }
 
-    /** Whether a voucher item stamp has already been redeemed. */
-    public boolean isStampRedeemed(String batchId, String nonce) throws SQLException {
+    /** Whether a voucher item's unique id has already been redeemed. */
+    public boolean isUsed(String uid) throws SQLException {
         try (Connection connection = provider.dataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(
-                 "SELECT 1 FROM provouchers_redeemed_stamps WHERE batch_id = ? AND nonce = ?")) {
-            statement.setString(1, batchId);
-            statement.setString(2, nonce);
+                 "SELECT 1 FROM provouchers_used_vouchers WHERE uid = ?")) {
+            statement.setString(1, uid);
             try (ResultSet result = statement.executeQuery()) {
                 return result.next();
             }
         }
     }
 
-    /** Records a redeemed stamp. Returns {@code false} if it was already present. */
-    public boolean recordStamp(String batchId, String nonce, UUID player) throws SQLException {
+    /** Records a unique id as redeemed. Returns {@code false} if it was already present. */
+    public boolean recordUse(String uid, UUID player) throws SQLException {
         try (Connection connection = provider.dataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(
-                 "INSERT INTO provouchers_redeemed_stamps (batch_id, nonce, player_uuid, redeemed_at) "
-                     + "VALUES (?, ?, ?, ?)")) {
-            statement.setString(1, batchId);
-            statement.setString(2, nonce);
-            statement.setString(3, player.toString());
-            statement.setLong(4, System.currentTimeMillis());
+                 "INSERT INTO provouchers_used_vouchers (uid, player_uuid, redeemed_at) "
+                     + "VALUES (?, ?, ?)")) {
+            statement.setString(1, uid);
+            statement.setString(2, player.toString());
+            statement.setLong(3, System.currentTimeMillis());
             statement.executeUpdate();
             return true;
         } catch (SQLException ex) {
-            if (isStampRedeemed(batchId, nonce)) {
+            if (isUsed(uid)) {
                 return false;
             }
             throw ex;

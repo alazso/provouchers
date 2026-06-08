@@ -13,8 +13,9 @@ import so.alaz.provouchers.api.Voucher;
  * consumed, the duplicate check passed, and rewards were granted. Not cancellable;
  * this is a post-commit notification.
  *
- * <p>Fired on the redeeming player's region thread. The {@code batchId} and
- * {@code nonce} identify the exact item that was redeemed, for auditing.
+ * <p>Fired on the redeeming player's region thread. The {@code uid} identifies the
+ * exact item that was redeemed, for auditing; it is {@code null} for a stackable
+ * (non-anti-dupe) voucher.
  */
 @ApiStatus.AvailableSince("0.4.0")
 public class VoucherRedeemEvent extends Event {
@@ -23,16 +24,13 @@ public class VoucherRedeemEvent extends Event {
 
     private final Player player;
     private final Voucher voucher;
-    private final String batchId;
-    private final String nonce;
+    private final String uid;
 
     @ApiStatus.Internal
-    public VoucherRedeemEvent(Player player, Voucher voucher, @Nullable String batchId,
-                             @Nullable String nonce) {
+    public VoucherRedeemEvent(Player player, Voucher voucher, @Nullable String uid) {
         this.player = player;
         this.voucher = voucher;
-        this.batchId = batchId;
-        this.nonce = nonce;
+        this.uid = uid;
     }
 
     /** The player who redeemed the voucher. */
@@ -45,16 +43,10 @@ public class VoucherRedeemEvent extends Event {
         return voucher;
     }
 
-    /** The redeemed item's batch id, or {@code null} for an unstamped item. */
+    /** The redeemed item's unique id, or {@code null} for a stackable (non-anti-dupe) voucher. */
     @Nullable
-    public String getBatchId() {
-        return batchId;
-    }
-
-    /** The redeemed item's per-item nonce, or {@code null} for an unstamped item. */
-    @Nullable
-    public String getNonce() {
-        return nonce;
+    public String getUid() {
+        return uid;
     }
 
     @Override

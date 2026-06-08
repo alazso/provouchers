@@ -97,7 +97,9 @@ public final class ProVouchersPlugin extends JavaPlugin {
             cooldowns,
             StrataApi.conditions(),
             counters,
-            getConfig().getBoolean("anti-dupe.remove-on-discovery", true)
+            getConfig().getBoolean("anti-dupe.remove-on-discovery", true),
+            getConfig().getBoolean("anti-dupe.warning.enabled", false),
+            getConfig().getString("anti-dupe.warning.text", "<red>This item has been duplicated")
         );
 
         getServer().getPluginManager().registerEvents(
