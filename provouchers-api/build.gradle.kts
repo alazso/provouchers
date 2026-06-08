@@ -3,7 +3,7 @@ plugins {
     `maven-publish`
 }
 
-description = "ProVouchers public API — services and events for dependent plugins"
+description = "ProVouchers public API: services and events for dependent plugins"
 
 java {
     toolchain {

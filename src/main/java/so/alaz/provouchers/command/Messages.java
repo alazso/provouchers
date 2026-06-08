@@ -53,7 +53,7 @@ final class Messages {
             + "<hover:show_text:'<gray>Click to fill in chat'>"
             + "<gold>/voucher " + shown + "</gold></hover></click>";
         if (description != null && !description.isEmpty()) {
-            line += " <dark_gray>—</dark_gray> <gray>" + description + "</gray>";
+            line += " <dark_gray>-</dark_gray> <gray>" + description + "</gray>";
         }
         return line;
     }
