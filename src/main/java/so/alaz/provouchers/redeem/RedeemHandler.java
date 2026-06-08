@@ -1,6 +1,7 @@
 package so.alaz.provouchers.redeem;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
@@ -35,6 +36,7 @@ import so.alaz.strata.api.text.TextRenderer;
 
 import java.sql.SQLException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -57,6 +59,8 @@ public final class RedeemHandler {
     private final ConditionRegistry conditions;
     private final MetricCounters counters;
     private final boolean removeOnDiscovery;
+    private final boolean warningEnabled;
+    private final String warningText;
 
     public RedeemHandler(
         VoucherRegistry registry,
@@ -69,7 +73,9 @@ public final class RedeemHandler {
         CooldownService cooldowns,
         ConditionRegistry conditions,
         MetricCounters counters,
-        boolean removeOnDiscovery
+        boolean removeOnDiscovery,
+        boolean warningEnabled,
+        String warningText
     ) {
         this.registry = registry;
         this.stamp = stamp;
@@ -82,6 +88,8 @@ public final class RedeemHandler {
         this.conditions = conditions;
         this.counters = counters;
         this.removeOnDiscovery = removeOnDiscovery;
+        this.warningEnabled = warningEnabled;
+        this.warningText = warningText;
     }
 
     /** Attempts to redeem the voucher item held in {@code hand}. */
@@ -135,20 +143,16 @@ public final class RedeemHandler {
         }
 
         ItemStack consumed = consumeOne(player, hand, inHand);
-        String batchId = readBatch(consumed);
-        String nonce = readNonce(consumed);
-
+        String uid = readUid(consumed);
+        if (uid == null) {
+            // Stackable voucher: no anti-dupe tracking, finish on the current thread.
+            finishItemRedeem(player, voucher, consumed, true, StampStatus.VALID);
+            return;
+        }
         scheduler.async(() -> {
-            boolean allowed;
-            StampStatus status;
-            if (batchId == null || nonce == null) {
-                status = StampStatus.VALID;
-                allowed = true;
-            } else {
-                status = dupeDetector.check(batchId, nonce);
-                allowed = status == StampStatus.VALID
-                    && dupeDetector.claim(batchId, nonce, player.getUniqueId());
-            }
+            StampStatus status = dupeDetector.check(uid);
+            boolean allowed = status == StampStatus.VALID
+                && dupeDetector.claim(uid, player.getUniqueId());
             boolean finalAllowed = allowed;
             StampStatus finalStatus = status;
             scheduler.entity(player, () ->
@@ -164,6 +168,7 @@ public final class RedeemHandler {
                 send(player, "<red>This voucher has already been redeemed.");
                 notifyStaff(player.getName() + " tried to redeem a duplicate '" + voucher.id() + "'.");
                 if (!removeOnDiscovery) {
+                    applyWarningLore(consumed);
                     refund(player, consumed);
                 }
             } else {
@@ -177,7 +182,24 @@ public final class RedeemHandler {
         }
         grant(player, "voucher '" + voucher.id() + "'", voucher.rewards(), voucher.randomRewards(), null);
         counters.recordVoucherRedemption();
-        new VoucherRedeemEvent(player, voucher, readBatch(consumed), readNonce(consumed)).callEvent();
+        new VoucherRedeemEvent(player, voucher, readUid(consumed)).callEvent();
+    }
+
+    /** Appends the duplicate warning lore to a rejected item, once, if enabled. */
+    private void applyWarningLore(ItemStack item) {
+        if (!warningEnabled) {
+            return;
+        }
+        item.editMeta(meta -> {
+            if (stamp.isWarned(meta)) {
+                return;
+            }
+            List<Component> lore = meta.lore();
+            List<Component> updated = lore != null ? new ArrayList<>(lore) : new ArrayList<>();
+            updated.add(text.render(warningText).decoration(TextDecoration.ITALIC, false));
+            meta.lore(updated);
+            stamp.setWarned(meta);
+        });
     }
 
     /** Attempts to redeem a typeable code by its literal input and optional argument. */
@@ -257,11 +279,6 @@ public final class RedeemHandler {
 
     private ItemStack consumeOne(Player player, EquipmentSlot hand, ItemStack inHand) {
         ItemStack single = inHand.asOne();
-        single.editMeta(meta -> {
-            if (!stamp.hasNonce(meta)) {
-                stamp.setNonce(meta, VoucherStamp.newNonce());
-            }
-        });
         int amount = inHand.getAmount();
         if (amount <= 1) {
             player.getInventory().setItem(hand, null);
@@ -303,15 +320,9 @@ public final class RedeemHandler {
     }
 
     @Nullable
-    private String readBatch(ItemStack item) {
+    private String readUid(ItemStack item) {
         ItemMeta meta = item.getItemMeta();
-        return meta == null ? null : stamp.batchId(meta);
-    }
-
-    @Nullable
-    private String readNonce(ItemStack item) {
-        ItemMeta meta = item.getItemMeta();
-        return meta == null ? null : stamp.nonce(meta);
+        return meta == null ? null : stamp.uid(meta);
     }
 
     private void replyFailure(Player player, ConditionResult result) {

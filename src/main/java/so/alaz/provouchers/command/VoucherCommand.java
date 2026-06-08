@@ -1,6 +1,7 @@
 package so.alaz.provouchers.command;
 
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.config.ConfigManager;
@@ -15,7 +16,6 @@ import so.alaz.strata.api.command.Suggestions;
 import so.alaz.strata.api.scheduler.PlatformScheduler;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * The {@code /voucher} command tree, built with Strata's fluent Brigadier builder.
@@ -169,9 +169,9 @@ public final class VoucherCommand {
     }
 
     private void giveItem(Voucher voucher, int amount, Player target) {
-        UUID batchId = UUID.randomUUID();
-        factory.createItem(voucher, amount, target, batchId).thenAccept(item ->
-            scheduler.entity(target, () -> target.getInventory().addItem(item).values()
+        factory.createItems(voucher, amount, target).thenAccept(items ->
+            scheduler.entity(target, () -> target.getInventory().addItem(items.toArray(ItemStack[]::new))
+                .values()
                 .forEach(leftover -> target.getWorld().dropItemNaturally(target.getLocation(), leftover))));
     }
 

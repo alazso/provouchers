@@ -13,9 +13,18 @@ storage:
   pool-size: 10
 
 anti-dupe:
+  # Anti-dupe is chosen per voucher. Set "stackable: false" on a voucher to stamp
+  # each item with a unique id: duplicates are caught, but those items do not stack.
+  # Stackable vouchers (the default) stack freely and are not dupe-tracked.
+  #
   # When a duplicate voucher is detected on redeem, remove the item instead of
   # returning it to the player.
   remove-on-discovery: true
+  warning:
+    # When a duplicate is returned (remove-on-discovery: false), append a warning
+    # line to its lore so the item is visibly marked.
+    enabled: false
+    text: "<red>This item has been duplicated"
 
 metrics:
   # Submit anonymous usage statistics through Strata (bStats and FastStats).

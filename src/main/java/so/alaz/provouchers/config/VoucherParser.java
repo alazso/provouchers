@@ -53,7 +53,8 @@ public final class VoucherParser {
             section.getBoolean("owner-only", false),
             section.getLong("cooldown", 0L),
             parseExpiry(section, voucherId),
-            section.getBoolean("has-argument", false)
+            section.getBoolean("has-argument", false),
+            section.getBoolean("stackable", true)
         );
     }
 

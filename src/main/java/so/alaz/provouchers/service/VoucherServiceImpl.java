@@ -1,6 +1,7 @@
 package so.alaz.provouchers.service;
 
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import so.alaz.provouchers.api.Voucher;
 import so.alaz.provouchers.api.VoucherCode;
 import so.alaz.provouchers.api.VoucherService;
@@ -10,7 +11,6 @@ import so.alaz.strata.api.scheduler.PlatformScheduler;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * The {@link VoucherService} implementation registered with Bukkit's services
@@ -61,9 +61,9 @@ public final class VoucherServiceImpl implements VoucherService {
         if (voucher == null) {
             return false;
         }
-        UUID batchId = UUID.randomUUID();
-        factory.createItem(voucher, amount, player, batchId).thenAccept(item ->
-            scheduler.entity(player, () -> player.getInventory().addItem(item).values()
+        factory.createItems(voucher, amount, player).thenAccept(items ->
+            scheduler.entity(player, () -> player.getInventory().addItem(items.toArray(ItemStack[]::new))
+                .values()
                 .forEach(leftover -> player.getWorld().dropItemNaturally(player.getLocation(), leftover))));
         return true;
     }
