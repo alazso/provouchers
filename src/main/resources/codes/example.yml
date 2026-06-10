@@ -1,11 +1,46 @@
-code: WELCOME2026
-case-sensitive: false
-# Global redemption cap across all players; -1 for unlimited.
-max-uses: 100
-# How many times a single player may redeem this code.
-uses-per-player: 1
-expiry: ""
-conditions: [ ]
+# =============================================================================
+#  ProVouchers - example code
+#  Save as: plugins/ProVouchers/codes/<name>.yml   (the file name is the code id)
+#  Players redeem it with /voucher redeem <code> [argument]
+#  Apply changes with /voucher reload.
+#
+#  A code is a typeable, itemless reward. It shares conditions and rewards with
+#  vouchers (see /docs/conditions and /docs/rewards). Text uses MiniMessage, with
+#  the same tokens: %player% / {player}, {arg}, {random:1-5}.
+# =============================================================================
+
+# ---- Identity ---------------------------------------------------------------
+code: WELCOME2026                 # optional; defaults to the file name
+case-sensitive: false             # true = "WELCOME2026" and "welcome2026" are different
+
+# ---- Limits -----------------------------------------------------------------
+max-uses: 100                     # global cap across all players; -1 = unlimited
+uses-per-player: 1                # how many times one player may redeem it (>= 1)
+# expiry: "2026-12-31T23:59:59Z"  # absolute ISO instant. Codes have no give time, so
+                                  # use an absolute date, not a relative duration.
+# has-argument: false             # accept a trailing argument, exposed to rewards as {arg}
+                                  # e.g. /voucher redeem REFER Steve  ->  {arg} is "Steve"
+
+# ---- Conditions: all must pass; the first failure stops the redeem ----------
+conditions: []
+# conditions:
+#   - type: permission
+#     permission: "provouchers.use.welcome"
+#     deny: "<red>This code is not for you."
+#   - { type: playerstat, statistic: PLAY_ONE_MINUTE, operator: ">=", value: 12000 }   # 10 min played
+
+# ---- Rewards: all of these run ----------------------------------------------
 rewards:
   - "message: <green>Welcome aboard! Here is a starter reward."
   - "command: give %player% cooked_beef 16"
+  # - "currency: give 500"                            # Vault
+  # - "broadcast: <gold>%player% <yellow>redeemed a code!"
+
+# ---- Random rewards: one weighted set is rolled, on top of rewards ----------
+# random-rewards:
+#   - weight: 80
+#     rewards:
+#       - "item: IRON_INGOT {random:2-5}"
+#   - weight: 20
+#     rewards:
+#       - "item: DIAMOND 1"
