@@ -23,9 +23,9 @@ import java.util.List;
 public final class Text {
 
     private final MiniMessage mm = MiniMessage.miniMessage();
-    private final boolean papiAvailable = isClassPresent("me.clip.placeholderapi.PlaceholderAPI");
+    private final boolean papiAvailable = Classes.present("me.clip.placeholderapi.PlaceholderAPI", getClass());
     private final boolean miniPlaceholdersAvailable =
-        isClassPresent("io.github.miniplaceholders.api.MiniPlaceholders");
+        Classes.present("io.github.miniplaceholders.api.MiniPlaceholders", getClass());
 
     /** Parses the input as MiniMessage with no placeholder resolution. */
     public Component render(String input) {
@@ -102,12 +102,4 @@ public final class Text {
         }
     }
 
-    private boolean isClassPresent(String name) {
-        try {
-            Class.forName(name, false, getClass().getClassLoader());
-            return true;
-        } catch (ClassNotFoundException ex) {
-            return false;
-        }
-    }
 }

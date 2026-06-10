@@ -34,23 +34,23 @@ public final class ItemResolver {
         CustomItemRef ref = CustomItemRef.parse(reference);
         List<ItemHook> providers = hooks.all(ItemHook.class);
         if (ref.providerHint() != null) {
+            // Qualified reference: only the named provider may resolve it, with the bare id. If that
+            // provider is present but cannot build the id, the reference resolves to nothing rather
+            // than being silently handed to a different provider (which could grant the wrong item).
             for (ItemHook provider : providers) {
                 if (provider.isAvailable() && provider.name().equalsIgnoreCase(ref.providerHint())) {
-                    ItemStack item = provider.createItem(ref.id());
-                    if (item != null) {
-                        return item;
-                    }
+                    return provider.createItem(ref.id());
                 }
             }
         }
+        // Unqualified, or a prefix no provider claims by name (e.g. HeadDatabase's hdb:/headdatabase:,
+        // which the hook strips itself): let an available provider that recognizes the full reference
+        // resolve it. The full prefixed form is passed, never the bare id, so no cross-provider hijack.
         for (ItemHook provider : providers) {
             if (!provider.isAvailable()) {
                 continue;
             }
             ItemStack item = provider.createItem(reference);
-            if (item == null && ref.providerHint() != null) {
-                item = provider.createItem(ref.id());
-            }
             if (item != null) {
                 return item;
             }

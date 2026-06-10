@@ -16,13 +16,16 @@ import java.util.concurrent.ExecutorService;
  * {@code provouchers_schema_version} table. Each migration runs in its own transaction; a failure
  * rolls that migration back and aborts the run.
  *
- * <p>Migrations are idempotent ({@code CREATE TABLE IF NOT EXISTS} etc.), so an install upgrading
- * from a pre-1.0.0 version (which tracked schema state in a separate table) simply re-applies them
- * as no-ops up to the current version.
+ * <p>An install upgrading from a pre-1.0.0 version (which tracked schema state in the Strata-managed
+ * {@code strata_schema_version} table) is seeded from that table on first run, so already-applied
+ * migrations are not re-run and the old table is removed.
  */
 public final class MigrationRunner {
 
     private static final String VERSION_TABLE = "provouchers_schema_version";
+
+    /** The version table used before 1.0.0, when storage was managed by the Strata library. */
+    private static final String LEGACY_VERSION_TABLE = "strata_schema_version";
 
     private final StorageProvider storage;
     private final ExecutorService executor;
@@ -90,10 +93,31 @@ public final class MigrationRunner {
              ResultSet result = statement.executeQuery("SELECT COUNT(*) FROM " + VERSION_TABLE)) {
             result.next();
             if (result.getInt(1) == 0) {
-                try (Statement insert = connection.createStatement()) {
-                    insert.executeUpdate("INSERT INTO " + VERSION_TABLE + " (version) VALUES (0)");
+                // Seed from the pre-1.0.0 table when upgrading, so already-applied migrations are not
+                // re-run; then drop the orphan. Runs in autocommit (before applyPending), so the
+                // legacy lookup failing on a fresh install is independent and harmless.
+                int seed = legacyVersion(connection);
+                try (PreparedStatement insert =
+                         connection.prepareStatement("INSERT INTO " + VERSION_TABLE + " (version) VALUES (?)")) {
+                    insert.setInt(1, seed);
+                    insert.executeUpdate();
+                }
+                if (seed > 0) {
+                    try (Statement drop = connection.createStatement()) {
+                        drop.executeUpdate("DROP TABLE IF EXISTS " + LEGACY_VERSION_TABLE);
+                    }
                 }
             }
+        }
+    }
+
+    /** The version recorded by the pre-1.0.0 (Strata-managed) table, or 0 if it is absent. */
+    private int legacyVersion(Connection connection) {
+        try (Statement statement = connection.createStatement();
+             ResultSet result = statement.executeQuery("SELECT version FROM " + LEGACY_VERSION_TABLE + " LIMIT 1")) {
+            return result.next() ? result.getInt(1) : 0;
+        } catch (SQLException ex) {
+            return 0;
         }
     }
 

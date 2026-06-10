@@ -4,6 +4,7 @@ import io.th0rgal.oraxen.api.OraxenItems;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
+import so.alaz.provouchers.platform.Classes;
 
 /**
  * Oraxen-backed {@link ItemHook}. Lookups are guarded and wrapped, so a missing Oraxen degrades to

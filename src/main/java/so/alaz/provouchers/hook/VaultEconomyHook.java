@@ -4,6 +4,7 @@ import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.Nullable;
+import so.alaz.provouchers.platform.Classes;
 
 /**
  * Vault-backed {@link EconomyHook}. Resolves the economy provider Vault registered in Bukkit's

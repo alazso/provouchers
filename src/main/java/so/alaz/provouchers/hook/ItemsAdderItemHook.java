@@ -4,6 +4,7 @@ import dev.lone.itemsadder.api.CustomStack;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
+import so.alaz.provouchers.platform.Classes;
 
 /**
  * ItemsAdder-backed {@link ItemHook}. Ids are ItemsAdder's {@code namespace:id} form. Lookups are

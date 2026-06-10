@@ -4,6 +4,7 @@ import me.arcaniax.hdb.api.HeadDatabaseAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
+import so.alaz.provouchers.platform.Classes;
 
 import java.util.List;
 import java.util.Locale;

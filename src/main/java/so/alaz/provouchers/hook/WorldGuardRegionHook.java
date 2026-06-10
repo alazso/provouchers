@@ -7,6 +7,7 @@ import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
+import so.alaz.provouchers.platform.Classes;
 
 import java.util.List;
 

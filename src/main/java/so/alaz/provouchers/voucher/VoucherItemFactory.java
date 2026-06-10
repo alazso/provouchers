@@ -2,9 +2,7 @@ package so.alaz.provouchers.voucher;
 
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.Nullable;
@@ -161,8 +159,7 @@ public final class VoucherItemFactory {
                     .toList());
             }
             if (voucher.item().glow() && !meta.hasEnchants()) {
-                meta.addEnchant(Enchantment.UNBREAKING, 1, true);
-                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                ItemBuilder.applyGlow(meta);
             }
             Integer customModelData = voucher.item().customModelData();
             if (applyModelData && customModelData != null) {

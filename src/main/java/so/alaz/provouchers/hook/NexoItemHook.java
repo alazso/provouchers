@@ -5,6 +5,7 @@ import com.nexomc.nexo.items.ItemBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
+import so.alaz.provouchers.platform.Classes;
 
 /**
  * Nexo-backed {@link ItemHook} (Nexo is the successor to Oraxen). Lookups are guarded and wrapped,

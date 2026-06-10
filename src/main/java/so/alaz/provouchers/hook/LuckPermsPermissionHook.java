@@ -9,6 +9,7 @@ import net.luckperms.api.node.types.PermissionNode;
 import net.luckperms.api.query.QueryOptions;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
+import so.alaz.provouchers.platform.Classes;
 
 import java.time.Duration;
 import java.util.List;

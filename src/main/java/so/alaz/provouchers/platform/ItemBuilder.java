@@ -6,6 +6,7 @@ import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -59,10 +60,15 @@ public final class ItemBuilder {
                     .toList());
             }
             if (glow) {
-                meta.addEnchant(Enchantment.UNBREAKING, 1, true);
-                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                applyGlow(meta);
             }
         });
         return item;
+    }
+
+    /** Gives an item the menu glow: an enchant glint with the enchantment hidden. */
+    public static void applyGlow(ItemMeta meta) {
+        meta.addEnchant(Enchantment.UNBREAKING, 1, true);
+        meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
     }
 }

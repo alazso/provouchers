@@ -14,8 +14,8 @@ import org.jetbrains.annotations.NotNull;
  * server owner installs nothing extra. Only top-level artifacts are listed; transitive dependencies
  * resolve automatically.
  *
- * <p><strong>Coordinates must stay in sync with {@code gradle/libs.versions.toml}.</strong> The
- * MariaDB driver also serves {@code jdbc:mysql://} URLs, so no separate MySQL driver is needed.
+ * <p><strong>Coordinates must stay in sync with {@code gradle/libs.versions.toml}.</strong> Each
+ * backend brings its own driver: SQLite, MySQL (Connector/J), MariaDB, and PostgreSQL.
  */
 @SuppressWarnings("UnstableApiUsage")
 public final class ProVouchersLoader implements PluginLoader {
@@ -30,6 +30,7 @@ public final class ProVouchersLoader implements PluginLoader {
         for (String coordinates : new String[]{
             "com.zaxxer:HikariCP:7.0.2",
             "org.xerial:sqlite-jdbc:3.53.2.0",
+            "com.mysql:mysql-connector-j:8.4.0",
             "org.mariadb.jdbc:mariadb-java-client:3.5.8",
             "org.postgresql:postgresql:42.7.7",
         }) {
