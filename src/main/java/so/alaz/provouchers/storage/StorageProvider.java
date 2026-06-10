@@ -52,6 +52,7 @@ public final class StorageProvider {
             }
             HikariConfig hikari = new HikariConfig();
             hikari.setJdbcUrl(config.jdbcUrl);
+            hikari.setDriverClassName(config.backend.driverClassName());
             hikari.setUsername(config.username);
             hikari.setPassword(config.password);
             hikari.setMaximumPoolSize(config.maxPoolSize);
