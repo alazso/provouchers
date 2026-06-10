@@ -8,7 +8,7 @@ import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.strata.api.gui.Button;
 import so.alaz.strata.api.gui.ChestGui;
 import so.alaz.strata.api.gui.Gui;
-import so.alaz.strata.api.gui.GuiAction;
+import so.alaz.strata.api.gui.GuiClickHandler;
 import so.alaz.strata.api.gui.ItemBuilder;
 import so.alaz.strata.api.text.TextRenderer;
 
@@ -29,12 +29,15 @@ public final class VoucherAdminMenu {
         this.text = text;
     }
 
-    /** Builds the info menu for {@code voucher}, reusing its already-built display {@code icon}. */
-    public Gui build(Voucher voucher, ItemStack icon) {
+    /**
+     * Builds the info menu for {@code voucher}, reusing its already-built display
+     * {@code icon}. The Back button runs {@code onBack} (which reopens the preview).
+     */
+    public Gui build(Voucher voucher, ItemStack icon, GuiClickHandler onBack) {
         return ChestGui.builder(3)
             .title("<gold>" + voucher.id())
             .button(13, Button.display(infoItem(voucher, icon)))
-            .button(22, Button.of(backItem(), click -> GuiAction.close()))
+            .button(22, Button.of(backItem(), onBack))
             .build();
     }
 

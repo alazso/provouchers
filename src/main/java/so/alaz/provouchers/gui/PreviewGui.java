@@ -79,7 +79,10 @@ public final class PreviewGui {
                 return GuiAction.none()
                     .withMessage(text.render("<green>Gave <gold>" + voucher.id() + "</gold>."));
             }
-            return GuiAction.open(adminMenu.build(voucher, icon));
+            return GuiAction.open(adminMenu.build(voucher, icon, back -> {
+                open(back.getPlayer());
+                return GuiAction.none();
+            }));
         });
     }
 
