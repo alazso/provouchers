@@ -132,7 +132,9 @@ public final class ProVouchersPlugin extends JavaPlugin {
             counters,
             getConfig().getBoolean("anti-dupe.remove-on-discovery", true),
             getConfig().getBoolean("anti-dupe.warning.enabled", false),
-            getConfig().getString("anti-dupe.warning.text", "<red>This item has been duplicated")
+            getConfig().getString("anti-dupe.warning.text", "<red>This item has been duplicated"),
+            getConfig().getBoolean("redeem.batch-open-quiet", true),
+            getConfig().getLong("redeem.confirm-window-seconds", 5L)
         );
 
         getServer().getPluginManager().registerEvents(

@@ -14,6 +14,7 @@ import so.alaz.provouchers.reward.GroupRewardPayload;
 import so.alaz.provouchers.reward.PermissionRewardPayload;
 import so.alaz.provouchers.reward.RewardItemPayload;
 import so.alaz.provouchers.reward.RewardLine;
+import so.alaz.provouchers.reward.RewardType;
 import so.alaz.provouchers.util.Tokens;
 import so.alaz.provouchers.hook.EconomyHook;
 import so.alaz.provouchers.hook.HookRegistry;
@@ -60,17 +61,23 @@ public final class RewardExecutor {
      * Runs every reward line for {@code player}, substituting {@code arg}. A reward
      * that fails is logged against {@code source} (the voucher or code) and skipped.
      */
-    public void execute(Player player, String source, List<RewardLine> rewards, @Nullable String arg) {
+    public void execute(Player player, String source, List<RewardLine> rewards, @Nullable String arg,
+                        boolean quiet) {
         for (RewardLine reward : rewards) {
             try {
-                execute(player, source, reward, arg);
+                execute(player, source, reward, arg, quiet);
             } catch (RuntimeException ex) {
                 warn(source, reward.type().name().toLowerCase(), reward.payload(), ex.getMessage());
             }
         }
     }
 
-    private void execute(Player player, String source, RewardLine reward, @Nullable String arg) {
+    private void execute(Player player, String source, RewardLine reward, @Nullable String arg, boolean quiet) {
+        // Batch open runs quiet: substantive rewards still apply, but per-item feedback that would
+        // spam chat (messages, broadcasts, titles, action bars, sounds) is skipped.
+        if (quiet && isFeedbackOnly(reward.type())) {
+            return;
+        }
         String payload = Tokens.apply(reward.payload(), player.getName(), arg);
         switch (reward.type()) {
             case CONSOLE_COMMAND -> scheduler.global(() ->
@@ -150,6 +157,14 @@ public final class RewardExecutor {
                     "no write-capable permission provider (LuckPerms), or no change");
             }
         });
+    }
+
+    /** Feedback-only rewards: shown to the player but grant nothing, so they are skipped when quiet. */
+    private static boolean isFeedbackOnly(RewardType type) {
+        return switch (type) {
+            case MESSAGE, BROADCAST, TITLE, ACTIONBAR, SOUND -> true;
+            default -> false;
+        };
     }
 
     private void warn(String source, String type, String payload, String reason) {

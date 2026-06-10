@@ -61,6 +61,7 @@ redeem:
   verify-failed: "<red>Could not verify this voucher. Please try again."
   requirements-not-met: "<red>You do not meet the requirements to redeem this."
   opened: "<green>Opened {count}x {voucher}."   # {count} {voucher} (batch-open)
+  confirm: "{prefix}<yellow>Click again within {seconds}s to confirm redeeming <gold>{voucher}</gold>."   # {seconds} {voucher}
 
 # ---- Redeeming a code -------------------------------------------------------
 code:
@@ -70,6 +71,7 @@ code:
   already-redeemed: "<red>You have already redeemed this code."
   global-limit: "<red>This code has reached its global use limit."
   verify-failed: "<red>Could not verify the code. Please try again."
+  redeemed: "<green>Code redeemed."
 
 # ---- Staff alerts (shown to players with provouchers.notify) -----------------
 staff:

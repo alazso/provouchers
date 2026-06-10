@@ -79,6 +79,19 @@ public final class Messages {
         if (template == null) {
             return "<red>missing:" + key;
         }
+        return applyPrefix(chain, template, placeholders);
+    }
+
+    /**
+     * Substitutes {@code {prefix}} (in the viewer's language) and placeholders into an arbitrary
+     * template, e.g. a per-voucher message given inline rather than looked up by key.
+     */
+    public String format(@Nullable Player viewer, String template, Object... placeholders) {
+        List<Map<String, String>> chain = resolutionChain(viewer == null ? null : viewer.locale());
+        return applyPrefix(chain, template, placeholders);
+    }
+
+    private static String applyPrefix(List<Map<String, String>> chain, String template, Object... placeholders) {
         String prefix = lookup(chain, "prefix");
         String out = template.replace("{prefix}", prefix == null ? "" : prefix);
         return fill(out, placeholders);

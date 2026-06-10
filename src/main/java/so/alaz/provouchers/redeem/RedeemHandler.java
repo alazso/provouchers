@@ -63,6 +63,8 @@ public final class RedeemHandler {
     private final boolean removeOnDiscovery;
     private final boolean warningEnabled;
     private final String warningText;
+    private final boolean batchQuiet;
+    private final ConfirmationTracker confirmations;
 
     public RedeemHandler(
         VoucherRegistry registry,
@@ -78,7 +80,9 @@ public final class RedeemHandler {
         MetricCounters counters,
         boolean removeOnDiscovery,
         boolean warningEnabled,
-        String warningText
+        String warningText,
+        boolean batchQuiet,
+        long confirmWindowSeconds
     ) {
         this.registry = registry;
         this.stamp = stamp;
@@ -94,6 +98,8 @@ public final class RedeemHandler {
         this.removeOnDiscovery = removeOnDiscovery;
         this.warningEnabled = warningEnabled;
         this.warningText = warningText;
+        this.batchQuiet = batchQuiet;
+        this.confirmations = new ConfirmationTracker(confirmWindowSeconds);
     }
 
     /**
@@ -142,7 +148,7 @@ public final class RedeemHandler {
         String uid = readUid(consumed);
         if (uid == null) {
             // Stackable voucher: no anti-dupe tracking, commit on the current thread.
-            completeVoucherRedeem(player, voucher, null);
+            completeVoucherRedeem(player, voucher, null, false);
             return;
         }
         scheduler.async(() -> {
@@ -153,7 +159,7 @@ public final class RedeemHandler {
             StampStatus finalStatus = status;
             scheduler.entity(player, () -> {
                 if (finalAllowed) {
-                    completeVoucherRedeem(player, voucher, uid);
+                    completeVoucherRedeem(player, voucher, uid, false);
                 } else {
                     handleRejectedItem(player, voucher, consumed, finalStatus);
                 }
@@ -183,7 +189,19 @@ public final class RedeemHandler {
             replyFailure(player, conditionResult);
             return false;
         }
+        if (voucher.twoStep() && confirmations.needsConfirm(player.getUniqueId(), voucher.id())) {
+            send(player, confirmMessage(player, voucher));
+            return false;
+        }
         return new VoucherPreRedeemEvent(player, voucher).callEvent();
+    }
+
+    /** The two-step confirmation prompt: the voucher's own message if set, else the locale default. */
+    private String confirmMessage(Player player, Voucher voucher) {
+        long seconds = confirmations.windowSeconds();
+        return voucher.confirmMessage() != null
+            ? messages.format(player, voucher.confirmMessage(), "voucher", voucher.id(), "seconds", seconds)
+            : messages.get(player, "redeem.confirm", "voucher", voucher.id(), "seconds", seconds);
     }
 
     /**
@@ -192,11 +210,11 @@ public final class RedeemHandler {
      * {@code uid} is the redeemed item's unique id, or {@code null} for a stackable
      * voucher. Reused by the item path and (later) virtual vouchers and batch open.
      */
-    private void completeVoucherRedeem(Player player, Voucher voucher, @Nullable String uid) {
+    private void completeVoucherRedeem(Player player, Voucher voucher, @Nullable String uid, boolean quiet) {
         if (voucher.cooldownSeconds() > 0) {
             cooldowns.apply(player.getUniqueId(), voucher.id(), voucher.cooldownSeconds());
         }
-        grant(player, "voucher '" + voucher.id() + "'", voucher.rewards(), voucher.randomRewards(), null);
+        grant(player, "voucher '" + voucher.id() + "'", voucher.rewards(), voucher.randomRewards(), null, quiet);
         counters.recordVoucherRedemption();
         new VoucherRedeemEvent(player, voucher, uid).callEvent();
     }
@@ -285,21 +303,22 @@ public final class RedeemHandler {
                     send(player, finalDeny);
                     return;
                 }
-                grant(player, "code '" + code.code() + "'", code.rewards(), code.randomRewards(), argument);
+                grant(player, "code '" + code.code() + "'", code.rewards(), code.randomRewards(),
+                    argument, false);
                 counters.recordCodeRedemption();
                 new VoucherCodeRedeemEvent(player, code, argument).callEvent();
-                send(player, "<green>Code redeemed.");
+                send(player, messages.get(player, "code.redeemed"));
             });
         });
     }
 
     private void grant(Player player, String source, List<RewardLine> always, List<RewardSet> random,
-                       @Nullable String argument) {
+                       @Nullable String argument, boolean quiet) {
         List<RewardLine> granted = RewardSelection.gather(always, random, ThreadLocalRandom.current());
         for (RewardLine line : granted) {
             counters.recordRewardGranted(line.type());
         }
-        rewardExecutor.execute(player, source, granted, argument);
+        rewardExecutor.execute(player, source, granted, argument, quiet);
     }
 
     private ConditionResult evaluate(List<java.util.Map<String, Object>> conditionMaps, Player player) {
@@ -330,7 +349,7 @@ public final class RedeemHandler {
         int count = inHand.getAmount();
         player.getInventory().setItem(hand, null);
         for (int i = 0; i < count; i++) {
-            completeVoucherRedeem(player, voucher, null);
+            completeVoucherRedeem(player, voucher, null, batchQuiet);
         }
         send(player, messages.get(player, "redeem.opened", "count", count, "voucher", voucher.id()));
     }
