@@ -31,6 +31,7 @@ import so.alaz.provouchers.condition.ConditionRegistry;
 import so.alaz.provouchers.condition.ConditionResult;
 import so.alaz.provouchers.condition.Conditions;
 import so.alaz.provouchers.cooldown.CooldownService;
+import so.alaz.provouchers.locale.Messages;
 import so.alaz.provouchers.platform.Scheduler;
 import so.alaz.provouchers.platform.Text;
 
@@ -55,6 +56,7 @@ public final class RedeemHandler {
     private final RewardExecutor rewardExecutor;
     private final Scheduler scheduler;
     private final Text text;
+    private final Messages messages;
     private final CooldownService cooldowns;
     private final ConditionRegistry conditions;
     private final MetricCounters counters;
@@ -70,6 +72,7 @@ public final class RedeemHandler {
         RewardExecutor rewardExecutor,
         Scheduler scheduler,
         Text text,
+        Messages messages,
         CooldownService cooldowns,
         ConditionRegistry conditions,
         MetricCounters counters,
@@ -84,6 +87,7 @@ public final class RedeemHandler {
         this.rewardExecutor = rewardExecutor;
         this.scheduler = scheduler;
         this.text = text;
+        this.messages = messages;
         this.cooldowns = cooldowns;
         this.conditions = conditions;
         this.counters = counters;
@@ -107,22 +111,22 @@ public final class RedeemHandler {
         }
         Voucher voucher = registry.getVoucher(stamp.voucherId(meta)).orElse(null);
         if (voucher == null) {
-            send(player, "<red>This voucher is no longer configured.");
+            send(player, messages.get(player, "redeem.not-configured"));
             return;
         }
         if (voucher.unredeemable()) {
-            send(player, "<red>This voucher cannot be redeemed.");
+            send(player, messages.get(player, "redeem.unredeemable"));
             return;
         }
         if (voucher.ownerOnly() && !ownsVoucher(player, meta)) {
-            send(player, "<red>This voucher belongs to someone else.");
+            send(player, messages.get(player, "redeem.not-owner"));
             return;
         }
         Instant now = Instant.now();
         Long givenAtMillis = stamp.givenAt(meta);
         Instant reference = givenAtMillis != null ? Instant.ofEpochMilli(givenAtMillis) : now;
         if (Expiry.isExpired(Expiry.resolve(voucher.expiry(), reference), now)) {
-            send(player, "<red>This voucher has expired.");
+            send(player, messages.get(player, "redeem.expired"));
             return;
         }
         if (!voucherPreChecks(player, voucher)) {
@@ -164,13 +168,13 @@ public final class RedeemHandler {
      */
     private boolean voucherPreChecks(Player player, Voucher voucher) {
         if (!gameModeAllowed(player)) {
-            send(player, "<red>You cannot redeem vouchers in this game mode.");
+            send(player, messages.get(player, "redeem.wrong-gamemode"));
             return false;
         }
         if (!player.hasPermission("provouchers.bypass.cooldown")
             && cooldowns.isOnCooldown(player.getUniqueId(), voucher.id())) {
             long seconds = cooldowns.remaining(player.getUniqueId(), voucher.id()).toSeconds();
-            send(player, "<red>You must wait " + Math.max(1, seconds) + "s before redeeming this again.");
+            send(player, messages.get(player, "redeem.cooldown", "seconds", Math.max(1, seconds)));
             return false;
         }
         ConditionResult conditionResult = evaluate(voucher.conditionMaps(), player);
@@ -201,14 +205,14 @@ public final class RedeemHandler {
     private void handleRejectedItem(Player player, Voucher voucher, ItemStack consumed, StampStatus status) {
         if (status == StampStatus.DUPLICATE) {
             counters.recordDuplicateBlocked();
-            send(player, "<red>This voucher has already been redeemed.");
+            send(player, messages.get(player, "redeem.already-redeemed"));
             notifyStaff(player.getName() + " tried to redeem a duplicate '" + voucher.id() + "'.");
             if (!removeOnDiscovery) {
                 applyWarningLore(consumed);
                 refund(player, consumed);
             }
         } else {
-            send(player, "<red>Could not verify this voucher. Please try again.");
+            send(player, messages.get(player, "redeem.verify-failed"));
             refund(player, consumed);
         }
     }
@@ -234,16 +238,16 @@ public final class RedeemHandler {
     public void redeemCode(Player player, String input, @Nullable String argument) {
         VoucherCode code = registry.findCode(input);
         if (code == null) {
-            send(player, "<red>Unknown code.");
+            send(player, messages.get(player, "code.unknown"));
             return;
         }
         Instant now = Instant.now();
         if (Expiry.isExpired(Expiry.resolve(code.expiry(), now), now)) {
-            send(player, "<red>This code has expired.");
+            send(player, messages.get(player, "code.expired"));
             return;
         }
         if (!gameModeAllowed(player)) {
-            send(player, "<red>You cannot redeem codes in this game mode.");
+            send(player, messages.get(player, "code.wrong-gamemode"));
             return;
         }
         ConditionResult conditionResult = evaluate(code.conditionMaps(), player);
@@ -262,17 +266,17 @@ public final class RedeemHandler {
                 int mine = storage.codeUsesByPlayer(code.code(), player.getUniqueId());
                 if (mine >= code.usesPerPlayer()) {
                     allowed = false;
-                    denyMessage = "<red>You have already redeemed this code.";
+                    denyMessage = messages.get(player, "code.already-redeemed");
                 } else if (code.hasGlobalLimit() && storage.codeUsesTotal(code.code()) >= code.maxUses()) {
                     allowed = false;
-                    denyMessage = "<red>This code has reached its global use limit.";
+                    denyMessage = messages.get(player, "code.global-limit");
                 } else {
                     storage.incrementCodeUse(code.code(), player.getUniqueId());
                 }
             } catch (SQLException | RuntimeException ex) {
                 // A storage error (or the pool not being open yet) leaves the use unverifiable.
                 allowed = false;
-                denyMessage = "<red>Could not verify the code. Please try again.";
+                denyMessage = messages.get(player, "code.verify-failed");
             }
             boolean finalAllowed = allowed;
             String finalDeny = denyMessage;
@@ -303,7 +307,7 @@ public final class RedeemHandler {
             return ConditionResult.pass();
         }
         List<Condition> built = conditions.buildFromMaps(conditionMaps);
-        return Conditions.testAll(built, ConditionContext.of(player));
+        return Conditions.testAll(built, ConditionContext.of(player, messages));
     }
 
     private ItemStack consumeOne(Player player, EquipmentSlot hand, ItemStack inHand) {
@@ -372,7 +376,7 @@ public final class RedeemHandler {
         if (message != null) {
             player.sendMessage(message);
         } else {
-            send(player, "<red>You do not meet the requirements to redeem this.");
+            send(player, messages.get(player, "redeem.requirements-not-met"));
         }
     }
 

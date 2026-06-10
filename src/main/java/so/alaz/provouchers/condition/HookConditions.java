@@ -46,10 +46,10 @@ final class HookConditions {
         public ConditionResult test(ConditionContext context) {
             EconomyHook economy = hooks.get(EconomyHook.class);
             if (economy == null) {
-                return denied(context, "<red>Economy is unavailable.");
+                return denied(context, "condition.economy-unavailable");
             }
             return economy.has(context.player(), amount)
-                ? pass() : denied(context, "<red>You can't afford this.");
+                ? pass() : denied(context, "condition.economy");
         }
     }
 
@@ -78,7 +78,7 @@ final class HookConditions {
                 }
             }
             return playerGroups.stream().anyMatch(groups::contains)
-                ? pass() : denied(context, "<red>You lack the required rank.");
+                ? pass() : denied(context, "condition.rank");
         }
     }
 
@@ -97,14 +97,14 @@ final class HookConditions {
         public ConditionResult test(ConditionContext context) {
             RegionHook regionHook = hooks.get(RegionHook.class);
             if (regionHook == null) {
-                return denied(context, "<red>Region support is unavailable.");
+                return denied(context, "condition.region-unavailable");
             }
             // Region ids compare case-insensitively: WorldGuard lowercases ids, and the configured
             // set is lowercased at construction.
             return regionHook.regionsAt(context.player().getLocation()).stream()
                 .map(id -> id.toLowerCase(Locale.ROOT))
                 .anyMatch(regions::contains)
-                ? pass() : denied(context, "<red>You're not in the required region.");
+                ? pass() : denied(context, "condition.region");
         }
     }
 

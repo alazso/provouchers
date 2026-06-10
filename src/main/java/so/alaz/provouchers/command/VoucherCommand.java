@@ -22,6 +22,7 @@ import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.config.ConfigManager;
 import so.alaz.provouchers.give.VoucherGiveService;
 import so.alaz.provouchers.gui.PreviewGui;
+import so.alaz.provouchers.locale.Messages;
 import so.alaz.provouchers.platform.Text;
 import so.alaz.provouchers.redeem.RedeemHandler;
 import so.alaz.provouchers.voucher.Voucher;
@@ -55,18 +56,19 @@ public final class VoucherCommand {
     private static final String PERM_RELOAD = "provouchers.reload";
 
     /** A single subcommand's help metadata; Brigadier nodes carry none of this, so it lives here. */
-    private record Sub(String name, String usage, String description, @Nullable String permission) {
+    private record Sub(String name, String usage, @Nullable String permission) {
     }
 
-    /** The help listing, in display order. Each line is shown only when the sender may use it. */
+    /** The help listing, in display order. Each line is shown only when the sender may use it.
+     *  Descriptions are localized under {@code command.help.descriptions.<name>}. */
     private static final List<Sub> HELP = List.of(
-        new Sub("give", "give <id> [amount] [player]", "Give a voucher to a player", PERM_GIVE),
-        new Sub("giveall", "giveall <id> [amount]", "Give a voucher to every online player", PERM_GIVEALL),
-        new Sub("redeem", "redeem <code> [argument]", "Redeem a code", PERM_REDEEM),
-        new Sub("preview", "preview", "Browse vouchers in a GUI", PERM_PREVIEW),
-        new Sub("list", "list", "List loaded vouchers and codes", PERM_LIST),
-        new Sub("reload", "reload", "Reload vouchers and codes from disk", PERM_RELOAD),
-        new Sub("help", "help", "Show this help menu", null));
+        new Sub("give", "give <id> [amount] [player]", PERM_GIVE),
+        new Sub("giveall", "giveall <id> [amount]", PERM_GIVEALL),
+        new Sub("redeem", "redeem <code> [argument]", PERM_REDEEM),
+        new Sub("preview", "preview", PERM_PREVIEW),
+        new Sub("list", "list", PERM_LIST),
+        new Sub("reload", "reload", PERM_RELOAD),
+        new Sub("help", "help", null));
 
     private final VoucherRegistry registry;
     private final VoucherGiveService giveService;
@@ -74,6 +76,7 @@ public final class VoucherCommand {
     private final ConfigManager configManager;
     private final PreviewGui previewGui;
     private final Text text;
+    private final Messages messages;
 
     public VoucherCommand(
         VoucherRegistry registry,
@@ -81,7 +84,8 @@ public final class VoucherCommand {
         RedeemHandler redeemHandler,
         ConfigManager configManager,
         PreviewGui previewGui,
-        Text text
+        Text text,
+        Messages messages
     ) {
         this.registry = registry;
         this.giveService = giveService;
@@ -89,6 +93,7 @@ public final class VoucherCommand {
         this.configManager = configManager;
         this.previewGui = previewGui;
         this.text = text;
+        this.messages = messages;
     }
 
     /** Builds and registers the command for {@code plugin}. Call during {@code onEnable}. */
@@ -148,48 +153,61 @@ public final class VoucherCommand {
 
     private void help(CommandSourceStack source) {
         CommandSender sender = source.getSender();
-        reply(source, Messages.heading("Commands"));
+        Player viewer = asPlayer(source);
+        reply(source, messages.get(viewer, "command.help.heading"));
         for (Sub sub : HELP) {
             if (sub.permission() == null || sender.hasPermission(sub.permission())) {
-                reply(source, Messages.helpLine(sub.name(), sub.usage(), sub.description()));
+                reply(source, helpLine(viewer, sub));
             }
         }
     }
 
+    /** A clickable, localized help line: clicking suggests the subcommand in the chat box. */
+    private String helpLine(@Nullable Player viewer, Sub sub) {
+        String hover = messages.get(viewer, "command.help.hover");
+        String description = messages.get(viewer, "command.help.descriptions." + sub.name());
+        return "<click:suggest_command:'/voucher " + sub.name() + " '>"
+            + "<hover:show_text:'" + hover + "'>"
+            + "<gold>/voucher " + sub.usage() + "</gold></hover></click>"
+            + " <dark_gray>-</dark_gray> <gray>" + description + "</gray>";
+    }
+
     private void give(CommandContext<CommandSourceStack> ctx, int amount, boolean hasTarget) {
         CommandSourceStack source = ctx.getSource();
+        Player viewer = asPlayer(source);
         String id = StringArgumentType.getString(ctx, "id");
         Voucher voucher = registry.getVoucher(id).orElse(null);
         if (voucher == null) {
-            reply(source, Messages.error("Unknown voucher <yellow>" + id + "</yellow>."));
+            reply(source, messages.get(viewer, "command.unknown-voucher", "id", id));
             return;
         }
         Player target;
         if (!hasTarget) {
             target = asPlayer(source);
             if (target == null) {
-                reply(source, Messages.error("Run this in-game, or name a target player from the console."));
-                reply(source, Messages.usage("give <id> [amount] [player]"));
+                reply(source, messages.get(viewer, "command.give.needs-target"));
+                reply(source, messages.get(viewer, "command.give.usage"));
                 return;
             }
         } else {
             target = firstTarget(ctx);
             if (target == null) {
-                reply(source, Messages.error("No online player matched that target."));
+                reply(source, messages.get(viewer, "command.give.no-target"));
                 return;
             }
         }
         giveService.give(target, voucher, amount);
-        reply(source, Messages.success("Gave <yellow>" + amount + "x</yellow> <gold>" + voucher.id()
-            + "</gold> to <yellow>" + target.getName() + "</yellow>."));
+        reply(source, messages.get(viewer, "command.give.success",
+            "amount", amount, "voucher", voucher.id(), "target", target.getName()));
     }
 
     private void giveAll(CommandContext<CommandSourceStack> ctx, int amount) {
         CommandSourceStack source = ctx.getSource();
+        Player viewer = asPlayer(source);
         String id = StringArgumentType.getString(ctx, "id");
         Voucher voucher = registry.getVoucher(id).orElse(null);
         if (voucher == null) {
-            reply(source, Messages.error("Unknown voucher <yellow>" + id + "</yellow>."));
+            reply(source, messages.get(viewer, "command.unknown-voucher", "id", id));
             return;
         }
         int count = 0;
@@ -198,18 +216,18 @@ public final class VoucherCommand {
             count++;
         }
         if (count == 0) {
-            reply(source, Messages.info("No players are online to give to."));
+            reply(source, messages.get(viewer, "command.giveall.none-online"));
             return;
         }
-        reply(source, Messages.success("Gave <yellow>" + amount + "x</yellow> <gold>" + voucher.id()
-            + "</gold> to <yellow>" + count + "</yellow> player(s)."));
+        reply(source, messages.get(viewer, "command.giveall.success",
+            "amount", amount, "voucher", voucher.id(), "count", count));
     }
 
     private void redeem(CommandContext<CommandSourceStack> ctx, boolean hasArg) {
         CommandSourceStack source = ctx.getSource();
         Player player = asPlayer(source);
         if (player == null) {
-            reply(source, Messages.error("Only players can redeem codes."));
+            reply(source, messages.get(null, "command.redeem.players-only"));
             return;
         }
         String arg = hasArg ? StringArgumentType.getString(ctx, "arg") : null;
@@ -219,30 +237,35 @@ public final class VoucherCommand {
     private void preview(CommandSourceStack source) {
         Player player = asPlayer(source);
         if (player == null) {
-            reply(source, Messages.error("Only players can open the preview."));
+            reply(source, messages.get(null, "command.preview.players-only"));
             return;
         }
         previewGui.open(player);
     }
 
     private void list(CommandSourceStack source) {
+        Player viewer = asPlayer(source);
         List<String> ids = registry.voucherIds();
-        reply(source, Messages.heading("Loaded content"));
-        reply(source, "<gray>  Vouchers (<yellow>" + ids.size() + "</yellow>): "
-            + (ids.isEmpty() ? "<dark_gray>none" : "<yellow>" + String.join("<gray>, <yellow>", ids)));
-        reply(source, "<gray>  Codes: <yellow>" + registry.codeCount());
+        String idsList = ids.isEmpty()
+            ? messages.get(viewer, "command.list.none")
+            : "<yellow>" + String.join("<gray>, <yellow>", ids);
+        reply(source, messages.get(viewer, "command.list.heading"));
+        reply(source, messages.get(viewer, "command.list.vouchers", "count", ids.size(), "ids", idsList));
+        reply(source, messages.get(viewer, "command.list.codes", "count", registry.codeCount()));
     }
 
     private void reload(CommandSourceStack source) {
+        Player viewer = asPlayer(source);
+        messages.reload();
         List<String> errors = configManager.reload();
         if (errors.isEmpty()) {
-            reply(source, Messages.success("Reloaded <yellow>" + registry.voucherCount()
-                + "</yellow> voucher(s) and <yellow>" + registry.codeCount() + "</yellow> code(s)."));
+            reply(source, messages.get(viewer, "command.reload.success",
+                "vouchers", registry.voucherCount(), "codes", registry.codeCount()));
             return;
         }
-        reply(source, Messages.error("Reloaded with <yellow>" + errors.size() + "</yellow> error(s):"));
+        reply(source, messages.get(viewer, "command.reload.errors", "errors", errors.size()));
         for (String error : errors) {
-            reply(source, "<red>  - <gray>" + error);
+            reply(source, messages.get(viewer, "command.reload.error-line", "error", error));
         }
     }
 

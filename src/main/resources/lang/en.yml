@@ -1,0 +1,86 @@
+# =============================================================================
+#  ProVouchers - English messages (default)
+#
+#  Every plugin-generated message lives here. Values are MiniMessage. Tokens:
+#    {prefix}      the branded prefix below
+#    {...}         message-specific values, noted per line
+#
+#  To translate: copy this file to lang/<code>.yml (e.g. lang/de.yml), translate
+#  the values, and set locale.default (or use locale.per-player) in config.yml.
+#  Any key you leave out falls back to this English file.
+# =============================================================================
+
+# Leads branded replies. Use {prefix} in a message to include it.
+prefix: "<gradient:#FFD700:#FF8A00><b>ProVouchers</b></gradient> <dark_gray>»</dark_gray> "
+
+# ---- Command feedback -------------------------------------------------------
+command:
+  unknown-voucher: "{prefix}<red>Unknown voucher <yellow>{id}</yellow>."     # {id}
+  give:
+    needs-target: "{prefix}<red>Run this in-game, or name a target player from the console."
+    usage: "{prefix}<gray>Usage: <yellow>/voucher give <id> [amount] [player]</yellow>"
+    no-target: "{prefix}<red>No online player matched that target."
+    success: "{prefix}<green>Gave <yellow>{amount}x</yellow> <gold>{voucher}</gold> to <yellow>{target}</yellow>."  # {amount} {voucher} {target}
+  giveall:
+    none-online: "{prefix}<gray>No players are online to give to."
+    success: "{prefix}<green>Gave <yellow>{amount}x</yellow> <gold>{voucher}</gold> to <yellow>{count}</yellow> player(s)."  # {amount} {voucher} {count}
+  redeem:
+    players-only: "{prefix}<red>Only players can redeem codes."
+  preview:
+    players-only: "{prefix}<red>Only players can open the preview."
+  list:
+    heading: "{prefix}<gold>Loaded content"
+    vouchers: "<gray>  Vouchers (<yellow>{count}</yellow>): {ids}"   # {count} {ids}
+    codes: "<gray>  Codes: <yellow>{count}</yellow>"                 # {count}
+    none: "<dark_gray>none"
+  reload:
+    success: "{prefix}<green>Reloaded <yellow>{vouchers}</yellow> voucher(s) and <yellow>{codes}</yellow> code(s)."  # {vouchers} {codes}
+    errors: "{prefix}<red>Reloaded with <yellow>{errors}</yellow> error(s):"   # {errors}
+    error-line: "<red>  - <gray>{error}"                            # {error}
+  help:
+    heading: "{prefix}<gold>Commands"
+    hover: "<gray>Click to fill in chat"
+    descriptions:
+      give: "Give a voucher to a player"
+      giveall: "Give a voucher to every online player"
+      redeem: "Redeem a code"
+      preview: "Browse vouchers in a GUI"
+      list: "List loaded vouchers and codes"
+      reload: "Reload vouchers and codes from disk"
+      help: "Show this help menu"
+
+# ---- Redeeming an item voucher ----------------------------------------------
+redeem:
+  not-configured: "<red>This voucher is no longer configured."
+  unredeemable: "<red>This voucher cannot be redeemed."
+  not-owner: "<red>This voucher belongs to someone else."
+  expired: "<red>This voucher has expired."
+  wrong-gamemode: "<red>You cannot redeem vouchers in this game mode."
+  cooldown: "<red>You must wait {seconds}s before redeeming this again."   # {seconds}
+  already-redeemed: "<red>This voucher has already been redeemed."
+  verify-failed: "<red>Could not verify this voucher. Please try again."
+  requirements-not-met: "<red>You do not meet the requirements to redeem this."
+
+# ---- Redeeming a code -------------------------------------------------------
+code:
+  unknown: "<red>Unknown code."
+  expired: "<red>This code has expired."
+  wrong-gamemode: "<red>You cannot redeem codes in this game mode."
+  already-redeemed: "<red>You have already redeemed this code."
+  global-limit: "<red>This code has reached its global use limit."
+  verify-failed: "<red>Could not verify the code. Please try again."
+
+# ---- Default condition denial messages (a voucher's per-condition "deny:" overrides these) ----
+condition:
+  permission: "<red>You don't have permission."
+  world: "<red>You're in the wrong world."
+  gamemode: "<red>Wrong game mode."
+  exp: "<red>You need level {level}."   # {level}
+  expiry: "<red>This has expired."
+  requirement-not-met: "<red>Requirement not met."
+  statistic-unreadable: "<red>Could not read that statistic."
+  economy-unavailable: "<red>Economy is unavailable."
+  economy: "<red>You can't afford this."
+  rank: "<red>You lack the required rank."
+  region-unavailable: "<red>Region support is unavailable."
+  region: "<red>You're not in the required region."

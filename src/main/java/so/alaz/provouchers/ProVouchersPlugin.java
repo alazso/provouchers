@@ -11,6 +11,7 @@ import so.alaz.provouchers.condition.ConditionRegistry;
 import so.alaz.provouchers.config.ConfigManager;
 import so.alaz.provouchers.service.VoucherServiceImpl;
 import so.alaz.provouchers.cooldown.CooldownService;
+import so.alaz.provouchers.locale.Messages;
 import so.alaz.provouchers.give.VoucherGiveService;
 import so.alaz.provouchers.gui.GuiListener;
 import so.alaz.provouchers.gui.GuiManager;
@@ -87,6 +88,10 @@ public final class ProVouchersPlugin extends JavaPlugin {
 
         VoucherRegistry registry = new VoucherRegistry();
         Text text = new Text();
+        saveResource("lang/en.yml", false);
+        Messages messages = new Messages(getDataFolder(),
+            getConfig().getString("locale.default", "en"),
+            getConfig().getBoolean("locale.per-player", true));
         HookRegistry hooks = buildHooks();
         ItemResolver itemResolver = new ItemResolver(hooks);
         ConditionRegistry conditionRegistry = new ConditionRegistry(text, hooks);
@@ -119,6 +124,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
             rewardExecutor,
             scheduler,
             text,
+            messages,
             cooldowns,
             conditionRegistry,
             counters,
@@ -132,7 +138,8 @@ public final class ProVouchersPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new CooldownLoadListener(cooldowns), this);
         getServer().getPluginManager().registerEvents(new GuiListener(guiManager), this);
         getServer().getOnlinePlayers().forEach(player -> cooldowns.hydrate(player.getUniqueId()));
-        new VoucherCommand(registry, giveService, redeemHandler, configManager, previewGui, text).register(this);
+        new VoucherCommand(registry, giveService, redeemHandler, configManager, previewGui, text, messages)
+            .register(this);
 
         getServer().getServicesManager().register(VoucherService.class,
             new VoucherServiceImpl(registry, giveService), this,

@@ -6,6 +6,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
+import so.alaz.provouchers.locale.Messages;
 import so.alaz.provouchers.platform.Text;
 
 import java.time.Instant;
@@ -61,8 +62,11 @@ final class BuiltinConditions {
             return ConditionResult.pass();
         }
 
-        protected ConditionResult denied(ConditionContext context, String fallback) {
-            return ConditionResult.fail(text.render(deny != null ? deny : fallback, context.player()));
+        protected ConditionResult denied(ConditionContext context, String key, Object... placeholders) {
+            String template = deny != null
+                ? Messages.fill(deny, placeholders)
+                : context.messages().get(context.player(), key, placeholders);
+            return ConditionResult.fail(text.render(template, context.player()));
         }
     }
 
@@ -77,7 +81,7 @@ final class BuiltinConditions {
 
         @Override
         public ConditionResult test(ConditionContext context) {
-            return context.player().hasPermission(node) ? pass() : denied(context, "<red>You don't have permission.");
+            return context.player().hasPermission(node) ? pass() : denied(context, "condition.permission");
         }
     }
 
@@ -93,7 +97,7 @@ final class BuiltinConditions {
         @Override
         public ConditionResult test(ConditionContext context) {
             return worlds.contains(context.player().getWorld().getName())
-                ? pass() : denied(context, "<red>You're in the wrong world.");
+                ? pass() : denied(context, "condition.world");
         }
     }
 
@@ -109,7 +113,7 @@ final class BuiltinConditions {
         @Override
         public ConditionResult test(ConditionContext context) {
             return modes.contains(context.player().getGameMode().name())
-                ? pass() : denied(context, "<red>Wrong game mode.");
+                ? pass() : denied(context, "condition.gamemode");
         }
     }
 
@@ -125,7 +129,7 @@ final class BuiltinConditions {
         @Override
         public ConditionResult test(ConditionContext context) {
             return context.player().getLevel() >= minLevel
-                ? pass() : denied(context, "<red>You need level " + minLevel + ".");
+                ? pass() : denied(context, "condition.exp", "level", minLevel);
         }
     }
 
@@ -141,7 +145,7 @@ final class BuiltinConditions {
         @Override
         public ConditionResult test(ConditionContext context) {
             return System.currentTimeMillis() <= expiresAtMillis
-                ? pass() : denied(context, "<red>This has expired.");
+                ? pass() : denied(context, "condition.expiry");
         }
     }
 
@@ -174,7 +178,7 @@ final class BuiltinConditions {
                 }
                 default -> resolved.equalsIgnoreCase(value);
             };
-            return matched ? pass() : denied(context, "<red>Requirement not met.");
+            return matched ? pass() : denied(context, "condition.requirement-not-met");
         }
     }
 
@@ -204,10 +208,10 @@ final class BuiltinConditions {
         public ConditionResult test(ConditionContext context) {
             Integer value = readStatistic(context.player());
             if (value == null) {
-                return denied(context, "<red>Could not read that statistic.");
+                return denied(context, "condition.statistic-unreadable");
             }
             return numericCompare(value, operator, threshold)
-                ? pass() : denied(context, "<red>Requirement not met.");
+                ? pass() : denied(context, "condition.requirement-not-met");
         }
 
         @Nullable

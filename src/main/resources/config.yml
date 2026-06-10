@@ -1,5 +1,16 @@
 # ProVouchers configuration.
 
+locale:
+  # Language for plugin messages. ProVouchers ships English (lang/en.yml). To translate,
+  # copy it to lang/<code>.yml (e.g. lang/de.yml), translate the values, and either set
+  # "default" to that code or leave per-player on. Missing keys fall back to English, so a
+  # partial translation never shows a blank line. Editing a lang file is picked up by
+  # /voucher reload; changing the settings below needs a server restart.
+  default: en
+  # When true, each player sees messages in their Minecraft client language if a matching
+  # lang/<code>.yml exists, otherwise the default above. Console always uses the default.
+  per-player: true
+
 storage:
   # Backend: sqlite | mysql | mariadb | postgres
   # SQLite is file-based and needs no extra setup; the others connect to a server.
