@@ -46,6 +46,16 @@ public final class Text {
     }
 
     /**
+     * Resolves PlaceholderAPI placeholders in the input against the viewer <em>without</em>
+     * MiniMessage parsing, returning the raw resolved string. Returns the input unchanged when PAPI
+     * is absent or the viewer is null. Useful for comparing placeholder output (e.g. the papi
+     * condition).
+     */
+    public String resolve(String input, @Nullable Player viewer) {
+        return applyPlaceholders(input, viewer);
+    }
+
+    /**
      * Parses already-resolved text as MiniMessage, adding MiniPlaceholders' component-safe
      * resolvers when installed. If a MiniPlaceholders expansion throws, it falls back to parsing
      * without them, so a misbehaving provider can never break rendering.

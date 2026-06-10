@@ -7,6 +7,7 @@ import so.alaz.provouchers.antidupe.DupeDetector;
 import so.alaz.provouchers.antidupe.VoucherStamp;
 import so.alaz.provouchers.api.VoucherService;
 import so.alaz.provouchers.command.VoucherCommand;
+import so.alaz.provouchers.condition.ConditionRegistry;
 import so.alaz.provouchers.config.ConfigManager;
 import so.alaz.provouchers.service.VoucherServiceImpl;
 import so.alaz.provouchers.cooldown.CooldownService;
@@ -112,7 +113,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
             scheduler,
             text,
             cooldowns,
-            StrataApi.conditions(),
+            new ConditionRegistry(text),
             counters,
             getConfig().getBoolean("anti-dupe.remove-on-discovery", true),
             getConfig().getBoolean("anti-dupe.warning.enabled", false),
