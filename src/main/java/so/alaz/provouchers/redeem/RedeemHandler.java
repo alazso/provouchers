@@ -43,7 +43,7 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * The redemption pipeline shared by item vouchers and codes. Synchronous checks
  * (existence, expiry, game mode, cooldown, conditions) run on the caller's thread;
- * persistent checks (duplicate stamps, code-use limits) run on Strata's async
+ * persistent checks (duplicate stamps, code-use limits) run on the async
  * scheduler, then control hops back to the player's region to grant rewards.
  */
 public final class RedeemHandler {

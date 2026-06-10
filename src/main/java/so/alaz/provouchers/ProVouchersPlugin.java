@@ -45,7 +45,6 @@ import so.alaz.provouchers.storage.VoucherStorage;
 import so.alaz.provouchers.voucher.ItemResolver;
 import so.alaz.provouchers.voucher.VoucherItemFactory;
 import so.alaz.provouchers.voucher.VoucherRegistry;
-import so.alaz.strata.api.StrataApi;
 
 import java.io.File;
 import java.util.List;
@@ -54,9 +53,9 @@ import java.util.Locale;
 import static net.kyori.adventure.text.Component.text;
 
 /**
- * Plugin entry point. Verifies the runtime prerequisites (Java 25 and the Strata
- * shared library), opens storage, loads voucher and code definitions, and wires up
- * the redeem pipeline, listener, and command.
+ * Plugin entry point. Verifies the Java 25 runtime requirement, opens storage,
+ * loads voucher and code definitions, and wires up the redeem pipeline,
+ * listeners, GUI, metrics, and command.
  */
 public final class ProVouchersPlugin extends JavaPlugin {
 
@@ -73,12 +72,6 @@ public final class ProVouchersPlugin extends JavaPlugin {
                 + "is running Java " + Runtime.version().feature() + ".");
             return;
         }
-        if (!StrataApi.isAvailable()) {
-            disableWith("Strata is not available. Install the Strata plugin and ensure it loads before "
-                + "ProVouchers.");
-            return;
-        }
-
         saveDefaultConfig();
         saveExample("vouchers/example.yml");
         saveExample("codes/example.yml");

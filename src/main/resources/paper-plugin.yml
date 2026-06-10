@@ -11,9 +11,6 @@ loader: so.alaz.provouchers.ProVouchersLoader
 
 dependencies:
   server:
-    Strata:
-      load: BEFORE
-      required: true
     Vault:
       load: BEFORE
       required: false

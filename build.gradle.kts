@@ -22,11 +22,6 @@ dependencies {
     compileOnly(libs.paper.api)
     compileOnly(libs.jetbrains.annotations)
 
-    // Strata is a hard runtime dependency, present on the server and loaded first.
-    // We compile against its API only; its runtime libraries (Kotlin stdlib, JDBC
-    // drivers, connection pool) are provided by the installed Strata plugin.
-    compileOnly(libs.strata.api)
-
     // Soft integrations resolved by class presence at runtime; their Adventure deps come
     // from Paper, so MiniPlaceholders is pulled non-transitively.
     compileOnly(libs.placeholderapi)
@@ -55,7 +50,6 @@ dependencies {
     compileOnly(libs.worldedit.core) { isTransitive = false }
 
     testImplementation(libs.paper.api)
-    testImplementation(libs.strata.api)
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.assertj.core)
     testRuntimeOnly(libs.junit.platform.launcher)
@@ -63,7 +57,9 @@ dependencies {
 
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
-    options.compilerArgs.add("-Xlint:all,-processing,-serial")
+    // -classfile: the Kotlin-compiled integration APIs (Nexo) are declared non-transitively,
+    // so their kotlin.* annotation types are absent at compile time by design.
+    options.compilerArgs.add("-Xlint:all,-processing,-serial,-classfile")
 }
 
 tasks.withType<Test>().configureEach {

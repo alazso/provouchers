@@ -7,7 +7,7 @@ import org.jetbrains.annotations.Nullable;
  * {@code itemsadder:ax_wings_pack:phoenix_wings} or {@code oraxen:my_item}.
  *
  * <p>The text before the first colon is treated as a provider hint (matched
- * case-insensitively against a Strata item hook's name); the remainder is the
+ * case-insensitively against an item hook's name); the remainder is the
  * provider's own item id, which may itself contain colons.
  *
  * @param providerHint the provider name hint, or {@code null} if none was given

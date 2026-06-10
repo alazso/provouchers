@@ -9,7 +9,7 @@ import java.util.Map;
 
 /**
  * An immutable, parsed voucher definition. Conditions are kept as their raw config
- * maps and built into Strata {@code Condition}s at redemption time, so this type
+ * maps and built into {@code Condition}s at redemption time, so this type
  * stays independent of the running server.
  *
  * @param id            the unique voucher id (its file name without extension)

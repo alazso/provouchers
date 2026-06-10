@@ -3,7 +3,6 @@ shadow          = "9.4.2"
 foojay          = "0.9.0"
 paper           = "26.1.2.build.66-stable"
 annotations     = "24.1.0"
-strata          = "0.10.0"
 placeholderapi  = "2.11.6"
 miniplaceholders = "3.2.0"
 hikari          = "7.0.2"
@@ -24,7 +23,6 @@ mockito         = "5.14.2"
 [libraries]
 paper-api                = { module = "io.papermc.paper:paper-api",             version.ref = "paper" }
 jetbrains-annotations    = { module = "org.jetbrains:annotations",              version.ref = "annotations" }
-strata-api               = { module = "so.alaz.strata:strata-api",              version.ref = "strata" }
 # Soft integrations, compileOnly (Adventure comes from Paper); resolution by class presence.
 placeholderapi           = { module = "me.clip:placeholderapi",                 version.ref = "placeholderapi" }
 miniplaceholders-api     = { module = "io.github.miniplaceholders:miniplaceholders-api", version.ref = "miniplaceholders" }

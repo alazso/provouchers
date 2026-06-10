@@ -6,8 +6,16 @@ All notable changes to ProVouchers are documented here. This project follows
 
 ## [1.0.0] - unreleased
 
-The first standalone release: ProVouchers no longer depends on the Strata library
-(migration in progress). 0.6.0 was never published; its work folds in here.
+The first standalone release. ProVouchers no longer requires the Strata library:
+everything it used (scheduling, text rendering, storage, GUI, conditions, metrics,
+and the Vault/LuckPerms/ItemsAdder/Oraxen/Nexo/HeadDatabase/WorldGuard integrations)
+now ships inside the plugin. Drop the Strata plugin only if no other plugin needs it.
+0.6.0 was never published; its work folds in here.
+
+### Changed
+- **Standalone: the Strata dependency is gone.** Install is now a single jar; the
+  connection pool and database drivers are fetched by Paper's library loader on
+  first start.
 
 ### Added
 - **Admin preview GUI** (`/voucher preview`): a paginated browser of every loaded
