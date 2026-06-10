@@ -122,31 +122,15 @@ public final class RedeemHandler {
             send(player, "<red>This voucher has expired.");
             return;
         }
-        if (!gameModeAllowed(player)) {
-            send(player, "<red>You cannot redeem vouchers in this game mode.");
-            return;
-        }
-        if (!player.hasPermission("provouchers.bypass.cooldown")
-            && cooldowns.isOnCooldown(player.getUniqueId(), voucher.id())) {
-            long seconds = cooldowns.remaining(player.getUniqueId(), voucher.id()).toSeconds();
-            send(player, "<red>You must wait " + Math.max(1, seconds) + "s before redeeming this again.");
-            return;
-        }
-        ConditionResult conditionResult = evaluate(voucher.conditionMaps(), player);
-        if (!conditionResult.getPassed()) {
-            counters.recordConditionDenial();
-            replyFailure(player, conditionResult);
-            return;
-        }
-        if (!new VoucherPreRedeemEvent(player, voucher).callEvent()) {
+        if (!voucherPreChecks(player, voucher)) {
             return;
         }
 
         ItemStack consumed = consumeOne(player, hand, inHand);
         String uid = readUid(consumed);
         if (uid == null) {
-            // Stackable voucher: no anti-dupe tracking, finish on the current thread.
-            finishItemRedeem(player, voucher, consumed, true, StampStatus.VALID);
+            // Stackable voucher: no anti-dupe tracking, commit on the current thread.
+            completeVoucherRedeem(player, voucher, null);
             return;
         }
         scheduler.async(() -> {
@@ -155,34 +139,70 @@ public final class RedeemHandler {
                 && dupeDetector.claim(uid, player.getUniqueId());
             boolean finalAllowed = allowed;
             StampStatus finalStatus = status;
-            scheduler.entity(player, () ->
-                finishItemRedeem(player, voucher, consumed, finalAllowed, finalStatus));
+            scheduler.entity(player, () -> {
+                if (finalAllowed) {
+                    completeVoucherRedeem(player, voucher, uid);
+                } else {
+                    handleRejectedItem(player, voucher, consumed, finalStatus);
+                }
+            });
         });
     }
 
-    private void finishItemRedeem(Player player, Voucher voucher, ItemStack consumed, boolean allowed,
-                                  StampStatus status) {
-        if (!allowed) {
-            if (status == StampStatus.DUPLICATE) {
-                counters.recordDuplicateBlocked();
-                send(player, "<red>This voucher has already been redeemed.");
-                notifyStaff(player.getName() + " tried to redeem a duplicate '" + voucher.id() + "'.");
-                if (!removeOnDiscovery) {
-                    applyWarningLore(consumed);
-                    refund(player, consumed);
-                }
-            } else {
-                send(player, "<red>Could not verify this voucher. Please try again.");
-                refund(player, consumed);
-            }
-            return;
+    /**
+     * The source-agnostic gates a voucher redemption must pass before it commits:
+     * game mode, cooldown, conditions, and the cancellable pre-redeem event. Replies
+     * to the player on failure. Reused by the item path and (later) virtual vouchers.
+     */
+    private boolean voucherPreChecks(Player player, Voucher voucher) {
+        if (!gameModeAllowed(player)) {
+            send(player, "<red>You cannot redeem vouchers in this game mode.");
+            return false;
         }
+        if (!player.hasPermission("provouchers.bypass.cooldown")
+            && cooldowns.isOnCooldown(player.getUniqueId(), voucher.id())) {
+            long seconds = cooldowns.remaining(player.getUniqueId(), voucher.id()).toSeconds();
+            send(player, "<red>You must wait " + Math.max(1, seconds) + "s before redeeming this again.");
+            return false;
+        }
+        ConditionResult conditionResult = evaluate(voucher.conditionMaps(), player);
+        if (!conditionResult.getPassed()) {
+            counters.recordConditionDenial();
+            replyFailure(player, conditionResult);
+            return false;
+        }
+        return new VoucherPreRedeemEvent(player, voucher).callEvent();
+    }
+
+    /**
+     * Commits a successful voucher redemption: applies the cooldown, grants the
+     * rewards, records the metric, and fires {@link VoucherRedeemEvent}. The
+     * {@code uid} is the redeemed item's unique id, or {@code null} for a stackable
+     * voucher. Reused by the item path and (later) virtual vouchers and batch open.
+     */
+    private void completeVoucherRedeem(Player player, Voucher voucher, @Nullable String uid) {
         if (voucher.cooldownSeconds() > 0) {
             cooldowns.apply(player.getUniqueId(), voucher.id(), voucher.cooldownSeconds());
         }
         grant(player, "voucher '" + voucher.id() + "'", voucher.rewards(), voucher.randomRewards(), null);
         counters.recordVoucherRedemption();
-        new VoucherRedeemEvent(player, voucher, readUid(consumed)).callEvent();
+        new VoucherRedeemEvent(player, voucher, uid).callEvent();
+    }
+
+    /** Handles a physical voucher that failed the duplicate check: warns, notifies, and refunds. */
+    private void handleRejectedItem(Player player, Voucher voucher, ItemStack consumed, StampStatus status) {
+        if (status == StampStatus.DUPLICATE) {
+            counters.recordDuplicateBlocked();
+            send(player, "<red>This voucher has already been redeemed.");
+            notifyStaff(player.getName() + " tried to redeem a duplicate '" + voucher.id() + "'.");
+            if (!removeOnDiscovery) {
+                applyWarningLore(consumed);
+                refund(player, consumed);
+            }
+        } else {
+            send(player, "<red>Could not verify this voucher. Please try again.");
+            refund(player, consumed);
+        }
     }
 
     /** Appends the duplicate warning lore to a rejected item, once, if enabled. */
