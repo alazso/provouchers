@@ -2,6 +2,8 @@ package so.alaz.provouchers.util;
 
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
@@ -26,6 +28,19 @@ public final class Tokens {
     /** Applies all tokens using the shared thread-local random for {@code {random:}}. */
     public static String apply(String input, String playerName, @Nullable String arg) {
         return apply(input, playerName, arg, ThreadLocalRandom.current());
+    }
+
+    /**
+     * Applies all tokens to each line, returning a new list. {@code {random:}} is drawn
+     * independently per line, so a fixed roll is baked into the line at the moment of
+     * substitution (e.g. when a voucher item's lore is built).
+     */
+    public static List<String> applyAll(List<String> lines, String playerName, @Nullable String arg) {
+        List<String> out = new ArrayList<>(lines.size());
+        for (String line : lines) {
+            out.add(apply(line, playerName, arg));
+        }
+        return out;
     }
 
     /** Applies all tokens, drawing {@code {random:min-max}} values from {@code random}. */

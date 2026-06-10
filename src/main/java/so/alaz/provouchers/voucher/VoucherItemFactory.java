@@ -10,6 +10,7 @@ import so.alaz.provouchers.antidupe.VoucherStamp;
 import so.alaz.provouchers.platform.ItemBuilder;
 import so.alaz.provouchers.platform.SkullBuilder;
 import so.alaz.provouchers.platform.Text;
+import so.alaz.provouchers.util.Tokens;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -82,6 +83,11 @@ public final class VoucherItemFactory {
         return buildBase(voucher, viewer);
     }
 
+    /** The viewer's name for token substitution, or empty when an item is built with no viewer. */
+    private static String viewerName(@Nullable Player viewer) {
+        return viewer != null ? viewer.getName() : "";
+    }
+
     private void stampCommon(ItemMeta meta, Voucher voucher, @Nullable Player viewer, long now) {
         stamp.stamp(meta, voucher.id());
         stamp.setGivenAt(meta, now);
@@ -113,13 +119,14 @@ public final class VoucherItemFactory {
             throw new IllegalArgumentException(
                 "material '" + material.name() + "' is not an obtainable item");
         }
+        String viewerName = viewerName(viewer);
         String name = voucher.displayName() != null ? voucher.displayName() : voucher.id();
         ItemBuilder builder = new ItemBuilder(material)
             .amount(amount)
             .glow(voucher.item().glow())
-            .name(text.render(name, viewer));
+            .name(text.render(Tokens.apply(name, viewerName, null), viewer));
         if (!voucher.lore().isEmpty()) {
-            builder.lore(text.render(voucher.lore(), viewer));
+            builder.lore(text.render(Tokens.applyAll(voucher.lore(), viewerName, null), viewer));
         }
         ItemStack item = builder.build();
         Integer customModelData = voucher.item().customModelData();
@@ -148,13 +155,14 @@ public final class VoucherItemFactory {
      * the voucher sets one; custom model data is applied only when {@code applyModelData}.
      */
     private void decorate(ItemStack item, Voucher voucher, @Nullable Player viewer, boolean applyModelData) {
+        String viewerName = viewerName(viewer);
         item.editMeta(meta -> {
             if (voucher.displayName() != null) {
-                meta.displayName(text.render(voucher.displayName(), viewer)
+                meta.displayName(text.render(Tokens.apply(voucher.displayName(), viewerName, null), viewer)
                     .decoration(TextDecoration.ITALIC, false));
             }
             if (!voucher.lore().isEmpty()) {
-                meta.lore(text.render(voucher.lore(), viewer).stream()
+                meta.lore(text.render(Tokens.applyAll(voucher.lore(), viewerName, null), viewer).stream()
                     .map(line -> line.decoration(TextDecoration.ITALIC, false))
                     .toList());
             }

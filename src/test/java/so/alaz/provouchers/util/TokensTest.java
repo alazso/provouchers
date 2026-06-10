@@ -2,6 +2,7 @@ package so.alaz.provouchers.util;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,5 +45,12 @@ class TokensTest {
     @Test
     void emptyInputReturnedUnchanged() {
         assertThat(Tokens.apply("", "Steve", "x")).isEmpty();
+    }
+
+    @Test
+    void applyAllSubstitutesEveryLine() {
+        List<String> lore = List.of("Bound to %player%", "Reward: {random:5-5} gems", "<gray>plain");
+        assertThat(Tokens.applyAll(lore, "Steve", null))
+            .containsExactly("Bound to Steve", "Reward: 5 gems", "<gray>plain");
     }
 }
