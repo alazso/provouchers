@@ -14,6 +14,18 @@ import so.alaz.provouchers.cooldown.CooldownService;
 import so.alaz.provouchers.give.VoucherGiveService;
 import so.alaz.provouchers.gui.GuiListener;
 import so.alaz.provouchers.gui.GuiManager;
+import so.alaz.provouchers.hook.EconomyHook;
+import so.alaz.provouchers.hook.HeadDatabaseItemHook;
+import so.alaz.provouchers.hook.HookRegistry;
+import so.alaz.provouchers.hook.ItemHook;
+import so.alaz.provouchers.hook.ItemsAdderItemHook;
+import so.alaz.provouchers.hook.LuckPermsPermissionHook;
+import so.alaz.provouchers.hook.NexoItemHook;
+import so.alaz.provouchers.hook.OraxenItemHook;
+import so.alaz.provouchers.hook.PermissionHook;
+import so.alaz.provouchers.hook.RegionHook;
+import so.alaz.provouchers.hook.VaultEconomyHook;
+import so.alaz.provouchers.hook.WorldGuardRegionHook;
 import so.alaz.provouchers.gui.PreviewGui;
 import so.alaz.provouchers.gui.VoucherAdminMenu;
 import so.alaz.provouchers.listener.CooldownLoadListener;
@@ -87,11 +99,12 @@ public final class ProVouchersPlugin extends JavaPlugin {
         Scheduler scheduler = new Scheduler(this);
         Text text = new Text();
         guiManager = new GuiManager(this);
+        HookRegistry hooks = buildHooks();
 
         VoucherStamp stamp = new VoucherStamp(this);
-        ItemResolver itemResolver = new ItemResolver(StrataApi.hooks());
+        ItemResolver itemResolver = new ItemResolver(hooks);
         RewardExecutor rewardExecutor = new RewardExecutor(
-            scheduler, text, itemResolver, StrataApi.hooks(),
+            scheduler, text, itemResolver, hooks,
             getComponentLogger());
         VoucherItemFactory factory = new VoucherItemFactory(text, stamp, itemResolver);
         VoucherGiveService giveService = new VoucherGiveService(factory, scheduler);
@@ -113,7 +126,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
             scheduler,
             text,
             cooldowns,
-            new ConditionRegistry(text),
+            new ConditionRegistry(text, hooks),
             counters,
             getConfig().getBoolean("anti-dupe.remove-on-discovery", true),
             getConfig().getBoolean("anti-dupe.warning.enabled", false),
@@ -150,6 +163,23 @@ public final class ProVouchersPlugin extends JavaPlugin {
             storage.shutdown();
         }
         getComponentLogger().info(text("ProVouchers disabled.", NamedTextColor.GOLD));
+    }
+
+    /**
+     * Registers every integration provider. Hooks self-detect their backing plugin and report
+     * availability per call, so registering them unconditionally is safe; a missing plugin is
+     * simply skipped at resolution time.
+     */
+    private static HookRegistry buildHooks() {
+        HookRegistry hooks = new HookRegistry();
+        hooks.register(EconomyHook.class, new VaultEconomyHook());
+        hooks.register(PermissionHook.class, new LuckPermsPermissionHook());
+        hooks.register(RegionHook.class, new WorldGuardRegionHook());
+        hooks.register(ItemHook.class, new ItemsAdderItemHook());
+        hooks.register(ItemHook.class, new OraxenItemHook());
+        hooks.register(ItemHook.class, new NexoItemHook());
+        hooks.register(ItemHook.class, new HeadDatabaseItemHook());
+        return hooks;
     }
 
     private StorageConfig buildStorageConfig(Backend backend) {

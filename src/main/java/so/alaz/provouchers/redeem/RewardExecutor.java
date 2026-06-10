@@ -15,23 +15,23 @@ import so.alaz.provouchers.reward.PermissionRewardPayload;
 import so.alaz.provouchers.reward.RewardItemPayload;
 import so.alaz.provouchers.reward.RewardLine;
 import so.alaz.provouchers.util.Tokens;
+import so.alaz.provouchers.hook.EconomyHook;
+import so.alaz.provouchers.hook.HookRegistry;
+import so.alaz.provouchers.hook.PermissionHook;
 import so.alaz.provouchers.platform.Scheduler;
 import so.alaz.provouchers.platform.Text;
 import so.alaz.provouchers.voucher.ItemResolver;
-import so.alaz.strata.api.hook.EconomyHook;
-import so.alaz.strata.api.hook.HookRegistry;
-import so.alaz.strata.api.hook.PermissionHook;
 
 import java.time.Duration;
 import java.util.List;
 
 /**
  * Runs reward actions for a player. Command dispatch and broadcasts are routed
- * through Strata's scheduler so the plugin stays Folia-safe; messages, titles,
+ * through the scheduler so the plugin stays Folia-safe; messages, titles,
  * action bars, sounds, and item grants act on the player (the caller already runs
  * this on the player's region thread). Tokens such as {@code %player%},
  * {@code {arg}}, and {@code {random:min-max}} are substituted first, then
- * MiniMessage and PlaceholderAPI are resolved by Strata's renderer.
+ * MiniMessage and PlaceholderAPI are resolved by the text renderer.
  *
  * <p>Each reward is executed independently: a single failing reward is logged
  * with its source and never aborts the others.

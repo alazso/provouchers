@@ -40,6 +40,20 @@ dependencies {
     implementation(libs.bstats.bukkit)
     implementation(libs.faststats.bukkit)
 
+    // Integration APIs: provided at runtime by the respective server plugins (soft-depend),
+    // guarded by class-presence checks. Never bundled, never runtime-loaded. Declared
+    // non-transitively where their dependency trees are heavy or carry conflicting constraints.
+    compileOnly(libs.luckperms.api)
+    compileOnly(libs.vault.api) { isTransitive = false }
+    compileOnly(libs.itemsadder.api) { isTransitive = false }
+    compileOnly(libs.oraxen) { isTransitive = false }
+    compileOnly(libs.nexo) { isTransitive = false }
+    compileOnly(libs.headdatabase.api) { isTransitive = false }
+    compileOnly(libs.worldguard.bukkit) { isTransitive = false }
+    compileOnly(libs.worldguard.core) { isTransitive = false }
+    compileOnly(libs.worldedit.bukkit) { isTransitive = false }
+    compileOnly(libs.worldedit.core) { isTransitive = false }
+
     testImplementation(libs.paper.api)
     testImplementation(libs.strata.api)
     testImplementation(libs.junit.jupiter)

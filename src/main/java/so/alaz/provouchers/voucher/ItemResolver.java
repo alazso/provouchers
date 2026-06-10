@@ -3,16 +3,16 @@ package so.alaz.provouchers.voucher;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
-import so.alaz.strata.api.hook.HookRegistry;
-import so.alaz.strata.api.hook.ItemHook;
+import so.alaz.provouchers.hook.HookRegistry;
+import so.alaz.provouchers.hook.ItemHook;
 
 import java.util.List;
 
 /**
  * Resolves item references to {@link ItemStack}s, shared by voucher icon building
  * and item rewards. A reference is either a vanilla material name or a
- * {@code provider:id} custom item served by a Strata item hook (ItemsAdder,
- * Oraxen, Nexo, and so on).
+ * {@code provider:id} custom item served by an {@link ItemHook} (ItemsAdder,
+ * Oraxen, Nexo, HeadDatabase).
  */
 public final class ItemResolver {
 
