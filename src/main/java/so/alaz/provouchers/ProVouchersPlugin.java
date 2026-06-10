@@ -17,6 +17,9 @@ import so.alaz.provouchers.listener.CooldownLoadListener;
 import so.alaz.provouchers.listener.VoucherInteractListener;
 import so.alaz.provouchers.metrics.MetricCounters;
 import so.alaz.provouchers.metrics.VoucherMetrics;
+import so.alaz.provouchers.platform.CooldownManager;
+import so.alaz.provouchers.platform.Scheduler;
+import so.alaz.provouchers.platform.Text;
 import so.alaz.provouchers.redeem.RedeemHandler;
 import so.alaz.provouchers.redeem.RewardExecutor;
 import so.alaz.provouchers.storage.VoucherStorage;
@@ -24,7 +27,6 @@ import so.alaz.provouchers.voucher.ItemResolver;
 import so.alaz.provouchers.voucher.VoucherItemFactory;
 import so.alaz.provouchers.voucher.VoucherRegistry;
 import so.alaz.strata.api.StrataApi;
-import so.alaz.strata.api.cooldown.Cooldowns;
 import so.alaz.strata.api.metrics.Metrics;
 import so.alaz.strata.api.storage.Backend;
 import so.alaz.strata.api.storage.StorageConfig;
@@ -77,19 +79,22 @@ public final class ProVouchersPlugin extends JavaPlugin {
         ConfigManager configManager = new ConfigManager(getDataFolder(), registry);
         reportErrors(configManager.reload());
 
+        Scheduler scheduler = new Scheduler(this);
+        Text text = new Text();
+
         VoucherStamp stamp = new VoucherStamp(this);
         ItemResolver itemResolver = new ItemResolver(StrataApi.hooks());
         RewardExecutor rewardExecutor = new RewardExecutor(
-            StrataApi.scheduler(this), StrataApi.text(), itemResolver, StrataApi.hooks(),
+            scheduler, text, itemResolver, StrataApi.hooks(),
             getComponentLogger());
-        VoucherItemFactory factory = new VoucherItemFactory(StrataApi.text(), stamp, itemResolver);
-        VoucherGiveService giveService = new VoucherGiveService(factory, StrataApi.scheduler(this));
+        VoucherItemFactory factory = new VoucherItemFactory(text, stamp, itemResolver);
+        VoucherGiveService giveService = new VoucherGiveService(factory, scheduler);
         PreviewGui previewGui = new PreviewGui(registry, factory, giveService,
-            new VoucherAdminMenu(StrataApi.text()), StrataApi.gui(), StrataApi.scheduler(this),
-            StrataApi.text());
+            new VoucherAdminMenu(text), StrataApi.gui(), scheduler,
+            text);
 
         CooldownService cooldowns = new CooldownService(
-            Cooldowns.create(), storage, StrataApi.scheduler(this));
+            new CooldownManager(), storage, scheduler);
 
         MetricCounters counters = new MetricCounters();
 
@@ -99,8 +104,8 @@ public final class ProVouchersPlugin extends JavaPlugin {
             new DupeDetector(storage),
             storage,
             rewardExecutor,
-            StrataApi.scheduler(this),
-            StrataApi.text(),
+            scheduler,
+            text,
             cooldowns,
             StrataApi.conditions(),
             counters,

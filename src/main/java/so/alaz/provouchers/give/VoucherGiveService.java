@@ -4,7 +4,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.provouchers.voucher.VoucherItemFactory;
-import so.alaz.strata.api.scheduler.PlatformScheduler;
+import so.alaz.provouchers.platform.Scheduler;
 
 import java.util.List;
 
@@ -17,9 +17,9 @@ import java.util.List;
 public final class VoucherGiveService {
 
     private final VoucherItemFactory factory;
-    private final PlatformScheduler scheduler;
+    private final Scheduler scheduler;
 
-    public VoucherGiveService(VoucherItemFactory factory, PlatformScheduler scheduler) {
+    public VoucherGiveService(VoucherItemFactory factory, Scheduler scheduler) {
         this.factory = factory;
         this.scheduler = scheduler;
     }

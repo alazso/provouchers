@@ -15,12 +15,12 @@ import so.alaz.provouchers.reward.PermissionRewardPayload;
 import so.alaz.provouchers.reward.RewardItemPayload;
 import so.alaz.provouchers.reward.RewardLine;
 import so.alaz.provouchers.util.Tokens;
+import so.alaz.provouchers.platform.Scheduler;
+import so.alaz.provouchers.platform.Text;
 import so.alaz.provouchers.voucher.ItemResolver;
 import so.alaz.strata.api.hook.EconomyHook;
 import so.alaz.strata.api.hook.HookRegistry;
 import so.alaz.strata.api.hook.PermissionHook;
-import so.alaz.strata.api.scheduler.PlatformScheduler;
-import so.alaz.strata.api.text.TextRenderer;
 
 import java.time.Duration;
 import java.util.List;
@@ -41,13 +41,13 @@ public final class RewardExecutor {
     private static final Title.Times TITLE_TIMES = Title.Times.times(
         Duration.ofMillis(500), Duration.ofSeconds(3), Duration.ofMillis(500));
 
-    private final PlatformScheduler scheduler;
-    private final TextRenderer text;
+    private final Scheduler scheduler;
+    private final Text text;
     private final ItemResolver items;
     private final HookRegistry hooks;
     private final ComponentLogger logger;
 
-    public RewardExecutor(PlatformScheduler scheduler, TextRenderer text, ItemResolver items,
+    public RewardExecutor(Scheduler scheduler, Text text, ItemResolver items,
                           HookRegistry hooks, ComponentLogger logger) {
         this.scheduler = scheduler;
         this.text = text;

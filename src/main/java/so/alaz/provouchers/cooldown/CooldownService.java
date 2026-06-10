@@ -1,8 +1,8 @@
 package so.alaz.provouchers.cooldown;
 
 import so.alaz.provouchers.storage.VoucherStorage;
-import so.alaz.strata.api.cooldown.CooldownManager;
-import so.alaz.strata.api.scheduler.PlatformScheduler;
+import so.alaz.provouchers.platform.CooldownManager;
+import so.alaz.provouchers.platform.Scheduler;
 
 import java.sql.SQLException;
 import java.time.Duration;
@@ -21,9 +21,9 @@ public final class CooldownService {
 
     private final CooldownManager memory;
     private final VoucherStorage storage;
-    private final PlatformScheduler scheduler;
+    private final Scheduler scheduler;
 
-    public CooldownService(CooldownManager memory, VoucherStorage storage, PlatformScheduler scheduler) {
+    public CooldownService(CooldownManager memory, VoucherStorage storage, Scheduler scheduler) {
         this.memory = memory;
         this.storage = storage;
         this.scheduler = scheduler;

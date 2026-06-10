@@ -9,9 +9,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.antidupe.VoucherStamp;
-import so.alaz.strata.api.gui.ItemBuilder;
-import so.alaz.strata.api.item.SkullBuilder;
-import so.alaz.strata.api.text.TextRenderer;
+import so.alaz.provouchers.platform.ItemBuilder;
+import so.alaz.provouchers.platform.SkullBuilder;
+import so.alaz.provouchers.platform.Text;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,11 +32,11 @@ import java.util.concurrent.CompletableFuture;
  */
 public final class VoucherItemFactory {
 
-    private final TextRenderer text;
+    private final Text text;
     private final VoucherStamp stamp;
     private final ItemResolver items;
 
-    public VoucherItemFactory(TextRenderer text, VoucherStamp stamp, ItemResolver items) {
+    public VoucherItemFactory(Text text, VoucherStamp stamp, ItemResolver items) {
         this.text = text;
         this.stamp = stamp;
         this.items = items;

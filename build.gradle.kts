@@ -27,6 +27,11 @@ dependencies {
     // drivers, connection pool) are provided by the installed Strata plugin.
     compileOnly(libs.strata.api)
 
+    // Soft integrations resolved by class presence at runtime; their Adventure deps come
+    // from Paper, so MiniPlaceholders is pulled non-transitively.
+    compileOnly(libs.placeholderapi)
+    compileOnly(libs.miniplaceholders.api) { isTransitive = false }
+
     testImplementation(libs.paper.api)
     testImplementation(libs.strata.api)
     testImplementation(libs.junit.jupiter)
@@ -72,6 +77,7 @@ val coverageExclusions = listOf(
     "**/service/**",
     "**/gui/**",
     "**/give/**",
+    "**/platform/**",
     "**/voucher/VoucherItemFactory.class",
     "**/voucher/ItemResolver.class",
     "**/config/ConfigManager.class",

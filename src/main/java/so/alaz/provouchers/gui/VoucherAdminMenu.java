@@ -4,13 +4,13 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import so.alaz.provouchers.platform.ItemBuilder;
+import so.alaz.provouchers.platform.Text;
 import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.strata.api.gui.Button;
 import so.alaz.strata.api.gui.ChestGui;
 import so.alaz.strata.api.gui.Gui;
 import so.alaz.strata.api.gui.GuiClickHandler;
-import so.alaz.strata.api.gui.ItemBuilder;
-import so.alaz.strata.api.text.TextRenderer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,9 +23,9 @@ import java.util.List;
  */
 public final class VoucherAdminMenu {
 
-    private final TextRenderer text;
+    private final Text text;
 
-    public VoucherAdminMenu(TextRenderer text) {
+    public VoucherAdminMenu(Text text) {
         this.text = text;
     }
 

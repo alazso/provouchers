@@ -31,8 +31,8 @@ import so.alaz.strata.api.condition.ConditionRegistry;
 import so.alaz.strata.api.condition.ConditionResult;
 import so.alaz.strata.api.condition.Conditions;
 import so.alaz.provouchers.cooldown.CooldownService;
-import so.alaz.strata.api.scheduler.PlatformScheduler;
-import so.alaz.strata.api.text.TextRenderer;
+import so.alaz.provouchers.platform.Scheduler;
+import so.alaz.provouchers.platform.Text;
 
 import java.sql.SQLException;
 import java.time.Instant;
@@ -53,8 +53,8 @@ public final class RedeemHandler {
     private final DupeDetector dupeDetector;
     private final VoucherStorage storage;
     private final RewardExecutor rewardExecutor;
-    private final PlatformScheduler scheduler;
-    private final TextRenderer text;
+    private final Scheduler scheduler;
+    private final Text text;
     private final CooldownService cooldowns;
     private final ConditionRegistry conditions;
     private final MetricCounters counters;
@@ -68,8 +68,8 @@ public final class RedeemHandler {
         DupeDetector dupeDetector,
         VoucherStorage storage,
         RewardExecutor rewardExecutor,
-        PlatformScheduler scheduler,
-        TextRenderer text,
+        Scheduler scheduler,
+        Text text,
         CooldownService cooldowns,
         ConditionRegistry conditions,
         MetricCounters counters,
