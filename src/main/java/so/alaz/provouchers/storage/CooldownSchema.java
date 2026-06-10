@@ -1,7 +1,5 @@
 package so.alaz.provouchers.storage;
 
-import so.alaz.strata.api.storage.Migration;
-
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -15,11 +13,6 @@ public final class CooldownSchema implements Migration {
     @Override
     public int version() {
         return 2;
-    }
-
-    @Override
-    public String description() {
-        return "Create the per-player voucher cooldown table";
     }
 
     @Override

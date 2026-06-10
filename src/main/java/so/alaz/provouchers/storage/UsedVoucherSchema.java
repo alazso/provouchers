@@ -1,7 +1,5 @@
 package so.alaz.provouchers.storage;
 
-import so.alaz.strata.api.storage.Migration;
-
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -16,11 +14,6 @@ public final class UsedVoucherSchema implements Migration {
     @Override
     public int version() {
         return 3;
-    }
-
-    @Override
-    public String description() {
-        return "Add the used-voucher table and drop the old stamp table";
     }
 
     @Override

@@ -1,7 +1,5 @@
 package so.alaz.provouchers.storage;
 
-import so.alaz.strata.api.storage.Migration;
-
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -16,11 +14,6 @@ public final class InitialSchema implements Migration {
     @Override
     public int version() {
         return 1;
-    }
-
-    @Override
-    public String description() {
-        return "Create voucher stamp, code, and offline-give tables";
     }
 
     @Override

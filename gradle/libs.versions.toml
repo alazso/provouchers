@@ -6,6 +6,7 @@ annotations     = "24.1.0"
 strata          = "0.10.0"
 placeholderapi  = "2.11.6"
 miniplaceholders = "3.2.0"
+hikari          = "7.0.2"
 junit           = "5.11.4"
 assertj         = "3.26.3"
 mockito         = "5.14.2"
@@ -17,6 +18,8 @@ strata-api               = { module = "so.alaz.strata:strata-api",              
 # Soft integrations, compileOnly (Adventure comes from Paper); resolution by class presence.
 placeholderapi           = { module = "me.clip:placeholderapi",                 version.ref = "placeholderapi" }
 miniplaceholders-api     = { module = "io.github.miniplaceholders:miniplaceholders-api", version.ref = "miniplaceholders" }
+# Connection pool, compileOnly; loaded at runtime with the JDBC drivers by ProVouchersLoader.
+hikari                   = { module = "com.zaxxer:HikariCP",                    version.ref = "hikari" }
 junit-jupiter            = { module = "org.junit.jupiter:junit-jupiter",        version.ref = "junit" }
 junit-platform-launcher  = { module = "org.junit.platform:junit-platform-launcher" }
 assertj-core             = { module = "org.assertj:assertj-core",               version.ref = "assertj" }

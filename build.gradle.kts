@@ -32,6 +32,10 @@ dependencies {
     compileOnly(libs.placeholderapi)
     compileOnly(libs.miniplaceholders.api) { isTransitive = false }
 
+    // Connection pool: compiled against, loaded at runtime by ProVouchersLoader (with the JDBC
+    // drivers) so it is not shaded into the jar.
+    compileOnly(libs.hikari)
+
     testImplementation(libs.paper.api)
     testImplementation(libs.strata.api)
     testImplementation(libs.junit.jupiter)

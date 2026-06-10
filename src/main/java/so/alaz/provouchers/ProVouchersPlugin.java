@@ -24,14 +24,15 @@ import so.alaz.provouchers.platform.Scheduler;
 import so.alaz.provouchers.platform.Text;
 import so.alaz.provouchers.redeem.RedeemHandler;
 import so.alaz.provouchers.redeem.RewardExecutor;
+import so.alaz.provouchers.storage.Backend;
+import so.alaz.provouchers.storage.StorageConfig;
+import so.alaz.provouchers.storage.StorageProvider;
 import so.alaz.provouchers.storage.VoucherStorage;
 import so.alaz.provouchers.voucher.ItemResolver;
 import so.alaz.provouchers.voucher.VoucherItemFactory;
 import so.alaz.provouchers.voucher.VoucherRegistry;
 import so.alaz.strata.api.StrataApi;
 import so.alaz.strata.api.metrics.Metrics;
-import so.alaz.strata.api.storage.Backend;
-import so.alaz.strata.api.storage.StorageConfig;
 
 import java.io.File;
 import java.util.List;
@@ -70,7 +71,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
         saveExample("codes/example.yml");
 
         Backend backend = parseBackend(getConfig().getString("storage.backend", "sqlite"));
-        storage = new VoucherStorage(StrataApi.storage().create(buildStorageConfig(backend)));
+        storage = new VoucherStorage(new StorageProvider(buildStorageConfig(backend)));
         storage.init().whenComplete((ignored, error) -> {
             if (error != null) {
                 getComponentLogger().error(text("Failed to open ProVouchers storage; duplicate and code "
