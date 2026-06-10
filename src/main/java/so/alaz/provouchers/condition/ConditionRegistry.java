@@ -35,6 +35,11 @@ public final class ConditionRegistry {
         factories.put(type.toLowerCase(Locale.ROOT), factory);
     }
 
+    /** Whether a factory is registered for the type (case-insensitive). */
+    public boolean isRegistered(String type) {
+        return factories.containsKey(type.toLowerCase(Locale.ROOT));
+    }
+
     /** Builds conditions from a YAML list-of-maps, skipping unknown types. */
     public List<Condition> buildFromMaps(List<Map<String, Object>> maps) {
         List<Condition> built = new ArrayList<>();

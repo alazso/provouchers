@@ -269,7 +269,8 @@ public final class RedeemHandler {
                 } else {
                     storage.incrementCodeUse(code.code(), player.getUniqueId());
                 }
-            } catch (SQLException ex) {
+            } catch (SQLException | RuntimeException ex) {
+                // A storage error (or the pool not being open yet) leaves the use unverifiable.
                 allowed = false;
                 denyMessage = "<red>Could not verify the code. Please try again.";
             }

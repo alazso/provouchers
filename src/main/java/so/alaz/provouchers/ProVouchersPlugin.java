@@ -86,13 +86,14 @@ public final class ProVouchersPlugin extends JavaPlugin {
         });
 
         VoucherRegistry registry = new VoucherRegistry();
-        ConfigManager configManager = new ConfigManager(getDataFolder(), registry);
+        Text text = new Text();
+        HookRegistry hooks = buildHooks();
+        ConditionRegistry conditionRegistry = new ConditionRegistry(text, hooks);
+        ConfigManager configManager = new ConfigManager(getDataFolder(), registry, conditionRegistry);
         reportErrors(configManager.reload());
 
         Scheduler scheduler = new Scheduler(this);
-        Text text = new Text();
         guiManager = new GuiManager(this);
-        HookRegistry hooks = buildHooks();
 
         VoucherStamp stamp = new VoucherStamp(this);
         ItemResolver itemResolver = new ItemResolver(hooks);
@@ -119,7 +120,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
             scheduler,
             text,
             cooldowns,
-            new ConditionRegistry(text, hooks),
+            conditionRegistry,
             counters,
             getConfig().getBoolean("anti-dupe.remove-on-discovery", true),
             getConfig().getBoolean("anti-dupe.warning.enabled", false),

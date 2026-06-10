@@ -25,7 +25,8 @@ public final class DupeDetector {
     public StampStatus check(String uid) {
         try {
             return storage.isUsed(uid) ? StampStatus.DUPLICATE : StampStatus.VALID;
-        } catch (SQLException ex) {
+        } catch (SQLException | RuntimeException ex) {
+            // Any storage failure, including the pool not being open yet, is unverifiable.
             return StampStatus.UNKNOWN;
         }
     }
@@ -37,7 +38,7 @@ public final class DupeDetector {
     public boolean claim(String uid, UUID player) {
         try {
             return storage.recordUse(uid, player);
-        } catch (SQLException ex) {
+        } catch (SQLException | RuntimeException ex) {
             return false;
         }
     }

@@ -47,7 +47,7 @@ public final class CooldownService {
         scheduler.async(() -> {
             try {
                 storage.setCooldown(player, voucherId, expiresAt);
-            } catch (SQLException ex) {
+            } catch (SQLException | RuntimeException ex) {
                 // Best-effort: the cooldown still holds in memory for this session.
             }
         });
@@ -60,7 +60,7 @@ public final class CooldownService {
             Map<String, Long> active;
             try {
                 active = storage.activeCooldowns(player, now);
-            } catch (SQLException ex) {
+            } catch (SQLException | RuntimeException ex) {
                 return;
             }
             active.forEach((voucherId, expiresAt) -> {

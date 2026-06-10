@@ -1,6 +1,7 @@
 package so.alaz.provouchers.config;
 
 import org.bukkit.configuration.file.YamlConfiguration;
+import so.alaz.provouchers.condition.ConditionRegistry;
 import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.provouchers.voucher.VoucherCode;
 import so.alaz.provouchers.voucher.VoucherRegistry;
@@ -8,6 +9,7 @@ import so.alaz.provouchers.voucher.VoucherRegistry;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Loads voucher and code definitions from the plugin data folder into a
@@ -19,10 +21,12 @@ public final class ConfigManager {
 
     private final File dataFolder;
     private final VoucherRegistry registry;
+    private final ConditionRegistry conditions;
 
-    public ConfigManager(File dataFolder, VoucherRegistry registry) {
+    public ConfigManager(File dataFolder, VoucherRegistry registry, ConditionRegistry conditions) {
         this.dataFolder = dataFolder;
         this.registry = registry;
+        this.conditions = conditions;
     }
 
     /**
@@ -45,6 +49,7 @@ public final class ConfigManager {
             try {
                 YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
                 Voucher voucher = VoucherParser.parseVoucher(yaml, id);
+                requireKnownConditions(voucher.conditionMaps());
                 registry.register(voucher);
             } catch (VoucherParseException ex) {
                 errors.add(file.getName() + ": " + ex.getMessage());
@@ -62,12 +67,26 @@ public final class ConfigManager {
             try {
                 YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
                 VoucherCode code = VoucherParser.parseCode(yaml, id);
+                requireKnownConditions(code.conditionMaps());
                 registry.register(code);
             } catch (VoucherParseException ex) {
                 errors.add(file.getName() + ": " + ex.getMessage());
             } catch (RuntimeException ex) {
                 errors.add(file.getName() + ": " + ex.getClass().getSimpleName() + " "
                     + ex.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Rejects a condition whose {@code type} is not registered, so a typo or a removed type fails
+     * loudly at load (and the voucher/code does not load) rather than silently dropping the gate at
+     * redeem time, which would let the restriction fail open.
+     */
+    private void requireKnownConditions(List<Map<String, Object>> conditionMaps) {
+        for (Map<String, Object> condition : conditionMaps) {
+            if (condition.get("type") instanceof String type && !conditions.isRegistered(type)) {
+                throw new VoucherParseException("unknown condition type '" + type + "'");
             }
         }
     }
