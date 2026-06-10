@@ -4,43 +4,46 @@ All notable changes to ProVouchers are documented here. This project follows
 [Semantic Versioning](https://semver.org). Releases before 0.5.0 are listed on the
 [GitHub releases](https://github.com/alazso/provouchers/releases) page.
 
-## [1.0.0] - unreleased
+## [1.0.0] - 2026-06-10
 
-The first standalone release. ProVouchers no longer requires the Strata library:
-everything it used (scheduling, text rendering, storage, GUI, conditions, metrics,
-and the Vault/LuckPerms/ItemsAdder/Oraxen/Nexo/HeadDatabase/WorldGuard integrations)
-now ships inside the plugin. Drop the Strata plugin only if no other plugin needs it.
-0.6.0 was never published; its work folds in here.
-
-### Changed
-- **Standalone: the Strata dependency is gone.** Install is now a single jar; the
-  connection pool and database drivers are fetched by Paper's library loader on
-  first start.
+The first standalone release. ProVouchers no longer needs the Strata library:
+scheduling, text rendering, storage, the GUI, conditions, metrics, and every
+integration (Vault, LuckPerms, ItemsAdder, Oraxen, Nexo, HeadDatabase, WorldGuard)
+now ship inside the plugin. It installs as a single jar and runs on Paper, Folia,
+and Purpur 26.1+. 0.6.0 was never published; its work is included here.
 
 ### Added
-- **Admin preview GUI** (`/voucher preview`): a paginated browser of every loaded
-  voucher; right-click to give yourself one, left-click for a per-voucher info menu.
-- **Batch open** (`batch-open: true`): shift-right-click a stack to redeem it all at
-  once. Requires a stackable voucher with no cooldown.
+- Standalone install: one jar, no Strata. The connection pool and JDBC drivers are
+  downloaded by Paper's library loader on first start.
+- Database storage on SQLite out of the box, or MySQL, MariaDB, or PostgreSQL for
+  shared and networked setups.
+- Admin preview GUI (`/voucher preview`): a paginated browser of every loaded
+  voucher. Right-click to give yourself one, left-click for a per-voucher info menu.
+- Batch open (`batch-open: true`): shift-right-click a stack to redeem all of it at
+  once. Needs a stackable voucher with no cooldown.
+- Full-fidelity custom items: a voucher or reward item can be a serialized item that
+  preserves enchants, name, lore, model data, attributes, and other components exactly.
+- Duplicate warning lore (`anti-dupe.warning.enabled` / `anti-dupe.warning.text`):
+  mark a returned duplicate with a lore line to deter resale scams.
+- Dynamic tokens (`%player%`, `{player}`, `{arg}`, `{random:min-max}`) now resolve in
+  a voucher's display name and lore, not just in rewards.
 
 ### Changed
-- **Anti-dupe is now per voucher, via a `stackable` flag (default `true`).** A
+- Anti-dupe is now opt-in per voucher through a `stackable` flag (default `true`). A
   stackable voucher stacks freely and is not dupe-tracked. Setting `stackable: false`
-  stamps each item with a unique id stamped at give time, recorded once on redeem,
-  so duplicates are caught; those items do not stack. This replaces the previous
-  always-on batch/nonce scheme and resolves the stacking complaints, at the cost of
-  anti-dupe being opt-in.
-- The redeem event now exposes a single `uid` in place of `batchId` and `nonce`.
-
-### Added
-- **Duplicate warning lore** (`anti-dupe.warning.enabled` / `anti-dupe.warning.text`):
-  when a returned duplicate is detected, append a marker line to its lore, to deter
-  resale scams.
+  stamps each item with a unique id, recorded once on redeem, so duplicates are caught
+  and those items do not stack. This replaces the old always-on batch/nonce scheme and
+  fixes the stacking complaints.
+- The redeem event exposes a single `uid` in place of `batchId` and `nonce`.
+- Custom item references resolve strictly: a `provider:id` reference is served only by
+  that provider, and an unknown provider prefix now fails at load instead of silently
+  falling through.
 
 ### Migration
-- A schema migration adds the used-voucher table and drops the old stamp table.
-  Vouchers minted before the upgrade redeem as ungoverned (they carry the old data,
-  not a `uid`).
+- The schema upgrades in place on first start: a used-voucher table is added and the
+  old stamp table is dropped. A pre-1.0.0 install is detected and its recorded schema
+  version carried over, so migrations are not re-run. Vouchers minted before the
+  upgrade redeem as ungoverned (they carry the old data, not a `uid`).
 
 ## [0.5.0] - 2026-06-07
 
@@ -76,4 +79,5 @@ now ships inside the plugin. Drop the Strata plugin only if no other plugin need
 - Removed two no-op trailing argument slots from `/voucher give` and
   `/voucher giveall`.
 
+[1.0.0]: https://github.com/alazso/provouchers/releases/tag/v1.0.0
 [0.5.0]: https://github.com/alazso/provouchers/releases/tag/v0.5.0
