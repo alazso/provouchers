@@ -18,6 +18,7 @@ import so.alaz.provouchers.gui.VoucherAdminMenu;
 import so.alaz.provouchers.listener.CooldownLoadListener;
 import so.alaz.provouchers.listener.VoucherInteractListener;
 import so.alaz.provouchers.metrics.MetricCounters;
+import so.alaz.provouchers.metrics.Metrics;
 import so.alaz.provouchers.metrics.VoucherMetrics;
 import so.alaz.provouchers.platform.CooldownManager;
 import so.alaz.provouchers.platform.Scheduler;
@@ -32,7 +33,6 @@ import so.alaz.provouchers.voucher.ItemResolver;
 import so.alaz.provouchers.voucher.VoucherItemFactory;
 import so.alaz.provouchers.voucher.VoucherRegistry;
 import so.alaz.strata.api.StrataApi;
-import so.alaz.strata.api.metrics.Metrics;
 
 import java.io.File;
 import java.util.List;

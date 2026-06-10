@@ -10,11 +10,6 @@ import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.provouchers.voucher.VoucherCode;
 import so.alaz.provouchers.voucher.VoucherItem;
 import so.alaz.provouchers.voucher.VoucherRegistry;
-import so.alaz.strata.api.StrataApi;
-import so.alaz.strata.api.metrics.MetricChart;
-import so.alaz.strata.api.metrics.MetricProvider;
-import so.alaz.strata.api.metrics.Metrics;
-import so.alaz.strata.api.metrics.MetricsBuilder;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,18 +19,18 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 /**
- * Wires ProVouchers usage metrics through Strata, which ships bStats and FastStats
- * shaded and relocated so the plugin bundles neither.
+ * Wires ProVouchers usage metrics through the bundled bStats and FastStats providers
+ * (shaded and relocated into the plugin jar).
  *
  * <p>The bStats id and FastStats token below identify ProVouchers itself (one per
  * plugin, set by the author), not the server. A provider is only enabled once its
  * credential is filled in, and the whole feature respects {@code metrics.enabled}
  * in {@code config.yml}.
  *
- * <p>Every chart is provider-agnostic: Strata routes each {@link MetricChart} to the
- * native chart on each enabled backend, so a single declaration reports to both.
- * Charts split into config-shape snapshots (read from the registry on each poll) and
- * runtime activity (read from {@link MetricCounters}, which the redeem pipeline feeds).
+ * <p>Every chart is provider-agnostic: each {@link MetricChart} routes to the native
+ * chart on each enabled backend, so a single declaration reports to both. Charts split
+ * into config-shape snapshots (read from the registry on each poll) and runtime activity
+ * (read from {@link MetricCounters}, which the redeem pipeline feeds).
  */
 public final class VoucherMetrics {
 
@@ -64,7 +59,7 @@ public final class VoucherMetrics {
         if (!plugin.getConfig().getBoolean("metrics.enabled", true)) {
             return null;
         }
-        MetricsBuilder builder = StrataApi.metrics().create(plugin);
+        MetricsBuilder builder = new MetricsBuilder(plugin);
         boolean anyProvider = false;
         if (BSTATS_ID > 0) {
             builder.enable(MetricProvider.BSTATS, Integer.toString(BSTATS_ID));

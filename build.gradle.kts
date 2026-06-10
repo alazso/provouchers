@@ -36,6 +36,10 @@ dependencies {
     // drivers) so it is not shaded into the jar.
     compileOnly(libs.hikari)
 
+    // Metrics: shaded + relocated into the jar (see shadowJar relocations below).
+    implementation(libs.bstats.bukkit)
+    implementation(libs.faststats.bukkit)
+
     testImplementation(libs.paper.api)
     testImplementation(libs.strata.api)
     testImplementation(libs.junit.jupiter)
@@ -136,6 +140,8 @@ tasks.withType<Jar>().configureEach {
 tasks.shadowJar {
     archiveClassifier.set("")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    relocate("org.bstats", "${project.group}.libs.bstats")
+    relocate("dev.faststats", "${project.group}.libs.faststats")
 }
 
 tasks.named<Jar>("jar") {

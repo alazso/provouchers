@@ -12,6 +12,7 @@ dependencyResolutionManagement {
         mavenCentral()
         maven("https://repo.papermc.io/repository/maven-public/")                    { name = "papermc" }
         maven("https://repo.extendedclip.com/content/repositories/placeholderapi/")  { name = "placeholderapi" }
+        maven("https://repo.faststats.dev/releases")                                 { name = "faststats" }
         maven("https://repo.alaz.so/releases")  { name = "alazso" }
         maven("https://repo.alaz.so/snapshots") { name = "alazso-snapshots" }
     }
