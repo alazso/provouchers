@@ -32,6 +32,7 @@ import so.alaz.provouchers.gui.RewardPreviewGui;
 import so.alaz.provouchers.gui.VoucherAdminMenu;
 import so.alaz.provouchers.listener.CooldownLoadListener;
 import so.alaz.provouchers.listener.VoucherInteractListener;
+import so.alaz.provouchers.listener.VoucherStationListener;
 import so.alaz.provouchers.metrics.MetricCounters;
 import so.alaz.provouchers.metrics.Metrics;
 import so.alaz.provouchers.metrics.VoucherMetrics;
@@ -133,6 +134,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
             getConfig().getBoolean("anti-dupe.remove-on-discovery", true),
             getConfig().getBoolean("anti-dupe.warning.enabled", false),
             getConfig().getString("anti-dupe.warning.text", "<red>This item has been duplicated"),
+            getConfig().getBoolean("anti-dupe.notify.enabled", true),
             getConfig().getBoolean("redeem.batch-open-quiet", true),
             getConfig().getLong("redeem.confirm-window-seconds", 5L)
         );
@@ -142,6 +144,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
                 getConfig().getBoolean("redeem.left-click-preview", true)), this);
         getServer().getPluginManager().registerEvents(new CooldownLoadListener(cooldowns), this);
         getServer().getPluginManager().registerEvents(new GuiListener(guiManager), this);
+        getServer().getPluginManager().registerEvents(new VoucherStationListener(stamp), this);
         getServer().getOnlinePlayers().forEach(player -> cooldowns.hydrate(player.getUniqueId()));
         new VoucherCommand(registry, giveService, redeemHandler, configManager, previewGui, text, messages)
             .register(this);

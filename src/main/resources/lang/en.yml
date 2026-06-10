@@ -75,7 +75,7 @@ code:
 
 # ---- Staff alerts (shown to players with provouchers.notify) -----------------
 staff:
-  duplicate-alert: "<gold>[ProVouchers] <yellow>{player} tried to redeem a duplicate '{voucher}'."   # {player} {voucher}
+  duplicate-alert: "<gold>[ProVouchers] <yellow>{player} tried to redeem a duplicate '{voucher}' in {world}."   # {player} {voucher} {world}
 
 # ---- Default condition denial messages (a voucher's per-condition "deny:" overrides these) ----
 condition:

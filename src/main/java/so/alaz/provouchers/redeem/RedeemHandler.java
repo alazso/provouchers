@@ -63,6 +63,7 @@ public final class RedeemHandler {
     private final boolean removeOnDiscovery;
     private final boolean warningEnabled;
     private final String warningText;
+    private final boolean notifyEnabled;
     private final boolean batchQuiet;
     private final ConfirmationTracker confirmations;
 
@@ -81,6 +82,7 @@ public final class RedeemHandler {
         boolean removeOnDiscovery,
         boolean warningEnabled,
         String warningText,
+        boolean notifyEnabled,
         boolean batchQuiet,
         long confirmWindowSeconds
     ) {
@@ -98,6 +100,7 @@ public final class RedeemHandler {
         this.removeOnDiscovery = removeOnDiscovery;
         this.warningEnabled = warningEnabled;
         this.warningText = warningText;
+        this.notifyEnabled = notifyEnabled;
         this.batchQuiet = batchQuiet;
         this.confirmations = new ConfirmationTracker(confirmWindowSeconds);
     }
@@ -224,7 +227,8 @@ public final class RedeemHandler {
         if (status == StampStatus.DUPLICATE) {
             counters.recordDuplicateBlocked();
             send(player, messages.get(player, "redeem.already-redeemed"));
-            notifyStaff("staff.duplicate-alert", "player", player.getName(), "voucher", voucher.id());
+            notifyStaff("staff.duplicate-alert", "player", player.getName(), "voucher", voucher.id(),
+                "world", player.getWorld().getName());
             if (!removeOnDiscovery) {
                 applyWarningLore(consumed);
                 refund(player, consumed);
@@ -360,6 +364,9 @@ public final class RedeemHandler {
     }
 
     private void notifyStaff(String key, Object... placeholders) {
+        if (!notifyEnabled) {
+            return;
+        }
         for (Player online : Bukkit.getOnlinePlayers()) {
             if (online.hasPermission("provouchers.notify")) {
                 online.sendMessage(text.render(messages.get(online, key, placeholders), online));
