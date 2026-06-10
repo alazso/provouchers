@@ -9,6 +9,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Base64;
 import java.util.List;
 
 /**
@@ -70,5 +71,36 @@ public final class ItemBuilder {
     public static void applyGlow(ItemMeta meta) {
         meta.addEnchant(Enchantment.UNBREAKING, 1, true);
         meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+    }
+
+    /**
+     * The reference scheme for a full-fidelity item: {@code serialized:<base64>}. Unlike a material
+     * or a {@code provider:id} reference, this carries the entire item (enchants, name, lore, model
+     * data, attributes, components, and any other NBT), so it round-trips exactly.
+     */
+    public static final String SERIALIZED_PREFIX = "serialized:";
+
+    /** Whether the reference is a {@link #SERIALIZED_PREFIX serialized} item reference. */
+    public static boolean isSerialized(String reference) {
+        return reference.startsWith(SERIALIZED_PREFIX);
+    }
+
+    /** Serializes an item to a {@code serialized:<base64>} reference, preserving all of its data. */
+    public static String serialize(ItemStack item) {
+        return SERIALIZED_PREFIX + Base64.getEncoder().encodeToString(item.serializeAsBytes());
+    }
+
+    /**
+     * Rebuilds the exact item from a {@code serialized:<base64>} reference, or {@code null} if it is
+     * malformed or was written for an incompatible server version (the caller then degrades).
+     */
+    @Nullable
+    public static ItemStack deserialize(String reference) {
+        try {
+            byte[] bytes = Base64.getDecoder().decode(reference.substring(SERIALIZED_PREFIX.length()));
+            return ItemStack.deserializeBytes(bytes);
+        } catch (RuntimeException ex) {
+            return null;
+        }
     }
 }

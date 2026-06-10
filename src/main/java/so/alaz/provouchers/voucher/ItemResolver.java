@@ -5,15 +5,16 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.hook.HookRegistry;
 import so.alaz.provouchers.hook.ItemHook;
+import so.alaz.provouchers.platform.ItemBuilder;
 
 import java.util.List;
 import java.util.Locale;
 
 /**
  * Resolves item references to {@link ItemStack}s, shared by voucher icon building
- * and item rewards. A reference is either a vanilla material name or a
- * {@code provider:id} custom item served by an {@link ItemHook} (ItemsAdder,
- * Oraxen, Nexo, HeadDatabase).
+ * and item rewards. A reference is a vanilla material name, a {@code provider:id}
+ * custom item served by an {@link ItemHook} (ItemsAdder, Oraxen, Nexo, HeadDatabase),
+ * or a {@code serialized:<base64>} full-fidelity item.
  */
 public final class ItemResolver {
 
@@ -31,6 +32,9 @@ public final class ItemResolver {
     public ItemStack custom(@Nullable String reference) {
         if (reference == null) {
             return null;
+        }
+        if (ItemBuilder.isSerialized(reference)) {
+            return ItemBuilder.deserialize(reference);
         }
         CustomItemRef ref = CustomItemRef.parse(reference);
         List<ItemHook> providers = hooks.all(ItemHook.class);

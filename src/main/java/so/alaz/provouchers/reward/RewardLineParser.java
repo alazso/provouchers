@@ -1,6 +1,7 @@
 package so.alaz.provouchers.reward;
 
 import org.jetbrains.annotations.Nullable;
+import so.alaz.provouchers.platform.ItemBuilder;
 import so.alaz.provouchers.voucher.CustomItemRef;
 import so.alaz.provouchers.voucher.Materials;
 
@@ -57,6 +58,9 @@ public final class RewardLineParser {
     private static void validateItemPayload(String payload) {
         RewardItemPayload parsed = RewardItemPayload.parse(payload);
         String reference = parsed.reference();
+        if (ItemBuilder.isSerialized(reference)) {
+            return; // a serialized item carries its own data; decoded (and degraded) at runtime
+        }
         if (reference.indexOf(':') < 0) {
             Materials.resolve(reference);   // vanilla material must exist
         } else {

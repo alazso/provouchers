@@ -5,6 +5,7 @@ import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.reward.RewardLine;
 import so.alaz.provouchers.reward.RewardLineParser;
 import so.alaz.provouchers.reward.RewardSet;
+import so.alaz.provouchers.platform.ItemBuilder;
 import so.alaz.provouchers.util.Expiry;
 import so.alaz.provouchers.voucher.CustomItemRef;
 import so.alaz.provouchers.voucher.Materials;
@@ -96,7 +97,7 @@ public final class VoucherParser {
 
     private static VoucherItem parseItem(ConfigurationSection item, String id) {
         String custom = emptyToNull(item.getString("custom", ""));
-        if (custom != null) {
+        if (custom != null && !ItemBuilder.isSerialized(custom)) {
             CustomItemRef ref;
             try {
                 ref = CustomItemRef.parse(custom);
