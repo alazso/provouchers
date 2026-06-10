@@ -4,7 +4,16 @@ All notable changes to ProVouchers are documented here. This project follows
 [Semantic Versioning](https://semver.org). Releases before 0.5.0 are listed on the
 [GitHub releases](https://github.com/alazso/provouchers/releases) page.
 
-## [0.6.0] - unreleased
+## [1.0.0] - unreleased
+
+The first standalone release: ProVouchers no longer depends on the Strata library
+(migration in progress). 0.6.0 was never published; its work folds in here.
+
+### Added
+- **Admin preview GUI** (`/voucher preview`): a paginated browser of every loaded
+  voucher; right-click to give yourself one, left-click for a per-voucher info menu.
+- **Batch open** (`batch-open: true`): shift-right-click a stack to redeem it all at
+  once. Requires a stackable voucher with no cooldown.
 
 ### Changed
 - **Anti-dupe is now per voucher, via a `stackable` flag (default `true`).** A
