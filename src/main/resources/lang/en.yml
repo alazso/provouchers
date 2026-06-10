@@ -60,6 +60,7 @@ redeem:
   already-redeemed: "<red>This voucher has already been redeemed."
   verify-failed: "<red>Could not verify this voucher. Please try again."
   requirements-not-met: "<red>You do not meet the requirements to redeem this."
+  opened: "<green>Opened {count}x {voucher}."   # {count} {voucher} (batch-open)
 
 # ---- Redeeming a code -------------------------------------------------------
 code:
@@ -69,6 +70,10 @@ code:
   already-redeemed: "<red>You have already redeemed this code."
   global-limit: "<red>This code has reached its global use limit."
   verify-failed: "<red>Could not verify the code. Please try again."
+
+# ---- Staff alerts (shown to players with provouchers.notify) -----------------
+staff:
+  duplicate-alert: "<gold>[ProVouchers] <yellow>{player} tried to redeem a duplicate '{voucher}'."   # {player} {voucher}
 
 # ---- Default condition denial messages (a voucher's per-condition "deny:" overrides these) ----
 condition:

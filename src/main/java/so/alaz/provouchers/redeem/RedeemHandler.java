@@ -206,7 +206,7 @@ public final class RedeemHandler {
         if (status == StampStatus.DUPLICATE) {
             counters.recordDuplicateBlocked();
             send(player, messages.get(player, "redeem.already-redeemed"));
-            notifyStaff(player.getName() + " tried to redeem a duplicate '" + voucher.id() + "'.");
+            notifyStaff("staff.duplicate-alert", "player", player.getName(), "voucher", voucher.id());
             if (!removeOnDiscovery) {
                 applyWarningLore(consumed);
                 refund(player, consumed);
@@ -332,7 +332,7 @@ public final class RedeemHandler {
         for (int i = 0; i < count; i++) {
             completeVoucherRedeem(player, voucher, null);
         }
-        send(player, "<green>Opened " + count + "x " + voucher.id() + ".");
+        send(player, messages.get(player, "redeem.opened", "count", count, "voucher", voucher.id()));
     }
 
     private void refund(Player player, ItemStack item) {
@@ -340,11 +340,10 @@ public final class RedeemHandler {
             .forEach(leftover -> player.getWorld().dropItemNaturally(player.getLocation(), leftover));
     }
 
-    private void notifyStaff(String message) {
-        Component rendered = text.render("<gold>[ProVouchers] <yellow>" + message);
+    private void notifyStaff(String key, Object... placeholders) {
         for (Player online : Bukkit.getOnlinePlayers()) {
             if (online.hasPermission("provouchers.notify")) {
-                online.sendMessage(rendered);
+                online.sendMessage(text.render(messages.get(online, key, placeholders), online));
             }
         }
     }
