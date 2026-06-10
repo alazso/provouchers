@@ -158,9 +158,8 @@ jobs:
             26.1.2
 
           # Strata is a required dependency (Modrinth slug: strata-api).
-          # Uncomment once strata-api is approved on Modrinth (PV-10).
-          # dependencies: |
-          #   strata-api(required)
+          dependencies: |
+            strata-api(required)
 
       - name: Publish to repo.alaz.so
         if: steps.published.outputs.skip != 'true' && (github.event_name == 'push' || inputs.dry_run != true)
