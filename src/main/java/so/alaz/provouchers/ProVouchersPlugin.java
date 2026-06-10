@@ -28,6 +28,7 @@ import so.alaz.provouchers.hook.RegionHook;
 import so.alaz.provouchers.hook.VaultEconomyHook;
 import so.alaz.provouchers.hook.WorldGuardRegionHook;
 import so.alaz.provouchers.gui.PreviewGui;
+import so.alaz.provouchers.gui.RewardPreviewGui;
 import so.alaz.provouchers.gui.VoucherAdminMenu;
 import so.alaz.provouchers.listener.CooldownLoadListener;
 import so.alaz.provouchers.listener.VoucherInteractListener;
@@ -110,6 +111,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
         PreviewGui previewGui = new PreviewGui(registry, factory, giveService,
             new VoucherAdminMenu(text), guiManager, scheduler,
             text);
+        RewardPreviewGui rewardPreviewGui = new RewardPreviewGui(factory, guiManager, scheduler, text);
 
         CooldownService cooldowns = new CooldownService(
             new CooldownManager(), storage, scheduler);
@@ -134,7 +136,8 @@ public final class ProVouchersPlugin extends JavaPlugin {
         );
 
         getServer().getPluginManager().registerEvents(
-            new VoucherInteractListener(stamp, redeemHandler), this);
+            new VoucherInteractListener(stamp, redeemHandler, registry, rewardPreviewGui,
+                getConfig().getBoolean("redeem.left-click-preview", true)), this);
         getServer().getPluginManager().registerEvents(new CooldownLoadListener(cooldowns), this);
         getServer().getPluginManager().registerEvents(new GuiListener(guiManager), this);
         getServer().getOnlinePlayers().forEach(player -> cooldowns.hydrate(player.getUniqueId()));

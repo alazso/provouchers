@@ -68,7 +68,10 @@ public final class VoucherParser {
             parseExpiry(section, voucherId),
             section.getBoolean("has-argument", false),
             stackable,
-            batchOpen
+            batchOpen,
+            section.getBoolean("show-rewards", false),
+            section.getBoolean("two-step-authentication", false),
+            emptyToNull(section.getString("two-step-authentication-message", ""))
         );
     }
 

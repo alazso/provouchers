@@ -36,6 +36,20 @@ anti-dupe:
     # line to its lore so the item is visibly marked.
     enabled: false
     text: "<red>This item has been duplicated"
+  notify:
+    # Alert staff (players with provouchers.notify) when a duplicate voucher is caught.
+    # The message itself is the "staff.duplicate-alert" key in the language file.
+    enabled: true
+
+redeem:
+  # Left-click a held voucher to preview its rewards in a GUI.
+  left-click-preview: true
+  # When batch-opening a stack (shift-right-click), suppress the per-item reward
+  # feedback (messages, titles, sounds) and show one summary line instead of many.
+  batch-open-quiet: true
+  # Vouchers with "two-step-authentication: true" need a confirmation click; this is
+  # how many seconds that confirmation stays valid.
+  confirm-window-seconds: 5
 
 metrics:
   # Submit anonymous usage statistics (bStats and FastStats).

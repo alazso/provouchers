@@ -30,6 +30,9 @@ import java.util.Map;
  *                      not stack
  * @param batchOpen     if {@code true}, shift-right-clicking a stack redeems every item at once;
  *                      requires a stackable voucher with no cooldown
+ * @param showRewards   if {@code true}, a generated reward summary is appended to the item's lore
+ * @param twoStep       if {@code true}, redeeming requires a confirmation click within the window
+ * @param confirmMessage the per-voucher confirmation prompt, or {@code null} to use the locale default
  */
 public record Voucher(
     String id,
@@ -45,7 +48,10 @@ public record Voucher(
     @Nullable String expiry,
     boolean hasArgument,
     boolean stackable,
-    boolean batchOpen
+    boolean batchOpen,
+    boolean showRewards,
+    boolean twoStep,
+    @Nullable String confirmMessage
 ) implements so.alaz.provouchers.api.Voucher {
 
     public Voucher {
