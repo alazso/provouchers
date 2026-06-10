@@ -5,6 +5,7 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.config.ConfigManager;
 import so.alaz.provouchers.give.VoucherGiveService;
+import so.alaz.provouchers.gui.PreviewGui;
 import so.alaz.provouchers.redeem.RedeemHandler;
 import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.provouchers.voucher.VoucherRegistry;
@@ -32,17 +33,20 @@ public final class VoucherCommand {
     private final VoucherGiveService giveService;
     private final RedeemHandler redeemHandler;
     private final ConfigManager configManager;
+    private final PreviewGui previewGui;
 
     public VoucherCommand(
         VoucherRegistry registry,
         VoucherGiveService giveService,
         RedeemHandler redeemHandler,
-        ConfigManager configManager
+        ConfigManager configManager,
+        PreviewGui previewGui
     ) {
         this.registry = registry;
         this.giveService = giveService;
         this.redeemHandler = redeemHandler;
         this.configManager = configManager;
+        this.previewGui = previewGui;
     }
 
     /** Builds and registers the command for {@code plugin}. Call during {@code onEnable}. */
@@ -52,6 +56,11 @@ public final class VoucherCommand {
         root.then(giveTree());
         root.then(giveAllTree());
         root.then(redeemTree());
+        root.then(StrataCommand.literal("preview")
+            .permission("provouchers.preview")
+            .description("Browse vouchers in a GUI")
+            .usage("preview")
+            .executes(this::preview));
         root.then(StrataCommand.literal("list")
             .permission("provouchers.list")
             .description("List loaded vouchers and codes")
@@ -174,6 +183,15 @@ public final class VoucherCommand {
             return;
         }
         redeemHandler.redeemCode(player, ctx.getString("code"), arg);
+    }
+
+    private void preview(CommandContext ctx) {
+        Player player = ctx.player();
+        if (player == null) {
+            ctx.reply(Messages.error("Only players can open the preview."));
+            return;
+        }
+        previewGui.open(player);
     }
 
     private void list(CommandContext ctx) {

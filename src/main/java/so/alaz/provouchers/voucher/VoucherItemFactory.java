@@ -75,6 +75,15 @@ public final class VoucherItemFactory {
         });
     }
 
+    /**
+     * Builds a display-only copy of the voucher's appearance (name, lore, glow) with
+     * no stamp, for previews and GUIs. Never give this item out: it is not a redeemable
+     * voucher.
+     */
+    public CompletableFuture<ItemStack> buildDisplay(Voucher voucher, @Nullable Player viewer) {
+        return buildBase(voucher, viewer);
+    }
+
     private void stampCommon(ItemMeta meta, Voucher voucher, @Nullable Player viewer, long now) {
         stamp.stamp(meta, voucher.id());
         stamp.setGivenAt(meta, now);
