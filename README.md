@@ -3,11 +3,13 @@
 <img src="https://raw.githubusercontent.com/alazso/provouchers/main/.github/assets/banner.png" alt="ProVouchers: a powerful ecosystem of integrations for your server" width="720">
 
 [![Build](https://img.shields.io/github/actions/workflow/status/alazso/provouchers/ci.yml?branch=main&style=for-the-badge&label=build)](https://github.com/alazso/provouchers/actions)
-[![Downloads](https://img.shields.io/modrinth/dt/iOogVoaR?style=for-the-badge&logo=modrinth&label=downloads)](https://modrinth.com/plugin/provouchers)
+[![Downloads](https://img.shields.io/modrinth/dt/provouchers?style=for-the-badge&logo=modrinth&label=downloads)](https://modrinth.com/plugin/provouchers)
 [![Minecraft](https://img.shields.io/badge/Paper%20·%20Folia%20·%20Purpur-26.1%2B-2b2d31?style=for-the-badge)](https://papermc.io/)
-[![License](https://img.shields.io/github/license/alazso/provouchers?style=for-the-badge&label=license)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-2b2d31?style=for-the-badge)](LICENSE)
 
-**[📖 Documentation](https://alaz.so/provouchers/docs)**  ·  **[💻 Source](https://github.com/alazso/provouchers)**
+[![Documentation](https://img.shields.io/badge/Documentation-FF8A00?style=for-the-badge&logo=readthedocs&logoColor=white)](https://alaz.so/provouchers/docs)
+[![Source](https://img.shields.io/badge/Source-0f0f0f?style=for-the-badge&logo=github&logoColor=white)](https://github.com/alazso/provouchers)
+[![Support Discord](https://img.shields.io/discord/1510890328943628350?style=for-the-badge&logo=discord&logoColor=white&label=discord&color=5865F2)](https://discord.gg/m3AKQfrMS5)
 
 </div>
 

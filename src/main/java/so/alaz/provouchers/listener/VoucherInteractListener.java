@@ -44,7 +44,7 @@ public final class VoucherInteractListener implements Listener {
             return;
         }
         event.setCancelled(true);
-        handler.redeemHeldVoucher(event.getPlayer(), event.getHand());
+        handler.redeemHeldVoucher(event.getPlayer(), event.getHand(), event.getPlayer().isSneaking());
     }
 
     @EventHandler
