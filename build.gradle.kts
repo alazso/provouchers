@@ -53,6 +53,19 @@ dependencies {
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.assertj.core)
     testRuntimeOnly(libs.junit.platform.launcher)
+
+    // Storage matrix tests run migrations and a CRUD round-trip against real databases. The pool
+    // and JDBC drivers (loaded at runtime by ProVouchersLoader in production) go on the test
+    // classpath; Testcontainers supplies ephemeral servers and is skipped when Docker is absent.
+    testImplementation(libs.hikari)
+    testImplementation(libs.testcontainers.junit)
+    testImplementation(libs.testcontainers.mysql)
+    testImplementation(libs.testcontainers.mariadb)
+    testImplementation(libs.testcontainers.postgresql)
+    testRuntimeOnly(libs.sqlite.jdbc)
+    testRuntimeOnly(libs.mysql.connector)
+    testRuntimeOnly(libs.mariadb.jdbc)
+    testRuntimeOnly(libs.postgresql.jdbc)
 }
 
 tasks.withType<JavaCompile>().configureEach {

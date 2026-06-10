@@ -23,6 +23,7 @@ worldedit       = "7.3.18"  # the WorldEdit version WorldGuard 7.0.17 is built a
 junit           = "5.11.4"
 assertj         = "3.26.3"
 mockito         = "5.14.2"
+testcontainers  = "1.20.4"
 
 [libraries]
 paper-api                = { module = "io.papermc.paper:paper-api",             version.ref = "paper" }
@@ -56,6 +57,11 @@ junit-jupiter            = { module = "org.junit.jupiter:junit-jupiter",        
 junit-platform-launcher  = { module = "org.junit.platform:junit-platform-launcher" }
 assertj-core             = { module = "org.assertj:assertj-core",               version.ref = "assertj" }
 mockito-core             = { module = "org.mockito:mockito-core",               version.ref = "mockito" }
+# Storage matrix tests: ephemeral MySQL/MariaDB/PostgreSQL via Docker (skipped without Docker).
+testcontainers-junit     = { module = "org.testcontainers:junit-jupiter",      version.ref = "testcontainers" }
+testcontainers-mysql     = { module = "org.testcontainers:mysql",              version.ref = "testcontainers" }
+testcontainers-mariadb   = { module = "org.testcontainers:mariadb",            version.ref = "testcontainers" }
+testcontainers-postgresql = { module = "org.testcontainers:postgresql",        version.ref = "testcontainers" }
 
 [plugins]
 shadow  = { id = "com.gradleup.shadow",                              version.ref = "shadow" }

@@ -89,24 +89,29 @@ public final class MigrationRunner {
         try (Statement statement = connection.createStatement()) {
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS " + VERSION_TABLE + " (version INTEGER NOT NULL)");
         }
+        boolean empty;
         try (Statement statement = connection.createStatement();
              ResultSet result = statement.executeQuery("SELECT COUNT(*) FROM " + VERSION_TABLE)) {
             result.next();
-            if (result.getInt(1) == 0) {
-                // Seed from the pre-1.0.0 table when upgrading, so already-applied migrations are not
-                // re-run; then drop the orphan. Runs in autocommit (before applyPending), so the
-                // legacy lookup failing on a fresh install is independent and harmless.
-                int seed = legacyVersion(connection);
-                try (PreparedStatement insert =
-                         connection.prepareStatement("INSERT INTO " + VERSION_TABLE + " (version) VALUES (?)")) {
-                    insert.setInt(1, seed);
-                    insert.executeUpdate();
-                }
-                if (seed > 0) {
-                    try (Statement drop = connection.createStatement()) {
-                        drop.executeUpdate("DROP TABLE IF EXISTS " + LEGACY_VERSION_TABLE);
-                    }
-                }
+            empty = result.getInt(1) == 0;
+        }
+        if (!empty) {
+            return;
+        }
+        // Seed from the pre-1.0.0 table when upgrading, so already-applied migrations are not re-run;
+        // then drop the orphan. The count query above is closed first: SQLite refuses the seeding
+        // INSERT and especially the legacy DROP (a schema change) while a read cursor is still open.
+        // Runs in autocommit (before applyPending), so the legacy lookup failing on a fresh install
+        // is independent and harmless.
+        int seed = legacyVersion(connection);
+        try (PreparedStatement insert =
+                 connection.prepareStatement("INSERT INTO " + VERSION_TABLE + " (version) VALUES (?)")) {
+            insert.setInt(1, seed);
+            insert.executeUpdate();
+        }
+        if (seed > 0) {
+            try (Statement drop = connection.createStatement()) {
+                drop.executeUpdate("DROP TABLE IF EXISTS " + LEGACY_VERSION_TABLE);
             }
         }
     }
