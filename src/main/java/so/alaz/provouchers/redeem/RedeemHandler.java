@@ -92,8 +92,11 @@ public final class RedeemHandler {
         this.warningText = warningText;
     }
 
-    /** Attempts to redeem the voucher item held in {@code hand}. */
-    public void redeemHeldVoucher(Player player, EquipmentSlot hand) {
+    /**
+     * Attempts to redeem the voucher held in {@code hand}. When {@code sneaking} and the
+     * voucher allows batch open, the whole stack is redeemed at once.
+     */
+    public void redeemHeldVoucher(Player player, EquipmentSlot hand, boolean sneaking) {
         ItemStack inHand = player.getInventory().getItem(hand);
         if (inHand == null || inHand.getType().isAir()) {
             return;
@@ -123,6 +126,11 @@ public final class RedeemHandler {
             return;
         }
         if (!voucherPreChecks(player, voucher)) {
+            return;
+        }
+
+        if (sneaking && voucher.batchOpen()) {
+            openWholeStack(player, hand, inHand, voucher);
             return;
         }
 
@@ -307,6 +315,19 @@ public final class RedeemHandler {
             player.getInventory().setItem(hand, inHand);
         }
         return single;
+    }
+
+    /**
+     * Redeems every item in a stack at once. Only reached for batch-open vouchers,
+     * which are validated to be stackable (no per-item id) with no cooldown.
+     */
+    private void openWholeStack(Player player, EquipmentSlot hand, ItemStack inHand, Voucher voucher) {
+        int count = inHand.getAmount();
+        player.getInventory().setItem(hand, null);
+        for (int i = 0; i < count; i++) {
+            completeVoucherRedeem(player, voucher, null);
+        }
+        send(player, "<green>Opened " + count + "x " + voucher.id() + ".");
     }
 
     private void refund(Player player, ItemStack item) {

@@ -41,6 +41,18 @@ public final class VoucherParser {
         }
         VoucherItem item = parseItem(itemSection, voucherId);
 
+        long cooldown = section.getLong("cooldown", 0L);
+        boolean stackable = section.getBoolean("stackable", true);
+        boolean batchOpen = section.getBoolean("batch-open", false);
+        if (batchOpen && cooldown > 0) {
+            throw new VoucherParseException(
+                "voucher '" + voucherId + "': batch-open cannot be combined with a cooldown");
+        }
+        if (batchOpen && !stackable) {
+            throw new VoucherParseException(
+                "voucher '" + voucherId + "': batch-open requires a stackable voucher");
+        }
+
         return new Voucher(
             voucherId,
             section.getString("display-name"),
@@ -51,10 +63,11 @@ public final class VoucherParser {
             parseRandomRewards(section, voucherId),
             section.getBoolean("unredeemable", false),
             section.getBoolean("owner-only", false),
-            section.getLong("cooldown", 0L),
+            cooldown,
             parseExpiry(section, voucherId),
             section.getBoolean("has-argument", false),
-            section.getBoolean("stackable", true)
+            stackable,
+            batchOpen
         );
     }
 

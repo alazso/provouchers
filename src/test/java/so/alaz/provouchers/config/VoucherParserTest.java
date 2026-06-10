@@ -82,6 +82,29 @@ class VoucherParserTest {
     }
 
     @Test
+    void batchOpenParsesWhenStackableAndNoCooldown() throws Exception {
+        Voucher voucher = VoucherParser.parseVoucher(
+            yaml("item:\n  material: PAPER\nbatch-open: true\n"), "crate");
+        assertThat(voucher.batchOpen()).isTrue();
+    }
+
+    @Test
+    void batchOpenRejectedWithCooldown() throws Exception {
+        YamlConfiguration config = yaml("item:\n  material: PAPER\nbatch-open: true\ncooldown: 30\n");
+        assertThatThrownBy(() -> VoucherParser.parseVoucher(config, "bad"))
+            .isInstanceOf(VoucherParseException.class)
+            .hasMessageContaining("cooldown");
+    }
+
+    @Test
+    void batchOpenRejectedWhenNotStackable() throws Exception {
+        YamlConfiguration config = yaml("item:\n  material: PAPER\nbatch-open: true\nstackable: false\n");
+        assertThatThrownBy(() -> VoucherParser.parseVoucher(config, "bad"))
+            .isInstanceOf(VoucherParseException.class)
+            .hasMessageContaining("stackable");
+    }
+
+    @Test
     void missingItemSectionIsRejected() throws Exception {
         assertThatThrownBy(() -> VoucherParser.parseVoucher(yaml("display-name: x\n"), "bad"))
             .isInstanceOf(VoucherParseException.class)

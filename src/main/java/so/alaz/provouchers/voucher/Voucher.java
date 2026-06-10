@@ -28,6 +28,8 @@ import java.util.Map;
  * @param stackable     if {@code true} (the default) items stack and are not dupe-tracked; if
  *                      {@code false}, each item is stamped with a unique id for anti-dupe and will
  *                      not stack
+ * @param batchOpen     if {@code true}, shift-right-clicking a stack redeems every item at once;
+ *                      requires a stackable voucher with no cooldown
  */
 public record Voucher(
     String id,
@@ -42,7 +44,8 @@ public record Voucher(
     long cooldownSeconds,
     @Nullable String expiry,
     boolean hasArgument,
-    boolean stackable
+    boolean stackable,
+    boolean batchOpen
 ) implements so.alaz.provouchers.api.Voucher {
 
     public Voucher {
