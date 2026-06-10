@@ -118,7 +118,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
             new VoucherInteractListener(stamp, redeemHandler), this);
         getServer().getPluginManager().registerEvents(new CooldownLoadListener(cooldowns), this);
         getServer().getOnlinePlayers().forEach(player -> cooldowns.hydrate(player.getUniqueId()));
-        new VoucherCommand(registry, giveService, redeemHandler, configManager, previewGui).register(this);
+        new VoucherCommand(registry, giveService, redeemHandler, configManager, previewGui, text).register(this);
 
         getServer().getServicesManager().register(VoucherService.class,
             new VoucherServiceImpl(registry, giveService), this,
