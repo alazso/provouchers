@@ -7,27 +7,44 @@ import so.alaz.provouchers.antidupe.DupeDetector;
 import so.alaz.provouchers.antidupe.VoucherStamp;
 import so.alaz.provouchers.api.VoucherService;
 import so.alaz.provouchers.command.VoucherCommand;
+import so.alaz.provouchers.condition.ConditionRegistry;
 import so.alaz.provouchers.config.ConfigManager;
 import so.alaz.provouchers.service.VoucherServiceImpl;
 import so.alaz.provouchers.cooldown.CooldownService;
 import so.alaz.provouchers.give.VoucherGiveService;
+import so.alaz.provouchers.gui.GuiListener;
+import so.alaz.provouchers.gui.GuiManager;
+import so.alaz.provouchers.hook.EconomyHook;
+import so.alaz.provouchers.hook.HeadDatabaseItemHook;
+import so.alaz.provouchers.hook.HookRegistry;
+import so.alaz.provouchers.hook.ItemHook;
+import so.alaz.provouchers.hook.ItemsAdderItemHook;
+import so.alaz.provouchers.hook.LuckPermsPermissionHook;
+import so.alaz.provouchers.hook.NexoItemHook;
+import so.alaz.provouchers.hook.OraxenItemHook;
+import so.alaz.provouchers.hook.PermissionHook;
+import so.alaz.provouchers.hook.RegionHook;
+import so.alaz.provouchers.hook.VaultEconomyHook;
+import so.alaz.provouchers.hook.WorldGuardRegionHook;
 import so.alaz.provouchers.gui.PreviewGui;
 import so.alaz.provouchers.gui.VoucherAdminMenu;
 import so.alaz.provouchers.listener.CooldownLoadListener;
 import so.alaz.provouchers.listener.VoucherInteractListener;
 import so.alaz.provouchers.metrics.MetricCounters;
+import so.alaz.provouchers.metrics.Metrics;
 import so.alaz.provouchers.metrics.VoucherMetrics;
+import so.alaz.provouchers.platform.CooldownManager;
+import so.alaz.provouchers.platform.Scheduler;
+import so.alaz.provouchers.platform.Text;
 import so.alaz.provouchers.redeem.RedeemHandler;
 import so.alaz.provouchers.redeem.RewardExecutor;
+import so.alaz.provouchers.storage.Backend;
+import so.alaz.provouchers.storage.StorageConfig;
+import so.alaz.provouchers.storage.StorageProvider;
 import so.alaz.provouchers.storage.VoucherStorage;
 import so.alaz.provouchers.voucher.ItemResolver;
 import so.alaz.provouchers.voucher.VoucherItemFactory;
 import so.alaz.provouchers.voucher.VoucherRegistry;
-import so.alaz.strata.api.StrataApi;
-import so.alaz.strata.api.cooldown.Cooldowns;
-import so.alaz.strata.api.metrics.Metrics;
-import so.alaz.strata.api.storage.Backend;
-import so.alaz.strata.api.storage.StorageConfig;
 
 import java.io.File;
 import java.util.List;
@@ -36,9 +53,9 @@ import java.util.Locale;
 import static net.kyori.adventure.text.Component.text;
 
 /**
- * Plugin entry point. Verifies the runtime prerequisites (Java 25 and the Strata
- * shared library), opens storage, loads voucher and code definitions, and wires up
- * the redeem pipeline, listener, and command.
+ * Plugin entry point. Verifies the Java 25 runtime requirement, opens storage,
+ * loads voucher and code definitions, and wires up the redeem pipeline,
+ * listeners, GUI, metrics, and command.
  */
 public final class ProVouchersPlugin extends JavaPlugin {
 
@@ -46,6 +63,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
 
     private VoucherStorage storage;
     private Metrics metrics;
+    private GuiManager guiManager;
 
     @Override
     public void onEnable() {
@@ -54,18 +72,12 @@ public final class ProVouchersPlugin extends JavaPlugin {
                 + "is running Java " + Runtime.version().feature() + ".");
             return;
         }
-        if (!StrataApi.isAvailable()) {
-            disableWith("Strata is not available. Install the Strata plugin and ensure it loads before "
-                + "ProVouchers.");
-            return;
-        }
-
         saveDefaultConfig();
         saveExample("vouchers/example.yml");
         saveExample("codes/example.yml");
 
         Backend backend = parseBackend(getConfig().getString("storage.backend", "sqlite"));
-        storage = new VoucherStorage(StrataApi.storage().create(buildStorageConfig(backend)));
+        storage = new VoucherStorage(new StorageProvider(buildStorageConfig(backend)));
         storage.init().whenComplete((ignored, error) -> {
             if (error != null) {
                 getComponentLogger().error(text("Failed to open ProVouchers storage; duplicate and code "
@@ -74,22 +86,28 @@ public final class ProVouchersPlugin extends JavaPlugin {
         });
 
         VoucherRegistry registry = new VoucherRegistry();
-        ConfigManager configManager = new ConfigManager(getDataFolder(), registry);
+        Text text = new Text();
+        HookRegistry hooks = buildHooks();
+        ItemResolver itemResolver = new ItemResolver(hooks);
+        ConditionRegistry conditionRegistry = new ConditionRegistry(text, hooks);
+        ConfigManager configManager = new ConfigManager(getDataFolder(), registry, conditionRegistry, itemResolver);
         reportErrors(configManager.reload());
 
+        Scheduler scheduler = new Scheduler(this);
+        guiManager = new GuiManager(this);
+
         VoucherStamp stamp = new VoucherStamp(this);
-        ItemResolver itemResolver = new ItemResolver(StrataApi.hooks());
         RewardExecutor rewardExecutor = new RewardExecutor(
-            StrataApi.scheduler(this), StrataApi.text(), itemResolver, StrataApi.hooks(),
+            scheduler, text, itemResolver, hooks,
             getComponentLogger());
-        VoucherItemFactory factory = new VoucherItemFactory(StrataApi.text(), stamp, itemResolver);
-        VoucherGiveService giveService = new VoucherGiveService(factory, StrataApi.scheduler(this));
+        VoucherItemFactory factory = new VoucherItemFactory(text, stamp, itemResolver);
+        VoucherGiveService giveService = new VoucherGiveService(factory, scheduler);
         PreviewGui previewGui = new PreviewGui(registry, factory, giveService,
-            new VoucherAdminMenu(StrataApi.text()), StrataApi.gui(), StrataApi.scheduler(this),
-            StrataApi.text());
+            new VoucherAdminMenu(text), guiManager, scheduler,
+            text);
 
         CooldownService cooldowns = new CooldownService(
-            Cooldowns.create(), storage, StrataApi.scheduler(this));
+            new CooldownManager(), storage, scheduler);
 
         MetricCounters counters = new MetricCounters();
 
@@ -99,10 +117,10 @@ public final class ProVouchersPlugin extends JavaPlugin {
             new DupeDetector(storage),
             storage,
             rewardExecutor,
-            StrataApi.scheduler(this),
-            StrataApi.text(),
+            scheduler,
+            text,
             cooldowns,
-            StrataApi.conditions(),
+            conditionRegistry,
             counters,
             getConfig().getBoolean("anti-dupe.remove-on-discovery", true),
             getConfig().getBoolean("anti-dupe.warning.enabled", false),
@@ -112,8 +130,9 @@ public final class ProVouchersPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(
             new VoucherInteractListener(stamp, redeemHandler), this);
         getServer().getPluginManager().registerEvents(new CooldownLoadListener(cooldowns), this);
+        getServer().getPluginManager().registerEvents(new GuiListener(guiManager), this);
         getServer().getOnlinePlayers().forEach(player -> cooldowns.hydrate(player.getUniqueId()));
-        new VoucherCommand(registry, giveService, redeemHandler, configManager, previewGui).register(this);
+        new VoucherCommand(registry, giveService, redeemHandler, configManager, previewGui, text).register(this);
 
         getServer().getServicesManager().register(VoucherService.class,
             new VoucherServiceImpl(registry, giveService), this,
@@ -128,6 +147,9 @@ public final class ProVouchersPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (guiManager != null) {
+            guiManager.closeAll();
+        }
         if (metrics != null) {
             metrics.shutdown();
         }
@@ -135,6 +157,23 @@ public final class ProVouchersPlugin extends JavaPlugin {
             storage.shutdown();
         }
         getComponentLogger().info(text("ProVouchers disabled.", NamedTextColor.GOLD));
+    }
+
+    /**
+     * Registers every integration provider. Hooks self-detect their backing plugin and report
+     * availability per call, so registering them unconditionally is safe; a missing plugin is
+     * simply skipped at resolution time.
+     */
+    private static HookRegistry buildHooks() {
+        HookRegistry hooks = new HookRegistry();
+        hooks.register(EconomyHook.class, new VaultEconomyHook());
+        hooks.register(PermissionHook.class, new LuckPermsPermissionHook());
+        hooks.register(RegionHook.class, new WorldGuardRegionHook());
+        hooks.register(ItemHook.class, new ItemsAdderItemHook());
+        hooks.register(ItemHook.class, new OraxenItemHook());
+        hooks.register(ItemHook.class, new NexoItemHook());
+        hooks.register(ItemHook.class, new HeadDatabaseItemHook());
+        return hooks;
     }
 
     private StorageConfig buildStorageConfig(Backend backend) {

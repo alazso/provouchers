@@ -22,13 +22,34 @@ dependencies {
     compileOnly(libs.paper.api)
     compileOnly(libs.jetbrains.annotations)
 
-    // Strata is a hard runtime dependency, present on the server and loaded first.
-    // We compile against its API only; its runtime libraries (Kotlin stdlib, JDBC
-    // drivers, connection pool) are provided by the installed Strata plugin.
-    compileOnly(libs.strata.api)
+    // Soft integrations resolved by class presence at runtime; their Adventure deps come
+    // from Paper, so MiniPlaceholders is pulled non-transitively.
+    compileOnly(libs.placeholderapi)
+    compileOnly(libs.miniplaceholders.api) { isTransitive = false }
+
+    // Connection pool: compiled against, loaded at runtime by ProVouchersLoader (with the JDBC
+    // drivers) so it is not shaded into the jar.
+    compileOnly(libs.hikari)
+
+    // Metrics: shaded + relocated into the jar (see shadowJar relocations below).
+    implementation(libs.bstats.bukkit)
+    implementation(libs.faststats.bukkit)
+
+    // Integration APIs: provided at runtime by the respective server plugins (soft-depend),
+    // guarded by class-presence checks. Never bundled, never runtime-loaded. Declared
+    // non-transitively where their dependency trees are heavy or carry conflicting constraints.
+    compileOnly(libs.luckperms.api)
+    compileOnly(libs.vault.api) { isTransitive = false }
+    compileOnly(libs.itemsadder.api) { isTransitive = false }
+    compileOnly(libs.oraxen) { isTransitive = false }
+    compileOnly(libs.nexo) { isTransitive = false }
+    compileOnly(libs.headdatabase.api) { isTransitive = false }
+    compileOnly(libs.worldguard.bukkit) { isTransitive = false }
+    compileOnly(libs.worldguard.core) { isTransitive = false }
+    compileOnly(libs.worldedit.bukkit) { isTransitive = false }
+    compileOnly(libs.worldedit.core) { isTransitive = false }
 
     testImplementation(libs.paper.api)
-    testImplementation(libs.strata.api)
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.assertj.core)
     testRuntimeOnly(libs.junit.platform.launcher)
@@ -36,7 +57,9 @@ dependencies {
 
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
-    options.compilerArgs.add("-Xlint:all,-processing,-serial")
+    // -classfile: the Kotlin-compiled integration APIs (Nexo) are declared non-transitively,
+    // so their kotlin.* annotation types are absent at compile time by design.
+    options.compilerArgs.add("-Xlint:all,-processing,-serial,-classfile")
 }
 
 tasks.withType<Test>().configureEach {
@@ -72,6 +95,8 @@ val coverageExclusions = listOf(
     "**/service/**",
     "**/gui/**",
     "**/give/**",
+    "**/platform/**",
+    "**/condition/**",
     "**/voucher/VoucherItemFactory.class",
     "**/voucher/ItemResolver.class",
     "**/config/ConfigManager.class",
@@ -126,6 +151,8 @@ tasks.withType<Jar>().configureEach {
 tasks.shadowJar {
     archiveClassifier.set("")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    relocate("org.bstats", "${project.group}.libs.bstats")
+    relocate("dev.faststats", "${project.group}.libs.faststats")
 }
 
 tasks.named<Jar>("jar") {

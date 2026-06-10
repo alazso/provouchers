@@ -60,7 +60,11 @@ public final class RewardLineParser {
         if (reference.indexOf(':') < 0) {
             Materials.resolve(reference);   // vanilla material must exist
         } else {
-            CustomItemRef.parse(reference); // provider item: syntax only (existence checked at runtime)
+            // Provider item: validate the prefix and syntax now; item existence is checked at runtime.
+            CustomItemRef ref = CustomItemRef.parse(reference);
+            if (!ref.hasKnownProvider()) {
+                throw new IllegalArgumentException("unknown item provider '" + ref.providerHint() + "'");
+            }
         }
     }
 

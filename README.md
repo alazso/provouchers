@@ -15,10 +15,6 @@
 
 <br>
 
-> ⚠️ **Requires [Strata](https://github.com/alazso/strata) v0.10.0+.** Strata is the shared library ProVouchers builds on (scheduling, storage, integrations, conditions, text). It is currently under review on Modrinth, so for now grab **Strata v0.10.0** from [GitHub releases](https://github.com/alazso/strata/releases/tag/v0.10.0).
-
-<br>
-
 Create vouchers and redeemable codes backed by a **powerful ecosystem of integrations**, built to help your server stand out. Hand out rewards as **items players right-click** or **codes players type**, define everything in plain YAML, and reload it live, with persistent anti-dupe and cooldowns that survive restarts.
 
 <br>
@@ -40,7 +36,7 @@ Create vouchers and redeemable codes backed by a **powerful ecosystem of integra
 
 ## 🚀 Quick start
 
-1. Drop **Strata** and **ProVouchers** into `plugins/`.
+1. Drop **ProVouchers** into `plugins/`.
 2. Start the server. Example `vouchers/` and `codes/` files are created for you.
 3. Edit a file, run `/voucher reload`, then `/voucher give <id>`.
 
@@ -75,7 +71,6 @@ That is a working voucher, top to bottom. The **[documentation](https://alaz.so/
 | **Server** | Paper, Folia, or Purpur |
 | **Minecraft** | 26.1 or newer |
 | **Java** | 25 |
-| **Dependency** | Strata 0.10.0+ |
 
 <br>
 

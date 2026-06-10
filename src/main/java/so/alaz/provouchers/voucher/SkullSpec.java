@@ -5,7 +5,7 @@ import java.util.UUID;
 
 /**
  * A player-head specification for a voucher item: which stable skull source to use
- * and its value. Resolved into an {@code ItemStack} by Strata's skull builder.
+ * and its value. Resolved into an {@code ItemStack} by the skull builder.
  *
  * <p>{@code TEXTURE} and {@code URL} are stable and need no network, so they are
  * the recommended choices for permanent voucher icons. {@code NAME} and

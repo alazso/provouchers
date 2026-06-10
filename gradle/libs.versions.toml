@@ -3,7 +3,23 @@ shadow          = "9.4.2"
 foojay          = "0.9.0"
 paper           = "26.1.2.build.66-stable"
 annotations     = "24.1.0"
-strata          = "0.10.0"
+placeholderapi  = "2.11.6"
+miniplaceholders = "3.2.0"
+hikari          = "7.0.2"
+sqlite          = "3.53.2.0"
+mysql           = "8.4.0"
+mariadb         = "3.5.8"
+postgresql      = "42.7.7"
+bstats          = "3.1.0"
+faststats       = "0.25.1"
+luckperms       = "5.5"
+vault           = "1.7.1"
+itemsadder      = "3.6.3-beta-14"
+oraxen          = "1.216.0"
+nexo            = "1.24.0"
+headdatabase    = "1.3.0"
+worldguard      = "7.0.17"
+worldedit       = "7.3.18"  # the WorldEdit version WorldGuard 7.0.17 is built against
 junit           = "5.11.4"
 assertj         = "3.26.3"
 mockito         = "5.14.2"
@@ -11,7 +27,31 @@ mockito         = "5.14.2"
 [libraries]
 paper-api                = { module = "io.papermc.paper:paper-api",             version.ref = "paper" }
 jetbrains-annotations    = { module = "org.jetbrains:annotations",              version.ref = "annotations" }
-strata-api               = { module = "so.alaz.strata:strata-api",              version.ref = "strata" }
+# Soft integrations, compileOnly (Adventure comes from Paper); resolution by class presence.
+placeholderapi           = { module = "me.clip:placeholderapi",                 version.ref = "placeholderapi" }
+miniplaceholders-api     = { module = "io.github.miniplaceholders:miniplaceholders-api", version.ref = "miniplaceholders" }
+# Connection pool, compileOnly; loaded at runtime with the JDBC drivers by ProVouchersLoader.
+hikari                   = { module = "com.zaxxer:HikariCP",                    version.ref = "hikari" }
+# JDBC drivers, loaded at runtime by ProVouchersLoader. Declared here for dependency-update tooling
+# and the drift check (ProVouchersLoaderTest); not consumed directly by the build.
+sqlite-jdbc              = { module = "org.xerial:sqlite-jdbc",                 version.ref = "sqlite" }
+mysql-connector          = { module = "com.mysql:mysql-connector-j",           version.ref = "mysql" }
+mariadb-jdbc             = { module = "org.mariadb.jdbc:mariadb-java-client",   version.ref = "mariadb" }
+postgresql-jdbc          = { module = "org.postgresql:postgresql",             version.ref = "postgresql" }
+# Metrics, shaded + relocated into the jar (bStats requires relocation).
+bstats-bukkit            = { module = "org.bstats:bstats-bukkit",               version.ref = "bstats" }
+faststats-bukkit         = { module = "dev.faststats.metrics:bukkit",           version.ref = "faststats" }
+# Integration APIs, compileOnly; provided at runtime by the respective server plugins.
+luckperms-api            = { module = "net.luckperms:api",                       version.ref = "luckperms" }
+vault-api                = { module = "com.github.MilkBowl:VaultAPI",             version.ref = "vault" }
+itemsadder-api           = { module = "com.github.LoneDev6:api-itemsadder",       version.ref = "itemsadder" }
+oraxen                   = { module = "io.th0rgal:oraxen",                         version.ref = "oraxen" }
+nexo                     = { module = "com.nexomc:nexo",                           version.ref = "nexo" }
+headdatabase-api         = { module = "com.github.Arcaniax-Development:HeadDatabase-API", version.ref = "headdatabase" }
+worldguard-bukkit        = { module = "com.sk89q.worldguard:worldguard-bukkit",    version.ref = "worldguard" }
+worldguard-core          = { module = "com.sk89q.worldguard:worldguard-core",      version.ref = "worldguard" }
+worldedit-bukkit         = { module = "com.sk89q.worldedit:worldedit-bukkit",      version.ref = "worldedit" }
+worldedit-core           = { module = "com.sk89q.worldedit:worldedit-core",        version.ref = "worldedit" }
 junit-jupiter            = { module = "org.junit.jupiter:junit-jupiter",        version.ref = "junit" }
 junit-platform-launcher  = { module = "org.junit.platform:junit-platform-launcher" }
 assertj-core             = { module = "org.assertj:assertj-core",               version.ref = "assertj" }

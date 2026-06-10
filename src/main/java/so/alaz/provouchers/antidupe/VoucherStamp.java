@@ -5,7 +5,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
-import so.alaz.strata.api.pdc.PdcKey;
+import so.alaz.provouchers.platform.PdcKey;
 
 import java.util.UUID;
 

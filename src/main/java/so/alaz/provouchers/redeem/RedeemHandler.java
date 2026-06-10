@@ -25,14 +25,14 @@ import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.provouchers.voucher.VoucherCode;
 import so.alaz.provouchers.voucher.VoucherRegistry;
 import so.alaz.provouchers.util.Expiry;
-import so.alaz.strata.api.condition.Condition;
-import so.alaz.strata.api.condition.ConditionContext;
-import so.alaz.strata.api.condition.ConditionRegistry;
-import so.alaz.strata.api.condition.ConditionResult;
-import so.alaz.strata.api.condition.Conditions;
+import so.alaz.provouchers.condition.Condition;
+import so.alaz.provouchers.condition.ConditionContext;
+import so.alaz.provouchers.condition.ConditionRegistry;
+import so.alaz.provouchers.condition.ConditionResult;
+import so.alaz.provouchers.condition.Conditions;
 import so.alaz.provouchers.cooldown.CooldownService;
-import so.alaz.strata.api.scheduler.PlatformScheduler;
-import so.alaz.strata.api.text.TextRenderer;
+import so.alaz.provouchers.platform.Scheduler;
+import so.alaz.provouchers.platform.Text;
 
 import java.sql.SQLException;
 import java.time.Instant;
@@ -43,7 +43,7 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * The redemption pipeline shared by item vouchers and codes. Synchronous checks
  * (existence, expiry, game mode, cooldown, conditions) run on the caller's thread;
- * persistent checks (duplicate stamps, code-use limits) run on Strata's async
+ * persistent checks (duplicate stamps, code-use limits) run on the async
  * scheduler, then control hops back to the player's region to grant rewards.
  */
 public final class RedeemHandler {
@@ -53,8 +53,8 @@ public final class RedeemHandler {
     private final DupeDetector dupeDetector;
     private final VoucherStorage storage;
     private final RewardExecutor rewardExecutor;
-    private final PlatformScheduler scheduler;
-    private final TextRenderer text;
+    private final Scheduler scheduler;
+    private final Text text;
     private final CooldownService cooldowns;
     private final ConditionRegistry conditions;
     private final MetricCounters counters;
@@ -68,8 +68,8 @@ public final class RedeemHandler {
         DupeDetector dupeDetector,
         VoucherStorage storage,
         RewardExecutor rewardExecutor,
-        PlatformScheduler scheduler,
-        TextRenderer text,
+        Scheduler scheduler,
+        Text text,
         CooldownService cooldowns,
         ConditionRegistry conditions,
         MetricCounters counters,
@@ -269,7 +269,8 @@ public final class RedeemHandler {
                 } else {
                     storage.incrementCodeUse(code.code(), player.getUniqueId());
                 }
-            } catch (SQLException ex) {
+            } catch (SQLException | RuntimeException ex) {
+                // A storage error (or the pool not being open yet) leaves the use unverifiable.
                 allowed = false;
                 denyMessage = "<red>Could not verify the code. Please try again.";
             }

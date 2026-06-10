@@ -9,11 +9,11 @@ import org.jetbrains.annotations.Nullable;
  *
  * @param material        the Bukkit material name (for example {@code PAPER})
  * @param customItem      an optional custom-item reference (for example
- *                        {@code oraxen:my_item}), resolved through a Strata item hook
+ *                        {@code oraxen:my_item}), resolved through an item hook
  * @param customModelData an optional custom model data value, or {@code null}
  * @param glow            whether the item should have the enchant glint
  * @param skull           an optional player-head specification; when set the item is
- *                        a custom head, built through Strata's skull builder
+ *                        a custom head, built through the skull builder
  */
 public record VoucherItem(
     String material,

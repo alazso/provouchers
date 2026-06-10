@@ -155,10 +155,6 @@ jobs:
             26.1.1
             26.1.2
 
-          # Strata is a required dependency
-          dependencies: |
-            strata-api(required)
-
       - name: Publish to repo.alaz.so
         if: steps.published.outputs.skip != 'true' && (github.event_name == 'push' || inputs.dry_run != true)
         env:

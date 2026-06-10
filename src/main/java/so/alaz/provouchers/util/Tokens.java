@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
  * for a random integer in the inclusive range.
  *
  * <p>MiniMessage markup and PlaceholderAPI placeholders are intentionally left
- * untouched here; those are resolved later by Strata's text renderer.
+ * untouched here; those are resolved later by the text renderer.
  */
 public final class Tokens {
 

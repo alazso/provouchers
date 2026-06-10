@@ -27,6 +27,6 @@ anti-dupe:
     text: "<red>This item has been duplicated"
 
 metrics:
-  # Submit anonymous usage statistics through Strata (bStats and FastStats).
+  # Submit anonymous usage statistics (bStats and FastStats).
   # Set to false to opt out entirely.
   enabled: true

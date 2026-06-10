@@ -7,12 +7,10 @@ api-version: "26.1"
 folia-supported: true
 load: POSTWORLD
 main: so.alaz.provouchers.ProVouchersPlugin
+loader: so.alaz.provouchers.ProVouchersLoader
 
 dependencies:
   server:
-    Strata:
-      load: BEFORE
-      required: true
     Vault:
       load: BEFORE
       required: false

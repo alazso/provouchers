@@ -7,14 +7,10 @@ import org.bukkit.inventory.ItemStack;
 import so.alaz.provouchers.give.VoucherGiveService;
 import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.provouchers.voucher.VoucherItemFactory;
+import so.alaz.provouchers.platform.ItemBuilder;
+import so.alaz.provouchers.platform.Scheduler;
+import so.alaz.provouchers.platform.Text;
 import so.alaz.provouchers.voucher.VoucherRegistry;
-import so.alaz.strata.api.gui.Button;
-import so.alaz.strata.api.gui.GuiAction;
-import so.alaz.strata.api.gui.GuiManager;
-import so.alaz.strata.api.gui.ItemBuilder;
-import so.alaz.strata.api.gui.PaginatedGui;
-import so.alaz.strata.api.scheduler.PlatformScheduler;
-import so.alaz.strata.api.text.TextRenderer;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -33,12 +29,12 @@ public final class PreviewGui {
     private final VoucherGiveService giveService;
     private final VoucherAdminMenu adminMenu;
     private final GuiManager guiManager;
-    private final PlatformScheduler scheduler;
-    private final TextRenderer text;
+    private final Scheduler scheduler;
+    private final Text text;
 
     public PreviewGui(VoucherRegistry registry, VoucherItemFactory factory, VoucherGiveService giveService,
-                      VoucherAdminMenu adminMenu, GuiManager guiManager, PlatformScheduler scheduler,
-                      TextRenderer text) {
+                      VoucherAdminMenu adminMenu, GuiManager guiManager, Scheduler scheduler,
+                      Text text) {
         this.registry = registry;
         this.factory = factory;
         this.giveService = giveService;

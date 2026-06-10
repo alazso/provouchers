@@ -3,16 +3,17 @@ package so.alaz.provouchers.voucher;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
-import so.alaz.strata.api.hook.HookRegistry;
-import so.alaz.strata.api.hook.ItemHook;
+import so.alaz.provouchers.hook.HookRegistry;
+import so.alaz.provouchers.hook.ItemHook;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Resolves item references to {@link ItemStack}s, shared by voucher icon building
  * and item rewards. A reference is either a vanilla material name or a
- * {@code provider:id} custom item served by a Strata item hook (ItemsAdder,
- * Oraxen, Nexo, and so on).
+ * {@code provider:id} custom item served by an {@link ItemHook} (ItemsAdder,
+ * Oraxen, Nexo, HeadDatabase).
  */
 public final class ItemResolver {
 
@@ -34,28 +35,47 @@ public final class ItemResolver {
         CustomItemRef ref = CustomItemRef.parse(reference);
         List<ItemHook> providers = hooks.all(ItemHook.class);
         if (ref.providerHint() != null) {
+            // Qualified reference: only the named provider (aliases like ia/hdb resolved) may build it,
+            // with the bare id. If that provider is unavailable or cannot build the id, nothing resolves
+            // rather than the id being handed to a different provider (which could grant the wrong item).
+            String name = canonicalProvider(ref.providerHint());
             for (ItemHook provider : providers) {
-                if (provider.isAvailable() && provider.name().equalsIgnoreCase(ref.providerHint())) {
-                    ItemStack item = provider.createItem(ref.id());
-                    if (item != null) {
-                        return item;
-                    }
+                if (provider.isAvailable() && provider.name().equalsIgnoreCase(name)) {
+                    return provider.createItem(ref.id());
+                }
+            }
+            return null;
+        }
+        // Unqualified: try each available provider with the reference as given.
+        for (ItemHook provider : providers) {
+            if (provider.isAvailable()) {
+                ItemStack item = provider.createItem(reference);
+                if (item != null) {
+                    return item;
                 }
             }
         }
-        for (ItemHook provider : providers) {
-            if (!provider.isAvailable()) {
-                continue;
-            }
-            ItemStack item = provider.createItem(reference);
-            if (item == null && ref.providerHint() != null) {
-                item = provider.createItem(ref.id());
-            }
-            if (item != null) {
-                return item;
+        return null;
+    }
+
+    /** Whether the provider named by a custom-item hint (aliases resolved) is installed and available. */
+    public boolean providerAvailable(String hint) {
+        String name = canonicalProvider(hint);
+        for (ItemHook provider : hooks.all(ItemHook.class)) {
+            if (provider.isAvailable() && provider.name().equalsIgnoreCase(name)) {
+                return true;
             }
         }
-        return null;
+        return false;
+    }
+
+    /** Maps a provider-prefix alias to the canonical hook name; other hints pass through unchanged. */
+    private static String canonicalProvider(String hint) {
+        return switch (hint.toLowerCase(Locale.ROOT)) {
+            case "ia" -> "itemsadder";
+            case "hdb" -> "headdatabase";
+            default -> hint;
+        };
     }
 
     /**

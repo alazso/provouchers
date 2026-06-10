@@ -97,10 +97,15 @@ public final class VoucherParser {
     private static VoucherItem parseItem(ConfigurationSection item, String id) {
         String custom = emptyToNull(item.getString("custom", ""));
         if (custom != null) {
+            CustomItemRef ref;
             try {
-                CustomItemRef.parse(custom);
+                ref = CustomItemRef.parse(custom);
             } catch (IllegalArgumentException ex) {
                 throw new VoucherParseException("voucher '" + id + "': item.custom " + ex.getMessage(), ex);
+            }
+            if (!ref.hasKnownProvider()) {
+                throw new VoucherParseException("voucher '" + id + "': item.custom names unknown provider '"
+                    + ref.providerHint() + "'");
             }
         }
         String material = item.getString("material", "PAPER");

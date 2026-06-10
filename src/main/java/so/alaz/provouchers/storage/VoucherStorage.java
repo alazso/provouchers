@@ -1,7 +1,5 @@
 package so.alaz.provouchers.storage;
 
-import so.alaz.strata.api.storage.StorageProvider;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -12,13 +10,12 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Persistence gateway for ProVouchers, built on a Strata {@link StorageProvider}.
- * Strata owns the connection pool, the JDBC driver, and the migration runner; this
- * class registers the schema and runs the plain-JDBC queries the redeem pipeline
- * needs.
+ * Persistence gateway for ProVouchers, built on a {@link StorageProvider}. The
+ * provider owns the connection pool, JDBC drivers, and migration runner; this class
+ * registers the schema and runs the plain-JDBC queries the redeem pipeline needs.
  *
  * <p>The blocking query methods are intended to be called from an async context
- * (Strata's async scheduler), never the main or a region thread.
+ * (the async scheduler), never the main or a region thread.
  */
 public final class VoucherStorage {
 

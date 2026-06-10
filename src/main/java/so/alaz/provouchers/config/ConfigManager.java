@@ -1,6 +1,10 @@
 package so.alaz.provouchers.config;
 
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.jetbrains.annotations.Nullable;
+import so.alaz.provouchers.condition.ConditionRegistry;
+import so.alaz.provouchers.voucher.CustomItemRef;
+import so.alaz.provouchers.voucher.ItemResolver;
 import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.provouchers.voucher.VoucherCode;
 import so.alaz.provouchers.voucher.VoucherRegistry;
@@ -8,6 +12,7 @@ import so.alaz.provouchers.voucher.VoucherRegistry;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Loads voucher and code definitions from the plugin data folder into a
@@ -19,10 +24,15 @@ public final class ConfigManager {
 
     private final File dataFolder;
     private final VoucherRegistry registry;
+    private final ConditionRegistry conditions;
+    private final ItemResolver items;
 
-    public ConfigManager(File dataFolder, VoucherRegistry registry) {
+    public ConfigManager(File dataFolder, VoucherRegistry registry, ConditionRegistry conditions,
+                         ItemResolver items) {
         this.dataFolder = dataFolder;
         this.registry = registry;
+        this.conditions = conditions;
+        this.items = items;
     }
 
     /**
@@ -45,7 +55,9 @@ public final class ConfigManager {
             try {
                 YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
                 Voucher voucher = VoucherParser.parseVoucher(yaml, id);
+                requireKnownConditions(voucher.conditionMaps());
                 registry.register(voucher);
+                warnUnavailableProvider(file.getName(), voucher.item().customItem(), errors);
             } catch (VoucherParseException ex) {
                 errors.add(file.getName() + ": " + ex.getMessage());
             } catch (RuntimeException ex) {
@@ -62,6 +74,7 @@ public final class ConfigManager {
             try {
                 YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
                 VoucherCode code = VoucherParser.parseCode(yaml, id);
+                requireKnownConditions(code.conditionMaps());
                 registry.register(code);
             } catch (VoucherParseException ex) {
                 errors.add(file.getName() + ": " + ex.getMessage());
@@ -69,6 +82,31 @@ public final class ConfigManager {
                 errors.add(file.getName() + ": " + ex.getClass().getSimpleName() + " "
                     + ex.getMessage());
             }
+        }
+    }
+
+    /**
+     * Rejects a condition whose {@code type} is not registered, so a typo or a removed type fails
+     * loudly at load (and the voucher/code does not load) rather than silently dropping the gate at
+     * redeem time, which would let the restriction fail open.
+     */
+    private void requireKnownConditions(List<Map<String, Object>> conditionMaps) {
+        for (Map<String, Object> condition : conditionMaps) {
+            if (condition.get("type") instanceof String type && !conditions.isRegistered(type)) {
+                throw new VoucherParseException("unknown condition type '" + type + "'");
+            }
+        }
+    }
+
+    /** Notes, without blocking the load, when a voucher's custom item names an uninstalled provider. */
+    private void warnUnavailableProvider(String fileName, @Nullable String customRef, List<String> errors) {
+        if (customRef == null) {
+            return;
+        }
+        CustomItemRef ref = CustomItemRef.parse(customRef);
+        if (ref.providerHint() != null && !items.providerAvailable(ref.providerHint())) {
+            errors.add(fileName + ": item provider '" + ref.providerHint()
+                + "' is not installed; the item falls back to its material");
         }
     }
 
