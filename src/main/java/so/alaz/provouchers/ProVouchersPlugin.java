@@ -88,15 +88,15 @@ public final class ProVouchersPlugin extends JavaPlugin {
         VoucherRegistry registry = new VoucherRegistry();
         Text text = new Text();
         HookRegistry hooks = buildHooks();
+        ItemResolver itemResolver = new ItemResolver(hooks);
         ConditionRegistry conditionRegistry = new ConditionRegistry(text, hooks);
-        ConfigManager configManager = new ConfigManager(getDataFolder(), registry, conditionRegistry);
+        ConfigManager configManager = new ConfigManager(getDataFolder(), registry, conditionRegistry, itemResolver);
         reportErrors(configManager.reload());
 
         Scheduler scheduler = new Scheduler(this);
         guiManager = new GuiManager(this);
 
         VoucherStamp stamp = new VoucherStamp(this);
-        ItemResolver itemResolver = new ItemResolver(hooks);
         RewardExecutor rewardExecutor = new RewardExecutor(
             scheduler, text, itemResolver, hooks,
             getComponentLogger());

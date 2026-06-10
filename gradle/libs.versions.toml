@@ -6,6 +6,10 @@ annotations     = "24.1.0"
 placeholderapi  = "2.11.6"
 miniplaceholders = "3.2.0"
 hikari          = "7.0.2"
+sqlite          = "3.53.2.0"
+mysql           = "8.4.0"
+mariadb         = "3.5.8"
+postgresql      = "42.7.7"
 bstats          = "3.1.0"
 faststats       = "0.25.1"
 luckperms       = "5.5"
@@ -28,6 +32,12 @@ placeholderapi           = { module = "me.clip:placeholderapi",                 
 miniplaceholders-api     = { module = "io.github.miniplaceholders:miniplaceholders-api", version.ref = "miniplaceholders" }
 # Connection pool, compileOnly; loaded at runtime with the JDBC drivers by ProVouchersLoader.
 hikari                   = { module = "com.zaxxer:HikariCP",                    version.ref = "hikari" }
+# JDBC drivers, loaded at runtime by ProVouchersLoader. Declared here for dependency-update tooling
+# and the drift check (ProVouchersLoaderTest); not consumed directly by the build.
+sqlite-jdbc              = { module = "org.xerial:sqlite-jdbc",                 version.ref = "sqlite" }
+mysql-connector          = { module = "com.mysql:mysql-connector-j",           version.ref = "mysql" }
+mariadb-jdbc             = { module = "org.mariadb.jdbc:mariadb-java-client",   version.ref = "mariadb" }
+postgresql-jdbc          = { module = "org.postgresql:postgresql",             version.ref = "postgresql" }
 # Metrics, shaded + relocated into the jar (bStats requires relocation).
 bstats-bukkit            = { module = "org.bstats:bstats-bukkit",               version.ref = "bstats" }
 faststats-bukkit         = { module = "dev.faststats.metrics:bukkit",           version.ref = "faststats" }

@@ -1,7 +1,10 @@
 package so.alaz.provouchers.config;
 
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.condition.ConditionRegistry;
+import so.alaz.provouchers.voucher.CustomItemRef;
+import so.alaz.provouchers.voucher.ItemResolver;
 import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.provouchers.voucher.VoucherCode;
 import so.alaz.provouchers.voucher.VoucherRegistry;
@@ -22,11 +25,14 @@ public final class ConfigManager {
     private final File dataFolder;
     private final VoucherRegistry registry;
     private final ConditionRegistry conditions;
+    private final ItemResolver items;
 
-    public ConfigManager(File dataFolder, VoucherRegistry registry, ConditionRegistry conditions) {
+    public ConfigManager(File dataFolder, VoucherRegistry registry, ConditionRegistry conditions,
+                         ItemResolver items) {
         this.dataFolder = dataFolder;
         this.registry = registry;
         this.conditions = conditions;
+        this.items = items;
     }
 
     /**
@@ -51,6 +57,7 @@ public final class ConfigManager {
                 Voucher voucher = VoucherParser.parseVoucher(yaml, id);
                 requireKnownConditions(voucher.conditionMaps());
                 registry.register(voucher);
+                warnUnavailableProvider(file.getName(), voucher.item().customItem(), errors);
             } catch (VoucherParseException ex) {
                 errors.add(file.getName() + ": " + ex.getMessage());
             } catch (RuntimeException ex) {
@@ -88,6 +95,18 @@ public final class ConfigManager {
             if (condition.get("type") instanceof String type && !conditions.isRegistered(type)) {
                 throw new VoucherParseException("unknown condition type '" + type + "'");
             }
+        }
+    }
+
+    /** Notes, without blocking the load, when a voucher's custom item names an uninstalled provider. */
+    private void warnUnavailableProvider(String fileName, @Nullable String customRef, List<String> errors) {
+        if (customRef == null) {
+            return;
+        }
+        CustomItemRef ref = CustomItemRef.parse(customRef);
+        if (ref.providerHint() != null && !items.providerAvailable(ref.providerHint())) {
+            errors.add(fileName + ": item provider '" + ref.providerHint()
+                + "' is not installed; the item falls back to its material");
         }
     }
 

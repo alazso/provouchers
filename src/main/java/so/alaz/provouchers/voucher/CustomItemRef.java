@@ -2,6 +2,9 @@ package so.alaz.provouchers.voucher;
 
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Locale;
+import java.util.Set;
+
 /**
  * A parsed reference to a third-party custom item, such as
  * {@code itemsadder:ax_wings_pack:phoenix_wings} or {@code oraxen:my_item}.
@@ -15,10 +18,19 @@ import org.jetbrains.annotations.Nullable;
  */
 public record CustomItemRef(@Nullable String providerHint, String id) {
 
+    /** The provider prefixes ProVouchers recognizes, including aliases ({@code ia}, {@code hdb}). */
+    private static final Set<String> KNOWN_PROVIDERS =
+        Set.of("itemsadder", "ia", "oraxen", "nexo", "headdatabase", "hdb");
+
     public CustomItemRef {
         if (id == null || id.isBlank()) {
             throw new IllegalArgumentException("Custom item id must not be blank");
         }
+    }
+
+    /** Whether the reference names a recognized provider (or none, for an unqualified id). */
+    public boolean hasKnownProvider() {
+        return providerHint == null || KNOWN_PROVIDERS.contains(providerHint.toLowerCase(Locale.ROOT));
     }
 
     /** Splits {@code reference} on its first colon into a provider hint and an id. */

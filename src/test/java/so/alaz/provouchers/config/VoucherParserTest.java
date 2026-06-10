@@ -6,6 +6,8 @@ import so.alaz.provouchers.reward.RewardType;
 import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.provouchers.voucher.VoucherCode;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -153,6 +155,23 @@ class VoucherParserTest {
         assertThatThrownBy(() -> VoucherParser.parseVoucher(config, "bad"))
             .isInstanceOf(VoucherParseException.class)
             .hasMessageContaining("custom");
+    }
+
+    @Test
+    void unknownItemProviderIsRejectedAtLoad() throws Exception {
+        YamlConfiguration config = yaml("item:\n  material: PAPER\n  custom: \"oraxin:sword\"\n");
+        assertThatThrownBy(() -> VoucherParser.parseVoucher(config, "bad"))
+            .isInstanceOf(VoucherParseException.class)
+            .hasMessageContaining("provider");
+    }
+
+    @Test
+    void knownItemProvidersAreAccepted() throws Exception {
+        for (String ref : List.of("itemsadder:ns:id", "oraxen:id", "nexo:id", "headdatabase:7129", "hdb:7129", "ia:foo")) {
+            Voucher voucher = VoucherParser.parseVoucher(
+                yaml("item:\n  material: PAPER\n  custom: \"" + ref + "\"\n"), "ok");
+            assertThat(voucher.item().customItem()).isEqualTo(ref);
+        }
     }
 
     @Test
