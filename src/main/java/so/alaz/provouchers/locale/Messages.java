@@ -63,6 +63,11 @@ public final class Messages {
         this.languages = loaded;
     }
 
+    /** The locale codes that have a loaded lang file (English is always available as a fallback). */
+    public java.util.Set<String> loadedLanguages() {
+        return java.util.Set.copyOf(languages.keySet());
+    }
+
     /**
      * The message for {@code key}, in {@code viewer}'s language, with {@code {prefix}} and the given
      * {@code placeholders} (alternating name, value) filled in. Never null; an unknown key returns a

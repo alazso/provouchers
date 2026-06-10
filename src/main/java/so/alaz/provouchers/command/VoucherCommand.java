@@ -54,6 +54,7 @@ public final class VoucherCommand {
     private static final String PERM_PREVIEW = "provouchers.preview";
     private static final String PERM_LIST = "provouchers.list";
     private static final String PERM_RELOAD = "provouchers.reload";
+    private static final String PERM_DOCTOR = "provouchers.doctor";
 
     /** A single subcommand's help metadata; Brigadier nodes carry none of this, so it lives here. */
     private record Sub(String name, String usage, @Nullable String permission) {
@@ -68,6 +69,7 @@ public final class VoucherCommand {
         new Sub("preview", "preview", PERM_PREVIEW),
         new Sub("list", "list", PERM_LIST),
         new Sub("reload", "reload", PERM_RELOAD),
+        new Sub("doctor", "doctor", PERM_DOCTOR),
         new Sub("help", "help", null));
 
     private final VoucherRegistry registry;
@@ -77,6 +79,7 @@ public final class VoucherCommand {
     private final PreviewGui previewGui;
     private final Text text;
     private final Messages messages;
+    private final Diagnostics diagnostics;
 
     public VoucherCommand(
         VoucherRegistry registry,
@@ -85,7 +88,8 @@ public final class VoucherCommand {
         ConfigManager configManager,
         PreviewGui previewGui,
         Text text,
-        Messages messages
+        Messages messages,
+        Diagnostics diagnostics
     ) {
         this.registry = registry;
         this.giveService = giveService;
@@ -94,6 +98,7 @@ public final class VoucherCommand {
         this.previewGui = previewGui;
         this.text = text;
         this.messages = messages;
+        this.diagnostics = diagnostics;
     }
 
     /** Builds and registers the command for {@code plugin}. Call during {@code onEnable}. */
@@ -114,6 +119,8 @@ public final class VoucherCommand {
                 .executes(run(ctx -> list(ctx.getSource()))))
             .then(Commands.literal("reload").requires(perm(PERM_RELOAD))
                 .executes(run(ctx -> reload(ctx.getSource()))))
+            .then(Commands.literal("doctor").requires(perm(PERM_DOCTOR))
+                .executes(run(ctx -> doctor(ctx.getSource()))))
             .then(Commands.literal("help")
                 .executes(run(ctx -> help(ctx.getSource()))))
             .build();
@@ -266,6 +273,14 @@ public final class VoucherCommand {
         reply(source, messages.get(viewer, "command.reload.errors", "errors", errors.size()));
         for (String error : errors) {
             reply(source, messages.get(viewer, "command.reload.error-line", "error", error));
+        }
+    }
+
+    private void doctor(CommandSourceStack source) {
+        Player viewer = asPlayer(source);
+        reply(source, messages.get(viewer, "command.doctor.heading"));
+        for (String line : diagnostics.report()) {
+            reply(source, line);
         }
     }
 

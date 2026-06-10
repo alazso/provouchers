@@ -6,6 +6,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import so.alaz.provouchers.antidupe.DupeDetector;
 import so.alaz.provouchers.antidupe.VoucherStamp;
 import so.alaz.provouchers.api.VoucherService;
+import so.alaz.provouchers.command.Diagnostics;
 import so.alaz.provouchers.command.VoucherCommand;
 import so.alaz.provouchers.condition.ConditionRegistry;
 import so.alaz.provouchers.config.ConfigManager;
@@ -146,8 +147,10 @@ public final class ProVouchersPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new GuiListener(guiManager), this);
         getServer().getPluginManager().registerEvents(new VoucherStationListener(stamp), this);
         getServer().getOnlinePlayers().forEach(player -> cooldowns.hydrate(player.getUniqueId()));
-        new VoucherCommand(registry, giveService, redeemHandler, configManager, previewGui, text, messages)
-            .register(this);
+        Diagnostics diagnostics = new Diagnostics(this, storage, registry, hooks, messages,
+            () -> backend.name().toLowerCase(Locale.ROOT));
+        new VoucherCommand(registry, giveService, redeemHandler, configManager, previewGui, text,
+            messages, diagnostics).register(this);
 
         getServer().getServicesManager().register(VoucherService.class,
             new VoucherServiceImpl(registry, giveService), this,

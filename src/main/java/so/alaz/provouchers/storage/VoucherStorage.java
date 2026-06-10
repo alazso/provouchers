@@ -40,6 +40,16 @@ public final class VoucherStorage {
         return provider.shutdown();
     }
 
+    /** Whether the connection pool is open (storage initialised without error). Non-blocking. */
+    public boolean isReady() {
+        try {
+            provider.dataSource();
+            return true;
+        } catch (IllegalStateException ex) {
+            return false;
+        }
+    }
+
     /** Whether a voucher item's unique id has already been redeemed. */
     public boolean isUsed(String uid) throws SQLException {
         try (Connection connection = provider.dataSource().getConnection();

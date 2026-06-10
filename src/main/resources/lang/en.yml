@@ -37,6 +37,8 @@ command:
     success: "{prefix}<green>Reloaded <yellow>{vouchers}</yellow> voucher(s) and <yellow>{codes}</yellow> code(s)."  # {vouchers} {codes}
     errors: "{prefix}<red>Reloaded with <yellow>{errors}</yellow> error(s):"   # {errors}
     error-line: "<red>  - <gray>{error}"                            # {error}
+  doctor:
+    heading: "{prefix}<gold>Doctor"
   help:
     heading: "{prefix}<gold>Commands"
     hover: "<gray>Click to fill in chat"
@@ -47,6 +49,7 @@ command:
       preview: "Browse vouchers in a GUI"
       list: "List loaded vouchers and codes"
       reload: "Reload vouchers and codes from disk"
+      doctor: "Show a diagnostic health report"
       help: "Show this help menu"
 
 # ---- Redeeming an item voucher ----------------------------------------------
