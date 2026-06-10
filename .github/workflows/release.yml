@@ -134,7 +134,6 @@ jobs:
         with:
           # ProVouchers (https://modrinth.com/plugin/provouchers)
           modrinth-id: iOogVoaR
-          # Organization-level secret, available to this repo with no per-repo setup.
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
 
           # The jar built and staged earlier in this job.
@@ -143,8 +142,7 @@ jobs:
           version: ${{ steps.version.outputs.version }}
           version-type: release
 
-          # Use the same curated notes as the GitHub release (this version's
-          # CHANGELOG.md section, written to release-notes.md above).
+          # Use the same changelog as GitHub release
           changelog-file: release-notes.md
           github-token: ${{ github.token }}
 
@@ -157,7 +155,7 @@ jobs:
             26.1.1
             26.1.2
 
-          # Strata is a required dependency (Modrinth slug: strata-api).
+          # Strata is a required dependency
           dependencies: |
             strata-api(required)
 
