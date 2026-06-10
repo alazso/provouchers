@@ -1,24 +1,75 @@
-id: example
-display-name: "<gradient:#FFD700:#8B0000>Example Voucher</gradient>"
-item:
-  material: PAPER
-  # custom-model-data only changes the icon when a resource pack maps the number
-  # to a model. With no pack it has no visible effect, so it is left out here.
-  # Uncomment and set your pack's value to use a custom texture.
-  # custom-model-data: 1001
-  glow: true
+# =============================================================================
+#  ProVouchers - example voucher
+#  Save as: plugins/ProVouchers/vouchers/<name>.yml   (the file name is the id)
+#  Apply changes with /voucher reload.
+#
+#  Text uses MiniMessage (<gold>, <gradient:#a:#b>, ...), with PlaceholderAPI and
+#  MiniPlaceholders when installed. Tokens, usable in text and rewards:
+#    %player% / {player}   the redeemer's name
+#    {arg}                 argument from /voucher redeem (needs has-argument: true)
+#    {random:1-5}          a random integer in the range
+# =============================================================================
+
+# ---- Identity ---------------------------------------------------------------
+id: example                       # optional; defaults to the file name
+display-name: "<gradient:#FFD700:#FF8A00><b>Example Voucher</b></gradient>"
 lore:
-  - "<gray>Right-click to redeem"
-unredeemable: false
-owner-only: false
-cooldown: 0
-expiry: ""
+  - "<gray>Right-click to redeem."
+  - ""
+  - "<dark_gray>A one-time reward."
+
+# ---- Appearance: a material, or a custom / skull base -----------------------
+item:
+  material: PAPER                 # any Bukkit material
+  glow: true                      # enchant glint, enchantment hidden
+  # custom-model-data: 1001       # only visible with a matching resource pack
+
+  # custom: "itemsadder:pack:id"  # provider item (ItemsAdder / Oraxen / Nexo)
+  # custom: "hdb:124791"          # Head Database head (hdb: or headdatabase:)
+  # custom: "serialized:<base64>" # an exact captured item (full fidelity)
+
+  # skull:                        # a player head, no extra plugin
+  #   source: texture             #   texture | url | name | uuid
+  #   value: "eyJ0ZXh0dXJlcyI6.." #   base64 / URL / name / UUID, per source
+
+# ---- Behaviour --------------------------------------------------------------
+cooldown: 0                       # seconds between redeems per player (0 = none)
+stackable: true                   # false = anti-dupe: each copy tracked, never stacks
+# batch-open: false               # shift-right-click opens a whole stack (needs stackable, no cooldown)
+# unredeemable: false             # display only, cannot be redeemed
+# owner-only: false               # only the player it was given to may redeem
+# has-argument: false             # fills {arg} from /voucher redeem <code> <arg>
+# expiry: "30d"                   # "30d" from give time, or a date like 2026-12-31; blank = never
+
+# ---- Conditions: all must pass; the first failure stops the redeem ----------
 conditions:
   - type: permission
     permission: "provouchers.use.example"
+    deny: "<red>You can't use this voucher."          # optional per-condition message
+  # - { type: world,      worlds: [ world, world_nether ] }
+  # - { type: gamemode,   gamemodes: [ SURVIVAL, ADVENTURE ] }
+  # - { type: exp,        level: 10 }
+  # - { type: economy,    amount: 500 }                        # Vault
+  # - { type: rank,       groups: [ vip, mvp ] }               # LuckPerms
+  # - { type: region,     regions: [ spawn ] }                 # WorldGuard
+  # - { type: papi,       placeholder: "%player_level%", operator: ">=", value: "30" }
+  # - { type: playerstat, statistic: MINE_BLOCK, material: DIAMOND_ORE, operator: ">=", value: 100 }
+
+# ---- Rewards: all of these run ----------------------------------------------
 rewards:
-  - "command: give %player% diamond 1"
   - "message: <green>You redeemed the example voucher!"
+  - "command: give %player% diamond 1"                # run from console
+  # - "player-command: spawn"                         # run as the player
+  # - "broadcast: <gold>%player% <yellow>redeemed a voucher!"
+  # - "title: <gold>Redeemed!|<gray>Enjoy your loot"  # title|subtitle
+  # - "actionbar: <green>Reward granted"
+  # - "sound: minecraft:entity.player.levelup 1 1"    # key [volume] [pitch]
+  # - "item: DIAMOND_SWORD 1"                          # vanilla or provider:id, optional amount
+  # - "currency: give 250"                             # Vault; give|take, amount may be {random:..}
+  # - "group: add vip 7d"                              # LuckPerms; add|remove, optional duration
+  # - "permission: add essentials.fly"                 # LuckPerms; add|deny|remove|set <node> [true|false]
+
+# ---- Random rewards: one weighted set is rolled, on top of rewards ----------
 random-rewards:
   - weight: 70
     rewards:
