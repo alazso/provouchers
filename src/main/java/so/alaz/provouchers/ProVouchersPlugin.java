@@ -11,6 +11,8 @@ import so.alaz.provouchers.config.ConfigManager;
 import so.alaz.provouchers.service.VoucherServiceImpl;
 import so.alaz.provouchers.cooldown.CooldownService;
 import so.alaz.provouchers.give.VoucherGiveService;
+import so.alaz.provouchers.gui.GuiListener;
+import so.alaz.provouchers.gui.GuiManager;
 import so.alaz.provouchers.gui.PreviewGui;
 import so.alaz.provouchers.gui.VoucherAdminMenu;
 import so.alaz.provouchers.listener.CooldownLoadListener;
@@ -48,6 +50,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
 
     private VoucherStorage storage;
     private Metrics metrics;
+    private GuiManager guiManager;
 
     @Override
     public void onEnable() {
@@ -81,6 +84,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
 
         Scheduler scheduler = new Scheduler(this);
         Text text = new Text();
+        guiManager = new GuiManager(this);
 
         VoucherStamp stamp = new VoucherStamp(this);
         ItemResolver itemResolver = new ItemResolver(StrataApi.hooks());
@@ -90,7 +94,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
         VoucherItemFactory factory = new VoucherItemFactory(text, stamp, itemResolver);
         VoucherGiveService giveService = new VoucherGiveService(factory, scheduler);
         PreviewGui previewGui = new PreviewGui(registry, factory, giveService,
-            new VoucherAdminMenu(text), StrataApi.gui(), scheduler,
+            new VoucherAdminMenu(text), guiManager, scheduler,
             text);
 
         CooldownService cooldowns = new CooldownService(
@@ -117,6 +121,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(
             new VoucherInteractListener(stamp, redeemHandler), this);
         getServer().getPluginManager().registerEvents(new CooldownLoadListener(cooldowns), this);
+        getServer().getPluginManager().registerEvents(new GuiListener(guiManager), this);
         getServer().getOnlinePlayers().forEach(player -> cooldowns.hydrate(player.getUniqueId()));
         new VoucherCommand(registry, giveService, redeemHandler, configManager, previewGui, text).register(this);
 
@@ -133,6 +138,9 @@ public final class ProVouchersPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (guiManager != null) {
+            guiManager.closeAll();
+        }
         if (metrics != null) {
             metrics.shutdown();
         }

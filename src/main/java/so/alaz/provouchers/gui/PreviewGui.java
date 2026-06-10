@@ -11,10 +11,6 @@ import so.alaz.provouchers.platform.ItemBuilder;
 import so.alaz.provouchers.platform.Scheduler;
 import so.alaz.provouchers.platform.Text;
 import so.alaz.provouchers.voucher.VoucherRegistry;
-import so.alaz.strata.api.gui.Button;
-import so.alaz.strata.api.gui.GuiAction;
-import so.alaz.strata.api.gui.GuiManager;
-import so.alaz.strata.api.gui.PaginatedGui;
 
 import java.util.ArrayList;
 import java.util.Comparator;

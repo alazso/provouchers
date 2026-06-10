@@ -7,10 +7,6 @@ import org.bukkit.inventory.ItemStack;
 import so.alaz.provouchers.platform.ItemBuilder;
 import so.alaz.provouchers.platform.Text;
 import so.alaz.provouchers.voucher.Voucher;
-import so.alaz.strata.api.gui.Button;
-import so.alaz.strata.api.gui.ChestGui;
-import so.alaz.strata.api.gui.Gui;
-import so.alaz.strata.api.gui.GuiClickHandler;
 
 import java.util.ArrayList;
 import java.util.List;
