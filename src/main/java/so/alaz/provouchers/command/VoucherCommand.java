@@ -1,19 +1,17 @@
 package so.alaz.provouchers.command;
 
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.config.ConfigManager;
+import so.alaz.provouchers.give.VoucherGiveService;
 import so.alaz.provouchers.redeem.RedeemHandler;
 import so.alaz.provouchers.voucher.Voucher;
-import so.alaz.provouchers.voucher.VoucherItemFactory;
 import so.alaz.provouchers.voucher.VoucherRegistry;
 import so.alaz.strata.api.command.ArgType;
 import so.alaz.strata.api.command.CommandContext;
 import so.alaz.strata.api.command.StrataCommand;
 import so.alaz.strata.api.command.Suggestions;
-import so.alaz.strata.api.scheduler.PlatformScheduler;
 
 import java.util.List;
 
@@ -31,23 +29,20 @@ public final class VoucherCommand {
     private static final int[] AMOUNT_SUGGESTIONS = {1, 16, 32, 64};
 
     private final VoucherRegistry registry;
-    private final VoucherItemFactory factory;
+    private final VoucherGiveService giveService;
     private final RedeemHandler redeemHandler;
     private final ConfigManager configManager;
-    private final PlatformScheduler scheduler;
 
     public VoucherCommand(
         VoucherRegistry registry,
-        VoucherItemFactory factory,
+        VoucherGiveService giveService,
         RedeemHandler redeemHandler,
-        ConfigManager configManager,
-        PlatformScheduler scheduler
+        ConfigManager configManager
     ) {
         this.registry = registry;
-        this.factory = factory;
+        this.giveService = giveService;
         this.redeemHandler = redeemHandler;
         this.configManager = configManager;
-        this.scheduler = scheduler;
     }
 
     /** Builds and registers the command for {@code plugin}. Call during {@code onEnable}. */
@@ -169,10 +164,7 @@ public final class VoucherCommand {
     }
 
     private void giveItem(Voucher voucher, int amount, Player target) {
-        factory.createItems(voucher, amount, target).thenAccept(items ->
-            scheduler.entity(target, () -> target.getInventory().addItem(items.toArray(ItemStack[]::new))
-                .values()
-                .forEach(leftover -> target.getWorld().dropItemNaturally(target.getLocation(), leftover))));
+        giveService.give(target, voucher, amount);
     }
 
     private void redeem(CommandContext ctx, @Nullable String arg) {

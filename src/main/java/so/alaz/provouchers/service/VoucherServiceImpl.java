@@ -1,13 +1,11 @@
 package so.alaz.provouchers.service;
 
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import so.alaz.provouchers.api.Voucher;
 import so.alaz.provouchers.api.VoucherCode;
 import so.alaz.provouchers.api.VoucherService;
-import so.alaz.provouchers.voucher.VoucherItemFactory;
+import so.alaz.provouchers.give.VoucherGiveService;
 import so.alaz.provouchers.voucher.VoucherRegistry;
-import so.alaz.strata.api.scheduler.PlatformScheduler;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,14 +18,11 @@ import java.util.Optional;
 public final class VoucherServiceImpl implements VoucherService {
 
     private final VoucherRegistry registry;
-    private final VoucherItemFactory factory;
-    private final PlatformScheduler scheduler;
+    private final VoucherGiveService giveService;
 
-    public VoucherServiceImpl(VoucherRegistry registry, VoucherItemFactory factory,
-                              PlatformScheduler scheduler) {
+    public VoucherServiceImpl(VoucherRegistry registry, VoucherGiveService giveService) {
         this.registry = registry;
-        this.factory = factory;
-        this.scheduler = scheduler;
+        this.giveService = giveService;
     }
 
     @Override
@@ -61,10 +56,7 @@ public final class VoucherServiceImpl implements VoucherService {
         if (voucher == null) {
             return false;
         }
-        factory.createItems(voucher, amount, player).thenAccept(items ->
-            scheduler.entity(player, () -> player.getInventory().addItem(items.toArray(ItemStack[]::new))
-                .values()
-                .forEach(leftover -> player.getWorld().dropItemNaturally(player.getLocation(), leftover))));
+        giveService.give(player, voucher, amount);
         return true;
     }
 }

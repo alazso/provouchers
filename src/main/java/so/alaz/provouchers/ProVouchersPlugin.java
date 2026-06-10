@@ -10,6 +10,7 @@ import so.alaz.provouchers.command.VoucherCommand;
 import so.alaz.provouchers.config.ConfigManager;
 import so.alaz.provouchers.service.VoucherServiceImpl;
 import so.alaz.provouchers.cooldown.CooldownService;
+import so.alaz.provouchers.give.VoucherGiveService;
 import so.alaz.provouchers.listener.CooldownLoadListener;
 import so.alaz.provouchers.listener.VoucherInteractListener;
 import so.alaz.provouchers.metrics.MetricCounters;
@@ -80,6 +81,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
             StrataApi.scheduler(this), StrataApi.text(), itemResolver, StrataApi.hooks(),
             getComponentLogger());
         VoucherItemFactory factory = new VoucherItemFactory(StrataApi.text(), stamp, itemResolver);
+        VoucherGiveService giveService = new VoucherGiveService(factory, StrataApi.scheduler(this));
 
         CooldownService cooldowns = new CooldownService(
             Cooldowns.create(), storage, StrataApi.scheduler(this));
@@ -106,11 +108,10 @@ public final class ProVouchersPlugin extends JavaPlugin {
             new VoucherInteractListener(stamp, redeemHandler), this);
         getServer().getPluginManager().registerEvents(new CooldownLoadListener(cooldowns), this);
         getServer().getOnlinePlayers().forEach(player -> cooldowns.hydrate(player.getUniqueId()));
-        new VoucherCommand(registry, factory, redeemHandler, configManager, StrataApi.scheduler(this))
-            .register(this);
+        new VoucherCommand(registry, giveService, redeemHandler, configManager).register(this);
 
         getServer().getServicesManager().register(VoucherService.class,
-            new VoucherServiceImpl(registry, factory, StrataApi.scheduler(this)), this,
+            new VoucherServiceImpl(registry, giveService), this,
             ServicePriority.Normal);
 
         metrics = VoucherMetrics.start(this, registry, counters,
