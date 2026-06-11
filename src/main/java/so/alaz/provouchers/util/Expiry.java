@@ -83,4 +83,34 @@ public final class Expiry {
     public static boolean isRelative(@Nullable String raw) {
         return raw != null && !raw.isBlank() && Durations.parseOrNull(raw.trim()) != null;
     }
+
+    /**
+     * A human description for the {@code %expiry%} placeholder: {@code "in 30d"} for a relative
+     * duration, {@code "on 2026-12-31"} for an absolute date or instant, or {@code "never"} when
+     * there is no expiry. Computed from the configured value at build time, not a live countdown.
+     */
+    public static String describe(@Nullable String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "never";
+        }
+        String value = raw.trim();
+        if (Durations.parseOrNull(value) != null) {
+            return "in " + value;
+        }
+        try {
+            return "on " + LocalDate.parse(value);
+        } catch (DateTimeParseException ignored) {
+            // not a plain date
+        }
+        try {
+            return "on " + LocalDateTime.parse(value).toLocalDate();
+        } catch (DateTimeParseException ignored) {
+            // not a local date-time
+        }
+        try {
+            return "on " + LocalDate.ofInstant(Instant.parse(value), ZoneId.systemDefault());
+        } catch (DateTimeParseException ignored) {
+            return "never";
+        }
+    }
 }

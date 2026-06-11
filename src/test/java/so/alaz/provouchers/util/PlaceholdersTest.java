@@ -2,12 +2,30 @@ package so.alaz.provouchers.util;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PlaceholdersTest {
+
+    @Test
+    void namedRandomReusesOneRollAcrossCalls() {
+        Map<String, Long> rolls = new HashMap<>();
+        Random random = new Random(7);
+        String give = Placeholders.apply("%random:1-100:loot%", "Steve", null, random, rolls);
+        String announce = Placeholders.apply("%random:1-100:loot%", "Steve", null, random, rolls);
+        assertThat(give).isEqualTo(announce);
+        assertThat(Integer.parseInt(give)).isBetween(1, 100);
+    }
+
+    @Test
+    void unnamedRandomsResolveIndependently() {
+        assertThat(Placeholders.apply("%random:1-6% and %random:1-6%", "Steve", null))
+            .matches("[1-6] and [1-6]");
+    }
 
     @Test
     void substitutesPercentPlaceholders() {

@@ -89,6 +89,15 @@ public final class VoucherItemFactory {
         return viewer != null ? viewer.getName() : "";
     }
 
+    /** Replaces the {@code %expiry%} placeholder in each line with the voucher's expiry description. */
+    private static List<String> withExpiry(List<String> lines, String expiry) {
+        List<String> out = new ArrayList<>(lines.size());
+        for (String line : lines) {
+            out.add(line.replace("%expiry%", expiry));
+        }
+        return out;
+    }
+
     private void stampCommon(ItemMeta meta, Voucher voucher, @Nullable Player viewer, long now) {
         stamp.stamp(meta, voucher.id());
         // Anchor the give time only for relative expiry (e.g. "30d"), which measures from it.
@@ -126,13 +135,16 @@ public final class VoucherItemFactory {
                 "material '" + material.name() + "' is not an obtainable item");
         }
         String viewerName = viewerName(viewer);
-        String name = voucher.displayName() != null ? voucher.displayName() : voucher.id();
+        String expiry = Expiry.describe(voucher.expiry());
+        String name = (voucher.displayName() != null ? voucher.displayName() : voucher.id())
+            .replace("%expiry%", expiry);
         ItemBuilder builder = new ItemBuilder(material)
             .amount(amount)
             .glow(voucher.item().glow())
             .name(text.render(Placeholders.apply(name, viewerName, null), viewer));
         if (!voucher.lore().isEmpty()) {
-            builder.lore(text.render(Placeholders.applyAll(voucher.lore(), viewerName, null), viewer));
+            builder.lore(text.render(
+                Placeholders.applyAll(withExpiry(voucher.lore(), expiry), viewerName, null), viewer));
         }
         ItemStack item = builder.build();
         Integer customModelData = voucher.item().customModelData();
@@ -162,13 +174,16 @@ public final class VoucherItemFactory {
      */
     private void decorate(ItemStack item, Voucher voucher, @Nullable Player viewer, boolean applyModelData) {
         String viewerName = viewerName(viewer);
+        String expiry = Expiry.describe(voucher.expiry());
         item.editMeta(meta -> {
             if (voucher.displayName() != null) {
-                meta.displayName(text.render(Placeholders.apply(voucher.displayName(), viewerName, null), viewer)
+                meta.displayName(text.render(
+                    Placeholders.apply(voucher.displayName().replace("%expiry%", expiry), viewerName, null), viewer)
                     .decoration(TextDecoration.ITALIC, false));
             }
             if (!voucher.lore().isEmpty()) {
-                meta.lore(text.render(Placeholders.applyAll(voucher.lore(), viewerName, null), viewer).stream()
+                meta.lore(text.render(
+                    Placeholders.applyAll(withExpiry(voucher.lore(), expiry), viewerName, null), viewer).stream()
                     .map(line -> line.decoration(TextDecoration.ITALIC, false))
                     .toList());
             }

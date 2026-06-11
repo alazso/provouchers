@@ -84,6 +84,15 @@ class ExpiryTest {
     }
 
     @Test
+    void describesExpiryForLore() {
+        assertThat(Expiry.describe(null)).isEqualTo("never");
+        assertThat(Expiry.describe("  ")).isEqualTo("never");
+        assertThat(Expiry.describe("30d")).isEqualTo("in 30d");
+        assertThat(Expiry.describe("2026-12-31")).isEqualTo("on 2026-12-31");
+        assertThat(Expiry.describe("2026-12-31T23:59:59")).isEqualTo("on 2026-12-31");
+    }
+
+    @Test
     void isExpiredComparesAgainstNow() {
         Instant past = NOW.minusSeconds(1);
         Instant future = NOW.plusSeconds(1);

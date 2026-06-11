@@ -24,7 +24,10 @@ import so.alaz.provouchers.platform.Text;
 import so.alaz.provouchers.voucher.ItemResolver;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Runs reward actions for a player. Command dispatch and broadcasts are routed
@@ -63,22 +66,26 @@ public final class RewardExecutor {
      */
     public void execute(Player player, String source, List<RewardLine> rewards, @Nullable String arg,
                         boolean quiet) {
+        Map<String, Long> namedRolls = new HashMap<>();
         for (RewardLine reward : rewards) {
             try {
-                execute(player, source, reward, arg, quiet);
+                execute(player, source, reward, arg, quiet, namedRolls);
             } catch (RuntimeException ex) {
                 warn(source, reward.type().name().toLowerCase(), reward.payload(), ex.getMessage());
             }
         }
     }
 
-    private void execute(Player player, String source, RewardLine reward, @Nullable String arg, boolean quiet) {
+    private void execute(Player player, String source, RewardLine reward, @Nullable String arg, boolean quiet,
+                         Map<String, Long> namedRolls) {
         // Batch open runs quiet: substantive rewards still apply, but per-item feedback that would
         // spam chat (messages, broadcasts, titles, action bars, sounds) is skipped.
         if (quiet && isFeedbackOnly(reward.type())) {
             return;
         }
-        String payload = Placeholders.apply(reward.payload(), player.getName(), arg);
+        // Share namedRolls so %random:a-b:name% gives out and announces the same value.
+        String payload = Placeholders.apply(reward.payload(), player.getName(), arg,
+            ThreadLocalRandom.current(), namedRolls);
         switch (reward.type()) {
             case CONSOLE_COMMAND -> scheduler.global(() ->
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), payload));
