@@ -11,6 +11,7 @@ import so.alaz.provouchers.platform.ItemBuilder;
 import so.alaz.provouchers.platform.SkullBuilder;
 import so.alaz.provouchers.platform.Text;
 import so.alaz.provouchers.reward.RewardDescriber;
+import so.alaz.provouchers.util.Expiry;
 import so.alaz.provouchers.util.Tokens;
 
 import java.util.ArrayList;
@@ -122,7 +123,12 @@ public final class VoucherItemFactory {
 
     private void stampCommon(ItemMeta meta, Voucher voucher, @Nullable Player viewer, long now) {
         stamp.stamp(meta, voucher.id());
-        stamp.setGivenAt(meta, now);
+        // Anchor the give time only for relative expiry (e.g. "30d"), which measures from it.
+        // Stamping it otherwise gives every batch a different value, so a stackable voucher would
+        // not stack across separate gives.
+        if (Expiry.isRelative(voucher.expiry())) {
+            stamp.setGivenAt(meta, now);
+        }
         if (voucher.ownerOnly() && viewer != null) {
             stamp.setOwner(meta, viewer.getUniqueId());
         }

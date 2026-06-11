@@ -47,4 +47,14 @@ public final class Expiry {
     public static boolean isExpired(@Nullable Instant expiry, Instant now) {
         return expiry != null && !expiry.isAfter(now);
     }
+
+    /**
+     * Whether {@code raw} is a relative duration (such as {@code 30d}), as opposed to blank or an
+     * absolute instant. Only a relative expiry needs the per-item give time as its anchor, so this
+     * is what decides whether to stamp that time (stamping it otherwise stops stackable vouchers
+     * from stacking across separate gives).
+     */
+    public static boolean isRelative(@Nullable String raw) {
+        return raw != null && !raw.isBlank() && Durations.parseOrNull(raw.trim()) != null;
+    }
 }

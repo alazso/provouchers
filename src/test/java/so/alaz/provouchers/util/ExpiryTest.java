@@ -51,6 +51,17 @@ class ExpiryTest {
     }
 
     @Test
+    void isRelativeOnlyForDurations() {
+        // Only a relative expiry needs the give-time anchor; blank and absolute do not, so they
+        // must not stamp it (which would stop a stackable voucher from stacking across gives).
+        assertThat(Expiry.isRelative("30d")).isTrue();
+        assertThat(Expiry.isRelative(" 12h ")).isTrue();
+        assertThat(Expiry.isRelative(null)).isFalse();
+        assertThat(Expiry.isRelative("")).isFalse();
+        assertThat(Expiry.isRelative("2026-12-31T23:59:59Z")).isFalse();
+    }
+
+    @Test
     void isExpiredComparesAgainstNow() {
         Instant past = NOW.minusSeconds(1);
         Instant future = NOW.plusSeconds(1);
