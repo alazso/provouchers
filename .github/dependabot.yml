@@ -1,0 +1,68 @@
+version: 2
+
+registries:
+  papermc:
+    type: maven-repository
+    url: https://repo.papermc.io/repository/maven-public
+  placeholderapi:
+    type: maven-repository
+    url: https://repo.extendedclip.com/content/repositories/placeholderapi
+  faststats:
+    type: maven-repository
+    url: https://repo.faststats.dev/releases
+  jitpack:
+    type: maven-repository
+    url: https://jitpack.io
+  oraxen:
+    type: maven-repository
+    url: https://repo.oraxen.com/releases
+  nexo:
+    type: maven-repository
+    url: https://repo.nexomc.com/releases
+  enginehub:
+    type: maven-repository
+    url: https://maven.enginehub.org/repo
+
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    registries: "*"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    ignore:
+      - dependency-name: "io.papermc.paper:paper-api"
+    groups:
+      # compileOnly plugin APIs - low urgency w/ one collective PR.
+      integration-apis:
+        patterns:
+          - "net.luckperms:*"
+          - "me.clip:*"
+          - "io.github.miniplaceholders:*"
+          - "com.github.MilkBowl:*"
+          - "com.github.LoneDev6:*"
+          - "io.th0rgal:*"
+          - "com.nexomc:*"
+          - "com.github.Arcaniax-Development:*"
+          - "com.sk89q.worldguard:*"
+          - "com.sk89q.worldedit:*"
+      # Runtime-loaded pool and JDBC drivers; bump together.
+      jdbc:
+        patterns:
+          - "com.zaxxer:*"
+          - "org.xerial:*"
+          - "com.mysql:*"
+          - "org.mariadb.jdbc:*"
+          - "org.postgresql:*"
+      test:
+        patterns:
+          - "org.junit*"
+          - "org.assertj:*"
+          - "org.mockito:*"
+          - "org.testcontainers:*"
+      # FastStats and bStats stay ungrouped: each gets its own immediate PR.
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
