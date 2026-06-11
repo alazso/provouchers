@@ -44,14 +44,8 @@ public final class RewardPreviewGui {
         });
     }
 
-    /**
-     * The icon with a reward section appended. When the voucher already shows its rewards
-     * in lore ({@code show-rewards}), the icon is used as-is to avoid listing them twice.
-     */
+    /** The icon with a reward section appended to its lore. */
     private ItemStack withRewardLore(Voucher voucher, ItemStack icon) {
-        if (voucher.showRewards()) {
-            return icon;
-        }
         ItemStack item = icon.clone();
         item.editMeta(meta -> {
             List<Component> lore = meta.lore() != null ? new ArrayList<>(meta.lore()) : new ArrayList<>();

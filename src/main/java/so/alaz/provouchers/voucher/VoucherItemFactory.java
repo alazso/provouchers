@@ -10,7 +10,6 @@ import so.alaz.provouchers.antidupe.VoucherStamp;
 import so.alaz.provouchers.platform.ItemBuilder;
 import so.alaz.provouchers.platform.SkullBuilder;
 import so.alaz.provouchers.platform.Text;
-import so.alaz.provouchers.reward.RewardDescriber;
 import so.alaz.provouchers.util.Expiry;
 import so.alaz.provouchers.util.Tokens;
 
@@ -36,9 +35,6 @@ public final class VoucherItemFactory {
     private final Text text;
     private final VoucherStamp stamp;
     private final ItemResolver items;
-
-    /** The header shown above the generated reward summary when a voucher sets show-rewards. */
-    private static final String REWARDS_HEADER = "<gray>Rewards:";
 
     public VoucherItemFactory(Text text, VoucherStamp stamp, ItemResolver items) {
         this.text = text;
@@ -93,34 +89,6 @@ public final class VoucherItemFactory {
         return viewer != null ? viewer.getName() : "";
     }
 
-    /**
-     * The voucher's configured lore, plus a generated reward summary appended when
-     * {@code show-rewards} is set (guaranteed rewards then weighted random sets with
-     * their chances). Returns the raw MiniMessage lines, before token and text rendering.
-     */
-    private List<String> loreLines(Voucher voucher) {
-        List<String> lore = new ArrayList<>(voucher.lore());
-        if (!voucher.showRewards()) {
-            return lore;
-        }
-        List<String> preview = new ArrayList<>();
-        for (String reward : RewardDescriber.describeAll(voucher.rewards())) {
-            preview.add("<dark_gray>- <gray>" + reward);
-        }
-        for (String reward : RewardDescriber.describeRandom(voucher.randomRewards())) {
-            preview.add("<dark_gray>- <gray>" + reward);
-        }
-        if (preview.isEmpty()) {
-            return lore;
-        }
-        if (!lore.isEmpty()) {
-            lore.add("");
-        }
-        lore.add(REWARDS_HEADER);
-        lore.addAll(preview);
-        return lore;
-    }
-
     private void stampCommon(ItemMeta meta, Voucher voucher, @Nullable Player viewer, long now) {
         stamp.stamp(meta, voucher.id());
         // Anchor the give time only for relative expiry (e.g. "30d"), which measures from it.
@@ -163,9 +131,8 @@ public final class VoucherItemFactory {
             .amount(amount)
             .glow(voucher.item().glow())
             .name(text.render(Tokens.apply(name, viewerName, null), viewer));
-        List<String> lore = loreLines(voucher);
-        if (!lore.isEmpty()) {
-            builder.lore(text.render(Tokens.applyAll(lore, viewerName, null), viewer));
+        if (!voucher.lore().isEmpty()) {
+            builder.lore(text.render(Tokens.applyAll(voucher.lore(), viewerName, null), viewer));
         }
         ItemStack item = builder.build();
         Integer customModelData = voucher.item().customModelData();
@@ -200,9 +167,8 @@ public final class VoucherItemFactory {
                 meta.displayName(text.render(Tokens.apply(voucher.displayName(), viewerName, null), viewer)
                     .decoration(TextDecoration.ITALIC, false));
             }
-            List<String> lore = loreLines(voucher);
-            if (!lore.isEmpty()) {
-                meta.lore(text.render(Tokens.applyAll(lore, viewerName, null), viewer).stream()
+            if (!voucher.lore().isEmpty()) {
+                meta.lore(text.render(Tokens.applyAll(voucher.lore(), viewerName, null), viewer).stream()
                     .map(line -> line.decoration(TextDecoration.ITALIC, false))
                     .toList());
             }

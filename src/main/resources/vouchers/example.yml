@@ -40,7 +40,6 @@ stackable: true                   # false = anti-dupe: each copy tracked, never 
 # owner-only: false               # only the player it was given to may redeem
 # has-argument: false             # fills {arg} from /voucher redeem <code> <arg>
 # expiry: "30d"                   # "30d" from give time, or a date like 2026-12-31; blank = never
-# show-rewards: false             # append an auto-generated reward list to the lore
 # two-step-authentication: false  # require a second confirmation click before redeeming
 # two-step-authentication-message: "{prefix}<yellow>Click again to confirm."   # optional custom prompt
 
