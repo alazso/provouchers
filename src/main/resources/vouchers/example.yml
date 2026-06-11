@@ -5,9 +5,9 @@
 #
 #  Text uses MiniMessage (<gold>, <gradient:#a:#b>, ...), with PlaceholderAPI and
 #  MiniPlaceholders when installed. Tokens, usable in text and rewards:
-#    %player% / {player}   the redeemer's name
-#    {arg}                 argument from /voucher redeem (needs has-argument: true)
-#    {random:1-5}          a random integer in the range
+#    %player%              the redeemer's name
+#    %arg%                 argument from /voucher redeem (needs has-argument: true)
+#    %random:1-5%          a random integer in the range
 # =============================================================================
 
 # ---- Identity ---------------------------------------------------------------
@@ -38,7 +38,7 @@ stackable: true                   # false = anti-dupe: each copy tracked, never 
 # batch-open: false               # shift-right-click opens a whole stack (needs stackable, no cooldown)
 # unredeemable: false             # display only, cannot be redeemed
 # owner-only: false               # only the player it was given to may redeem
-# has-argument: false             # fills {arg} from /voucher redeem <code> <arg>
+# has-argument: false             # fills %arg% from /voucher redeem <code> <arg>
 # expiry: "30d"                   # "30d" from give time, or a date like 2026-12-31; blank = never
 # two-step-authentication: false  # require a second confirmation click before redeeming
 # two-step-authentication-message: "{prefix}<yellow>Click again to confirm."   # optional custom prompt
@@ -75,7 +75,7 @@ rewards:
 random-rewards:
   - weight: 70
     rewards:
-      - "command: give %player% gold_ingot {random:1-3}"
+      - "command: give %player% gold_ingot %random:1-3%"
   - weight: 30
     rewards:
       - "command: give %player% emerald 1"

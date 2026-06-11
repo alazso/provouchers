@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
  */
 public final class RewardDescriber {
 
-    private static final Pattern RANDOM = Pattern.compile("\\{random:(-?\\d+)-(-?\\d+)}");
+    private static final Pattern RANDOM = Pattern.compile("[%{]random:(-?\\d+)-(-?\\d+)[%}]");
 
     private RewardDescriber() {
     }

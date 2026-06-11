@@ -11,16 +11,19 @@ import java.util.regex.Pattern;
 
 /**
  * Substitutes the dynamic tokens ProVouchers supports inside reward and message
- * strings: {@code %player%} and {@code {player}} for the redeemer's name,
- * {@code {arg}} for a parametric voucher's argument, and {@code {random:min-max}}
- * for a random integer in the inclusive range.
+ * strings: {@code %player%} for the redeemer's name, {@code %arg%} for a parametric
+ * voucher's argument, and {@code %random:min-max%} for a random integer in the
+ * inclusive range. The curly-brace forms ({@code {player}}, {@code {arg}},
+ * {@code {random:min-max}}) are still honoured for backward compatibility but are
+ * deprecated; the config loader warns when it sees them.
  *
  * <p>MiniMessage markup and PlaceholderAPI placeholders are intentionally left
  * untouched here; those are resolved later by the text renderer.
  */
 public final class Tokens {
 
-    private static final Pattern RANDOM = Pattern.compile("\\{random:(-?\\d+)-(-?\\d+)}");
+    /** Matches the random token in either the {@code %random:a-b%} or legacy {@code {random:a-b}} form. */
+    private static final Pattern RANDOM = Pattern.compile("[%{]random:(-?\\d+)-(-?\\d+)[%}]");
 
     private Tokens() {
     }
@@ -48,15 +51,17 @@ public final class Tokens {
         if (input == null || input.isEmpty()) {
             return input;
         }
+        String argValue = arg == null ? "" : arg;
         String result = input
             .replace("%player%", playerName)
-            .replace("{player}", playerName)
-            .replace("{arg}", arg == null ? "" : arg);
+            .replace("{player}", playerName)   // deprecated curly-brace form
+            .replace("%arg%", argValue)
+            .replace("{arg}", argValue);        // deprecated curly-brace form
         return applyRandom(result, random);
     }
 
     private static String applyRandom(String input, Random random) {
-        if (input.indexOf("{random:") < 0) {
+        if (input.indexOf("random:") < 0) {
             return input;
         }
         Matcher matcher = RANDOM.matcher(input);

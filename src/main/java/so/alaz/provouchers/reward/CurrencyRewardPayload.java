@@ -37,7 +37,7 @@ public record CurrencyRewardPayload(Action action, String amount) {
         } else if (parts.length == 1) {
             amount = parts[0];
         }
-        if (!amount.contains("{")) {
+        if (!amount.contains("{") && !amount.contains("%")) {
             double value;
             try {
                 value = Double.parseDouble(amount);

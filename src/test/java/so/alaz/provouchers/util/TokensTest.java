@@ -10,6 +10,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TokensTest {
 
     @Test
+    void substitutesPercentTokens() {
+        String result = Tokens.apply("give %player% %arg% (%random:5-5%)", "Steve", "diamond");
+        assertThat(result).isEqualTo("give Steve diamond (5)");
+    }
+
+    @Test
+    void legacyCurlyTokensStillWork() {
+        String result = Tokens.apply("give {player} {arg} ({random:5-5})", "Steve", "diamond");
+        assertThat(result).isEqualTo("give Steve diamond (5)");
+    }
+
+    @Test
     void substitutesPlayerAndArgTokens() {
         String result = Tokens.apply("give %player% {arg} for {player}", "Steve", "diamond");
         assertThat(result).isEqualTo("give Steve diamond for Steve");

@@ -3,6 +3,8 @@ package so.alaz.provouchers.config;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.condition.ConditionRegistry;
+import so.alaz.provouchers.reward.RewardLine;
+import so.alaz.provouchers.reward.RewardSet;
 import so.alaz.provouchers.voucher.CustomItemRef;
 import so.alaz.provouchers.voucher.ItemResolver;
 import so.alaz.provouchers.voucher.Voucher;
@@ -58,6 +60,7 @@ public final class ConfigManager {
                 requireKnownConditions(voucher.conditionMaps());
                 registry.register(voucher);
                 warnUnavailableProvider(file.getName(), voucher.item().customItem(), errors);
+                warnVoucherTokens(file.getName(), voucher, errors);
             } catch (VoucherParseException ex) {
                 errors.add(file.getName() + ": " + ex.getMessage());
             } catch (RuntimeException ex) {
@@ -76,6 +79,7 @@ public final class ConfigManager {
                 VoucherCode code = VoucherParser.parseCode(yaml, id);
                 requireKnownConditions(code.conditionMaps());
                 registry.register(code);
+                warnCodeTokens(file.getName(), code, errors);
             } catch (VoucherParseException ex) {
                 errors.add(file.getName() + ": " + ex.getMessage());
             } catch (RuntimeException ex) {
@@ -108,6 +112,60 @@ public final class ConfigManager {
             errors.add(fileName + ": item provider '" + ref.providerHint()
                 + "' is not installed; the item falls back to its material");
         }
+    }
+
+    /** Notes, without blocking the load, when a voucher uses deprecated curly-brace tokens. */
+    private static void warnVoucherTokens(String fileName, Voucher voucher, List<String> errors) {
+        List<String> texts = new ArrayList<>(voucher.lore());
+        addIfPresent(texts, voucher.displayName());
+        addIfPresent(texts, voucher.confirmMessage());
+        addRewardAndConditionText(texts, voucher.rewards(), voucher.randomRewards(), voucher.conditionMaps());
+        if (texts.stream().anyMatch(ConfigManager::usesDeprecatedToken)) {
+            errors.add(deprecationNotice(fileName));
+        }
+    }
+
+    /** Notes, without blocking the load, when a code uses deprecated curly-brace tokens. */
+    private static void warnCodeTokens(String fileName, VoucherCode code, List<String> errors) {
+        List<String> texts = new ArrayList<>();
+        addRewardAndConditionText(texts, code.rewards(), code.randomRewards(), code.conditionMaps());
+        if (texts.stream().anyMatch(ConfigManager::usesDeprecatedToken)) {
+            errors.add(deprecationNotice(fileName));
+        }
+    }
+
+    private static void addRewardAndConditionText(List<String> out, List<RewardLine> rewards,
+                                                  List<RewardSet> random, List<Map<String, Object>> conditions) {
+        for (RewardLine reward : rewards) {
+            out.add(reward.payload());
+        }
+        for (RewardSet set : random) {
+            for (RewardLine reward : set.rewards()) {
+                out.add(reward.payload());
+            }
+        }
+        for (Map<String, Object> condition : conditions) {
+            for (Object value : condition.values()) {
+                if (value instanceof String text) {
+                    out.add(text);
+                }
+            }
+        }
+    }
+
+    private static void addIfPresent(List<String> out, @Nullable String value) {
+        if (value != null) {
+            out.add(value);
+        }
+    }
+
+    private static boolean usesDeprecatedToken(String text) {
+        return text.contains("{player}") || text.contains("{arg}") || text.contains("{random:");
+    }
+
+    private static String deprecationNotice(String fileName) {
+        return fileName + ": uses deprecated curly-brace tokens ({player}, {arg}, {random:..}); switch to "
+            + "%player%, %arg%, and %random:..% (the curly-brace form still works for now)";
     }
 
     private static File[] ymlFiles(File folder) {

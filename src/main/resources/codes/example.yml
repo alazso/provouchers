@@ -6,7 +6,7 @@
 #
 #  A code is a typeable, itemless reward. It shares conditions and rewards with
 #  vouchers (see /docs/conditions and /docs/rewards). Text uses MiniMessage, with
-#  the same tokens: %player% / {player}, {arg}, {random:1-5}.
+#  the same tokens: %player%, %arg%, %random:1-5%.
 # =============================================================================
 
 # ---- Identity ---------------------------------------------------------------
@@ -18,8 +18,8 @@ max-uses: 100                     # global cap across all players; -1 = unlimite
 uses-per-player: 1                # how many times one player may redeem it (>= 1)
 # expiry: "2026-12-31T23:59:59Z"  # absolute ISO instant. Codes have no give time, so
                                   # use an absolute date, not a relative duration.
-# has-argument: false             # accept a trailing argument, exposed to rewards as {arg}
-                                  # e.g. /voucher redeem REFER Steve  ->  {arg} is "Steve"
+# has-argument: false             # accept a trailing argument, exposed to rewards as %arg%
+                                  # e.g. /voucher redeem REFER Steve  ->  %arg% is "Steve"
 
 # ---- Conditions: all must pass; the first failure stops the redeem ----------
 conditions: []
@@ -40,7 +40,7 @@ rewards:
 # random-rewards:
 #   - weight: 80
 #     rewards:
-#       - "item: IRON_INGOT {random:2-5}"
+#       - "item: IRON_INGOT %random:2-5%"
 #   - weight: 20
 #     rewards:
 #       - "item: DIAMOND 1"

@@ -26,7 +26,7 @@ public record RewardItemPayload(String reference, String amount) {
         String amount = "1";
         if (parts.length > 1) {
             amount = parts[parts.length - 1];
-            if (!amount.contains("{")) {
+            if (!amount.contains("{") && !amount.contains("%")) {
                 requirePositiveInt(amount);
             }
         }
