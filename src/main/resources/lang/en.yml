@@ -35,6 +35,8 @@ command:
     none: "<dark_gray>none"
   reload:
     success: "{prefix}<green>Reloaded <yellow>{vouchers}</yellow> voucher(s) and <yellow>{codes}</yellow> code(s)."  # {vouchers} {codes}
+    one-success: "{prefix}<green>Reloaded <gold>{id}</gold> from disk."         # {id}
+    unknown-file: "{prefix}<red>No voucher or code file named <gold>{id}</gold>."  # {id}
     errors: "{prefix}<red>Reloaded with <yellow>{errors}</yellow> error(s):"   # {errors}
     error-line: "<red>  - <gray>{error}"                            # {error}
   doctor:
@@ -48,7 +50,7 @@ command:
       redeem: "Redeem a code"
       preview: "Browse vouchers in a GUI"
       list: "List loaded vouchers and codes"
-      reload: "Reload vouchers and codes from disk"
+      reload: "Reload all, or one file by id, from disk"
       doctor: "Show a diagnostic health report"
       help: "Show this help menu"
 

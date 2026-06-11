@@ -50,42 +50,72 @@ public final class ConfigManager {
         return errors;
     }
 
+    /**
+     * Reloads a single voucher and/or code file by its id (the file name without extension),
+     * leaving every other loaded entry in place. A file that now fails to parse keeps its
+     * previously loaded version and reports the error.
+     *
+     * @return the per-file errors, or {@code null} when no voucher or code file by that id exists
+     */
+    @Nullable
+    public List<String> reloadOne(String id) {
+        File voucherFile = new File(new File(dataFolder, "vouchers"), id + ".yml");
+        File codeFile = new File(new File(dataFolder, "codes"), id + ".yml");
+        if (!voucherFile.isFile() && !codeFile.isFile()) {
+            return null;
+        }
+        List<String> errors = new ArrayList<>();
+        if (voucherFile.isFile()) {
+            loadVoucherFile(voucherFile, errors);
+        }
+        if (codeFile.isFile()) {
+            loadCodeFile(codeFile, errors);
+        }
+        return errors;
+    }
+
     private void loadVouchers(List<String> errors) {
-        File folder = new File(dataFolder, "vouchers");
-        for (File file : ymlFiles(folder)) {
-            String id = stripExtension(file.getName());
-            try {
-                YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
-                Voucher voucher = VoucherParser.parseVoucher(yaml, id);
-                requireKnownConditions(voucher.conditionMaps());
-                registry.register(voucher);
-                warnUnavailableProvider(file.getName(), voucher.item().customItem(), errors);
-                warnVoucherPlaceholders(file.getName(), voucher, errors);
-            } catch (VoucherParseException ex) {
-                errors.add(file.getName() + ": " + ex.getMessage());
-            } catch (RuntimeException ex) {
-                errors.add(file.getName() + ": " + ex.getClass().getSimpleName() + " "
-                    + ex.getMessage());
-            }
+        for (File file : ymlFiles(new File(dataFolder, "vouchers"))) {
+            loadVoucherFile(file, errors);
+        }
+    }
+
+    private void loadVoucherFile(File file, List<String> errors) {
+        String id = stripExtension(file.getName());
+        try {
+            YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
+            Voucher voucher = VoucherParser.parseVoucher(yaml, id);
+            requireKnownConditions(voucher.conditionMaps());
+            registry.register(voucher);
+            warnUnavailableProvider(file.getName(), voucher.item().customItem(), errors);
+            warnVoucherPlaceholders(file.getName(), voucher, errors);
+        } catch (VoucherParseException ex) {
+            errors.add(file.getName() + ": " + ex.getMessage());
+        } catch (RuntimeException ex) {
+            errors.add(file.getName() + ": " + ex.getClass().getSimpleName() + " "
+                + ex.getMessage());
         }
     }
 
     private void loadCodes(List<String> errors) {
-        File folder = new File(dataFolder, "codes");
-        for (File file : ymlFiles(folder)) {
-            String id = stripExtension(file.getName());
-            try {
-                YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
-                VoucherCode code = VoucherParser.parseCode(yaml, id);
-                requireKnownConditions(code.conditionMaps());
-                registry.register(code);
-                warnCodePlaceholders(file.getName(), code, errors);
-            } catch (VoucherParseException ex) {
-                errors.add(file.getName() + ": " + ex.getMessage());
-            } catch (RuntimeException ex) {
-                errors.add(file.getName() + ": " + ex.getClass().getSimpleName() + " "
-                    + ex.getMessage());
-            }
+        for (File file : ymlFiles(new File(dataFolder, "codes"))) {
+            loadCodeFile(file, errors);
+        }
+    }
+
+    private void loadCodeFile(File file, List<String> errors) {
+        String id = stripExtension(file.getName());
+        try {
+            YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
+            VoucherCode code = VoucherParser.parseCode(yaml, id);
+            requireKnownConditions(code.conditionMaps());
+            registry.register(code);
+            warnCodePlaceholders(file.getName(), code, errors);
+        } catch (VoucherParseException ex) {
+            errors.add(file.getName() + ": " + ex.getMessage());
+        } catch (RuntimeException ex) {
+            errors.add(file.getName() + ": " + ex.getClass().getSimpleName() + " "
+                + ex.getMessage());
         }
     }
 

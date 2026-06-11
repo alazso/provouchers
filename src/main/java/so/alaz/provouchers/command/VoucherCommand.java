@@ -68,7 +68,7 @@ public final class VoucherCommand {
         new Sub("redeem", "redeem <code> [argument]", PERM_REDEEM),
         new Sub("preview", "preview", PERM_PREVIEW),
         new Sub("list", "list", PERM_LIST),
-        new Sub("reload", "reload", PERM_RELOAD),
+        new Sub("reload", "reload [id]", PERM_RELOAD),
         new Sub("doctor", "doctor", PERM_DOCTOR),
         new Sub("help", "help", null));
 
@@ -118,7 +118,10 @@ public final class VoucherCommand {
             .then(Commands.literal("list").requires(perm(PERM_LIST))
                 .executes(run(ctx -> list(ctx.getSource()))))
             .then(Commands.literal("reload").requires(perm(PERM_RELOAD))
-                .executes(run(ctx -> reload(ctx.getSource()))))
+                .executes(run(ctx -> reloadAll(ctx.getSource())))
+                .then(Commands.argument("id", StringArgumentType.word())
+                    .suggests((ctx, builder) -> suggest(builder, registry.voucherIds()))
+                    .executes(run(ctx -> reloadOne(ctx.getSource(), StringArgumentType.getString(ctx, "id"))))))
             .then(Commands.literal("doctor").requires(perm(PERM_DOCTOR))
                 .executes(run(ctx -> doctor(ctx.getSource()))))
             .then(Commands.literal("help")
@@ -261,7 +264,7 @@ public final class VoucherCommand {
         reply(source, messages.get(viewer, "command.list.codes", "count", registry.codeCount()));
     }
 
-    private void reload(CommandSourceStack source) {
+    private void reloadAll(CommandSourceStack source) {
         Player viewer = asPlayer(source);
         messages.reload();
         List<String> errors = configManager.reload();
@@ -270,6 +273,25 @@ public final class VoucherCommand {
                 "vouchers", registry.voucherCount(), "codes", registry.codeCount()));
             return;
         }
+        reportReloadErrors(source, viewer, errors);
+    }
+
+    /** Reloads just the voucher and/or code file named {@code id}, leaving the rest untouched. */
+    private void reloadOne(CommandSourceStack source, String id) {
+        Player viewer = asPlayer(source);
+        List<String> errors = configManager.reloadOne(id);
+        if (errors == null) {
+            reply(source, messages.get(viewer, "command.reload.unknown-file", "id", id));
+            return;
+        }
+        if (errors.isEmpty()) {
+            reply(source, messages.get(viewer, "command.reload.one-success", "id", id));
+            return;
+        }
+        reportReloadErrors(source, viewer, errors);
+    }
+
+    private void reportReloadErrors(CommandSourceStack source, @Nullable Player viewer, List<String> errors) {
         reply(source, messages.get(viewer, "command.reload.errors", "errors", errors.size()));
         for (String error : errors) {
             reply(source, messages.get(viewer, "command.reload.error-line", "error", error));
