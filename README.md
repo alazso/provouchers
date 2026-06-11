@@ -3,7 +3,7 @@
 <img src="https://raw.githubusercontent.com/alazso/provouchers/main/.github/assets/banner.png" alt="ProVouchers: a powerful ecosystem of integrations for your server" width="720">
 
 [![Build](https://img.shields.io/github/actions/workflow/status/alazso/provouchers/ci.yml?branch=main&style=for-the-badge&label=build)](https://github.com/alazso/provouchers/actions)
-[![Downloads](https://img.shields.io/modrinth/dt/provouchers?style=for-the-badge&logo=modrinth&label=downloads)](https://modrinth.com/plugin/provouchers)
+[![Total downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Ffaststats.dev%2Fapi%2Fshields%2Fprovouchers%3Fmetric%3Ddownloads&style=for-the-badge)](https://faststats.dev/project/provouchers)
 [![Minecraft](https://img.shields.io/badge/Paper%20·%20Folia%20·%20Purpur-26.1%2B-2b2d31?style=for-the-badge)](https://papermc.io/)
 [![License](https://img.shields.io/badge/license-MIT-2b2d31?style=for-the-badge)](LICENSE)
 
