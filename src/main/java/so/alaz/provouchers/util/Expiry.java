@@ -4,13 +4,17 @@ import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 
 /**
  * Parses the optional {@code expiry} field of a voucher. An empty or blank value
- * means "never expires"; otherwise the value is an ISO-8601 instant
- * (for example {@code 2026-12-31T23:59:59Z}) or a relative duration
- * (for example {@code 30d}, {@code 12h}, {@code 90m}).
+ * means "never expires"; otherwise the value is a relative duration ({@code 30d},
+ * {@code 12h}, {@code 90m}), a plain date ({@code 2026-12-31}, which expires at the
+ * end of that day in the server's time zone), a local date-time
+ * ({@code 2026-12-31T23:59:59}), or a full ISO-8601 instant ({@code 2026-12-31T23:59:59Z}).
  */
 public final class Expiry {
 
@@ -35,11 +39,33 @@ public final class Expiry {
         if (relative != null) {
             return now.plus(relative);
         }
+        Instant absolute = parseAbsolute(value);
+        if (absolute != null) {
+            return absolute;
+        }
+        throw new IllegalArgumentException("Invalid expiry '" + raw + "': expected a date (2026-12-31), a "
+            + "date-time (2026-12-31T23:59:59), an ISO-8601 instant (2026-12-31T23:59:59Z), or a relative "
+            + "duration such as 30d, 12h, or 90m");
+    }
+
+    /** Parses an absolute moment: a full instant, a local date-time, or a plain date (end of day). */
+    @Nullable
+    private static Instant parseAbsolute(String value) {
         try {
             return Instant.parse(value);
-        } catch (DateTimeParseException ex) {
-            throw new IllegalArgumentException("Invalid expiry '" + raw + "': expected ISO-8601 or a "
-                + "relative duration such as 30d, 12h, or 90m", ex);
+        } catch (DateTimeParseException ignored) {
+            // Not a full instant; try a zone-less date-time next.
+        }
+        try {
+            return LocalDateTime.parse(value).atZone(ZoneId.systemDefault()).toInstant();
+        } catch (DateTimeParseException ignored) {
+            // Not a date-time; try a plain calendar date next.
+        }
+        try {
+            // A plain date expires at the end of that day (the start of the next) in the server's zone.
+            return LocalDate.parse(value).plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+        } catch (DateTimeParseException ignored) {
+            return null;
         }
     }
 

@@ -4,6 +4,9 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -34,6 +37,24 @@ class ExpiryTest {
     }
 
     @Test
+    void parsesPlainDateAsEndOfDay() {
+        Instant expiry = Expiry.resolve("2026-06-10", NOW);
+        Instant expected = LocalDate.parse("2026-06-10").plusDays(1)
+            .atStartOfDay(ZoneId.systemDefault()).toInstant();
+        assertThat(expiry).isEqualTo(expected);
+        // Usable through June 10, expired once it ticks into June 11.
+        assertThat(Expiry.isExpired(expiry,
+            LocalDate.parse("2026-06-10").atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant())).isFalse();
+    }
+
+    @Test
+    void parsesLocalDateTime() {
+        Instant expiry = Expiry.resolve("2026-06-10T15:30:00", NOW);
+        assertThat(expiry).isEqualTo(
+            LocalDateTime.parse("2026-06-10T15:30:00").atZone(ZoneId.systemDefault()).toInstant());
+    }
+
+    @Test
     void rejectsGarbage() {
         assertThatThrownBy(() -> Expiry.resolve("not-a-date", NOW))
             .isInstanceOf(IllegalArgumentException.class);
@@ -59,6 +80,7 @@ class ExpiryTest {
         assertThat(Expiry.isRelative(null)).isFalse();
         assertThat(Expiry.isRelative("")).isFalse();
         assertThat(Expiry.isRelative("2026-12-31T23:59:59Z")).isFalse();
+        assertThat(Expiry.isRelative("2026-12-31")).isFalse();
     }
 
     @Test
