@@ -47,6 +47,7 @@ public final class Diagnostics {
         List<String> lines = new ArrayList<>();
         lines.add("<gray>Version: <white>" + plugin.getPluginMeta().getVersion()
             + " <dark_gray>on " + Bukkit.getName() + " " + Bukkit.getMinecraftVersion());
+        lines.add("<gray>Java: <white>" + Runtime.version());
         lines.add("<gray>Storage: <white>" + backend.get()
             + (storage.isReady() ? " <green>(connected)" : " <red>(unavailable)"));
         lines.add("<gray>Content: <white>" + registry.voucherCount() + " vouchers<gray>, <white>"
