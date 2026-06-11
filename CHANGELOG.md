@@ -4,6 +4,60 @@ All notable changes to ProVouchers are documented here. This project follows
 [Semantic Versioning](https://semver.org). Releases before 0.5.0 are listed on the
 [GitHub releases](https://github.com/alazso/provouchers/releases) page.
 
+## [1.1.0] - 2026-06-11
+
+Localization, admin quality of life, and richer voucher text. Every player-facing
+message is now translatable per player, admins get a diagnostic command and a
+single-file reload, and vouchers gain two-step confirmation, a redeem sound, and
+new placeholders.
+
+### Added
+- **Localization**: every command, redeem, and condition message now lives in
+  `lang/<code>.yml`. A player sees their Minecraft client language when a matching
+  file exists, otherwise the configured `locale.default`, with English as a per-key
+  fallback so partial translations never blank out.
+- **Two-step confirmation** (`two-step-authentication`): redeeming takes a second
+  click within `redeem.confirm-window-seconds`, guarding costly or irreversible
+  vouchers. The prompt is customizable per voucher.
+- **Reward preview GUI**: left-click a held voucher to see its loot (guaranteed
+  items, and each random set with its chance) before redeeming, controlled by
+  `redeem.left-click-preview`.
+- **`/voucher doctor`** (`provouchers.doctor`): a health report covering version,
+  server flavor, Java runtime, storage backend and pool state, content counts,
+  detected integrations, locale, and metrics.
+- **`/voucher reload [id]`**: reload a single voucher and/or code file by id,
+  leaving everything else loaded. A file that fails to parse keeps its previously
+  loaded version instead of dropping out.
+- **Station blocking**: vouchers can no longer be used as crafting ingredients or
+  placed into anvils, grindstones, smithing tables, looms, cartography tables,
+  stonecutters, or brewing stands.
+- **Per-voucher redeem sound** (`effects.sound`): a `"key [volume] [pitch]"` sound
+  played to the redeemer on success. Batch-open redemptions stay quiet.
+- **Named random rolls** (`%random:min-max:name%`): the first use in a redeem rolls
+  once and every later use of the same name reuses the value, so a reward can give
+  an amount and announce that same amount.
+- **`%expiry%` placeholder**: shows a voucher's expiry in its name or lore as
+  `in 30d`, `on 2026-12-31`, or `never`.
+- **Flexible expiry formats**: `expiry` now also accepts a plain date
+  (`2026-12-31`, valid through the end of that day in the server's time zone) and a
+  zone-less date-time, alongside relative durations and ISO-8601 instants.
+- **Batch-open quiet mode** (`redeem.batch-open-quiet`): opening a stack skips the
+  per-item feedback rewards (messages, titles, sounds) so chat is not spammed.
+- **Staff duplicate-alert toggle** (`anti-dupe.notify.enabled`), and the alert
+  message gains a `{world}` placeholder.
+
+### Changed
+- **Placeholders now use percent syntax**: `%player%`, `%arg%`, and
+  `%random:min-max%`, matching the common PlaceholderAPI convention. The curly
+  forms (`{player}`, `{arg}`, `{random:..}`) still work but are deprecated, and
+  `/voucher reload` warns when a file uses them.
+- Updated FastStats to 0.25.2.
+
+### Fixed
+- Stackable vouchers given on separate occasions now stack with each other. The
+  give time is stamped onto an item only when a relative expiry needs it as an
+  anchor.
+
 ## [1.0.0] - 2026-06-10
 
 The first standalone release. ProVouchers no longer needs the Strata library:
@@ -79,5 +133,6 @@ and Purpur 26.1+. 0.6.0 was never published; its work is included here.
 - Removed two no-op trailing argument slots from `/voucher give` and
   `/voucher giveall`.
 
+[1.1.0]: https://github.com/alazso/provouchers/releases/tag/v1.1.0
 [1.0.0]: https://github.com/alazso/provouchers/releases/tag/v1.0.0
 [0.5.0]: https://github.com/alazso/provouchers/releases/tag/v0.5.0
