@@ -15,7 +15,7 @@ import so.alaz.provouchers.reward.PermissionRewardPayload;
 import so.alaz.provouchers.reward.RewardItemPayload;
 import so.alaz.provouchers.reward.RewardLine;
 import so.alaz.provouchers.reward.RewardType;
-import so.alaz.provouchers.util.Tokens;
+import so.alaz.provouchers.util.Placeholders;
 import so.alaz.provouchers.hook.EconomyHook;
 import so.alaz.provouchers.hook.HookRegistry;
 import so.alaz.provouchers.hook.PermissionHook;
@@ -30,8 +30,8 @@ import java.util.List;
  * Runs reward actions for a player. Command dispatch and broadcasts are routed
  * through the scheduler so the plugin stays Folia-safe; messages, titles,
  * action bars, sounds, and item grants act on the player (the caller already runs
- * this on the player's region thread). Tokens such as {@code %player%},
- * {@code {arg}}, and {@code {random:min-max}} are substituted first, then
+ * this on the player's region thread). Placeholders such as {@code %player%},
+ * {@code %arg%}, and {@code %random:min-max%} are substituted first, then
  * MiniMessage and PlaceholderAPI are resolved by the text renderer.
  *
  * <p>Each reward is executed independently: a single failing reward is logged
@@ -78,7 +78,7 @@ public final class RewardExecutor {
         if (quiet && isFeedbackOnly(reward.type())) {
             return;
         }
-        String payload = Tokens.apply(reward.payload(), player.getName(), arg);
+        String payload = Placeholders.apply(reward.payload(), player.getName(), arg);
         switch (reward.type()) {
             case CONSOLE_COMMAND -> scheduler.global(() ->
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), payload));

@@ -1,7 +1,7 @@
 # =============================================================================
 #  ProVouchers - English messages (default)
 #
-#  Every plugin-generated message lives here. Values are MiniMessage. Tokens:
+#  Every plugin-generated message lives here. Values are MiniMessage. Placeholders:
 #    {prefix}      the branded prefix below
 #    {...}         message-specific values, noted per line
 #

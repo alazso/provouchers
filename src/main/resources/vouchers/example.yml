@@ -4,7 +4,7 @@
 #  Apply changes with /voucher reload.
 #
 #  Text uses MiniMessage (<gold>, <gradient:#a:#b>, ...), with PlaceholderAPI and
-#  MiniPlaceholders when installed. Tokens, usable in text and rewards:
+#  MiniPlaceholders when installed. Placeholders, usable in text and rewards:
 #    %player%              the redeemer's name
 #    %arg%                 argument from /voucher redeem (needs has-argument: true)
 #    %random:1-5%          a random integer in the range

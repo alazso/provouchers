@@ -4,8 +4,8 @@ package so.alaz.provouchers.reward;
  * The parsed payload of an {@code item} reward: an item reference (a vanilla
  * material or a {@code provider:id} custom item) and an amount that defaults to 1.
  *
- * <p>The amount may be a literal number or a token such as {@code {random:1-3}}
- * that is substituted before the reward runs, so a token amount is accepted at
+ * <p>The amount may be a literal number or a placeholder such as {@code %random:1-3%}
+ * that is substituted before the reward runs, so a placeholder amount is accepted at
  * load and only resolved to a number at redeem time (mirroring {@code currency}).
  */
 public record RewardItemPayload(String reference, String amount) {
@@ -19,7 +19,7 @@ public record RewardItemPayload(String reference, String amount) {
         }
     }
 
-    /** Parses {@code "<reference> [amount]"}; the trailing amount is a number or a token. */
+    /** Parses {@code "<reference> [amount]"}; the trailing amount is a number or a placeholder. */
     public static RewardItemPayload parse(String payload) {
         String[] parts = payload.trim().split("\\s+");
         String reference = parts[0];
@@ -33,7 +33,7 @@ public record RewardItemPayload(String reference, String amount) {
         return new RewardItemPayload(reference, amount);
     }
 
-    /** Resolves the (possibly token-substituted) amount to a positive count. */
+    /** Resolves the (possibly placeholder-substituted) amount to a positive count. */
     public int resolveAmount() {
         return requirePositiveInt(amount);
     }

@@ -11,7 +11,7 @@ import so.alaz.provouchers.platform.ItemBuilder;
 import so.alaz.provouchers.platform.SkullBuilder;
 import so.alaz.provouchers.platform.Text;
 import so.alaz.provouchers.util.Expiry;
-import so.alaz.provouchers.util.Tokens;
+import so.alaz.provouchers.util.Placeholders;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -84,7 +84,7 @@ public final class VoucherItemFactory {
         return buildBase(voucher, viewer);
     }
 
-    /** The viewer's name for token substitution, or empty when an item is built with no viewer. */
+    /** The viewer's name for placeholder substitution, or empty when an item is built with no viewer. */
     private static String viewerName(@Nullable Player viewer) {
         return viewer != null ? viewer.getName() : "";
     }
@@ -130,9 +130,9 @@ public final class VoucherItemFactory {
         ItemBuilder builder = new ItemBuilder(material)
             .amount(amount)
             .glow(voucher.item().glow())
-            .name(text.render(Tokens.apply(name, viewerName, null), viewer));
+            .name(text.render(Placeholders.apply(name, viewerName, null), viewer));
         if (!voucher.lore().isEmpty()) {
-            builder.lore(text.render(Tokens.applyAll(voucher.lore(), viewerName, null), viewer));
+            builder.lore(text.render(Placeholders.applyAll(voucher.lore(), viewerName, null), viewer));
         }
         ItemStack item = builder.build();
         Integer customModelData = voucher.item().customModelData();
@@ -164,11 +164,11 @@ public final class VoucherItemFactory {
         String viewerName = viewerName(viewer);
         item.editMeta(meta -> {
             if (voucher.displayName() != null) {
-                meta.displayName(text.render(Tokens.apply(voucher.displayName(), viewerName, null), viewer)
+                meta.displayName(text.render(Placeholders.apply(voucher.displayName(), viewerName, null), viewer)
                     .decoration(TextDecoration.ITALIC, false));
             }
             if (!voucher.lore().isEmpty()) {
-                meta.lore(text.render(Tokens.applyAll(voucher.lore(), viewerName, null), viewer).stream()
+                meta.lore(text.render(Placeholders.applyAll(voucher.lore(), viewerName, null), viewer).stream()
                     .map(line -> line.decoration(TextDecoration.ITALIC, false))
                     .toList());
             }

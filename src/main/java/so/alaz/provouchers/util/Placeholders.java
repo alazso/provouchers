@@ -10,31 +10,32 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Substitutes the dynamic tokens ProVouchers supports inside reward and message
+ * Substitutes the dynamic placeholders ProVouchers supports inside reward and message
  * strings: {@code %player%} for the redeemer's name, {@code %arg%} for a parametric
  * voucher's argument, and {@code %random:min-max%} for a random integer in the
  * inclusive range. The curly-brace forms ({@code {player}}, {@code {arg}},
  * {@code {random:min-max}}) are still honoured for backward compatibility but are
  * deprecated; the config loader warns when it sees them.
  *
- * <p>MiniMessage markup and PlaceholderAPI placeholders are intentionally left
- * untouched here; those are resolved later by the text renderer.
+ * <p>These are ProVouchers' own placeholders, distinct from PlaceholderAPI. MiniMessage
+ * markup and PlaceholderAPI placeholders are intentionally left untouched here; those
+ * are resolved later by the text renderer.
  */
-public final class Tokens {
+public final class Placeholders {
 
-    /** Matches the random token in either the {@code %random:a-b%} or legacy {@code {random:a-b}} form. */
+    /** Matches the random placeholder in either the {@code %random:a-b%} or legacy {@code {random:a-b}} form. */
     private static final Pattern RANDOM = Pattern.compile("[%{]random:(-?\\d+)-(-?\\d+)[%}]");
 
-    private Tokens() {
+    private Placeholders() {
     }
 
-    /** Applies all tokens using the shared thread-local random for {@code {random:}}. */
+    /** Applies all placeholders using the shared thread-local random for {@code %random:%}. */
     public static String apply(String input, String playerName, @Nullable String arg) {
         return apply(input, playerName, arg, ThreadLocalRandom.current());
     }
 
     /**
-     * Applies all tokens to each line, returning a new list. {@code {random:}} is drawn
+     * Applies all placeholders to each line, returning a new list. {@code %random:%} is drawn
      * independently per line, so a fixed roll is baked into the line at the moment of
      * substitution (e.g. when a voucher item's lore is built).
      */
@@ -46,7 +47,7 @@ public final class Tokens {
         return out;
     }
 
-    /** Applies all tokens, drawing {@code {random:min-max}} values from {@code random}. */
+    /** Applies all placeholders, drawing {@code %random:min-max%} values from {@code random}. */
     public static String apply(String input, String playerName, @Nullable String arg, Random random) {
         if (input == null || input.isEmpty()) {
             return input;

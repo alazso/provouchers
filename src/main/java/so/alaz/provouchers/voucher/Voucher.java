@@ -24,7 +24,7 @@ import java.util.Map;
  * @param ownerOnly     if {@code true} only the player it was given to may redeem it
  * @param cooldownSeconds per-player cooldown between redemptions, in seconds
  * @param expiry        raw expiry value (ISO-8601 or relative), or {@code null}
- * @param hasArgument   if {@code true} a free-form argument is accepted and exposed as {@code {arg}}
+ * @param hasArgument   if {@code true} a free-form argument is accepted and exposed as {@code %arg%}
  * @param stackable     if {@code true} (the default) items stack and are not dupe-tracked; if
  *                      {@code false}, each item is stamped with a unique id for anti-dupe and will
  *                      not stack

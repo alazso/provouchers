@@ -13,8 +13,8 @@ import java.util.regex.Pattern;
  * and batch-open summaries). Only "loot" rewards (items, currency given, ranks added)
  * are described; cosmetic and command rewards return {@code null} and are skipped, so a
  * preview shows what a player gains rather than how it is delivered. Pure and
- * server-independent: amounts are formatted from the raw payload, so a token amount like
- * {@code {random:1-3}} shows as a range, not a single roll.
+ * server-independent: amounts are formatted from the raw payload, so a placeholder amount
+ * like {@code %random:1-3%} shows as a range, not a single roll.
  */
 public final class RewardDescriber {
 
@@ -84,7 +84,7 @@ public final class RewardDescriber {
         }
     }
 
-    /** A token amount like {@code {random:1-3}} becomes {@code "1-3"}; a literal passes through. */
+    /** A placeholder amount like {@code %random:1-3%} becomes {@code "1-3"}; a literal passes through. */
     private static String amount(String raw) {
         Matcher matcher = RANDOM.matcher(raw.trim());
         return matcher.matches() ? matcher.group(1) + "-" + matcher.group(2) : raw.trim();

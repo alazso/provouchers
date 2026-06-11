@@ -60,7 +60,7 @@ public final class ConfigManager {
                 requireKnownConditions(voucher.conditionMaps());
                 registry.register(voucher);
                 warnUnavailableProvider(file.getName(), voucher.item().customItem(), errors);
-                warnVoucherTokens(file.getName(), voucher, errors);
+                warnVoucherPlaceholders(file.getName(), voucher, errors);
             } catch (VoucherParseException ex) {
                 errors.add(file.getName() + ": " + ex.getMessage());
             } catch (RuntimeException ex) {
@@ -79,7 +79,7 @@ public final class ConfigManager {
                 VoucherCode code = VoucherParser.parseCode(yaml, id);
                 requireKnownConditions(code.conditionMaps());
                 registry.register(code);
-                warnCodeTokens(file.getName(), code, errors);
+                warnCodePlaceholders(file.getName(), code, errors);
             } catch (VoucherParseException ex) {
                 errors.add(file.getName() + ": " + ex.getMessage());
             } catch (RuntimeException ex) {
@@ -114,22 +114,22 @@ public final class ConfigManager {
         }
     }
 
-    /** Notes, without blocking the load, when a voucher uses deprecated curly-brace tokens. */
-    private static void warnVoucherTokens(String fileName, Voucher voucher, List<String> errors) {
+    /** Notes, without blocking the load, when a voucher uses deprecated curly-brace placeholders. */
+    private static void warnVoucherPlaceholders(String fileName, Voucher voucher, List<String> errors) {
         List<String> texts = new ArrayList<>(voucher.lore());
         addIfPresent(texts, voucher.displayName());
         addIfPresent(texts, voucher.confirmMessage());
         addRewardAndConditionText(texts, voucher.rewards(), voucher.randomRewards(), voucher.conditionMaps());
-        if (texts.stream().anyMatch(ConfigManager::usesDeprecatedToken)) {
+        if (texts.stream().anyMatch(ConfigManager::usesDeprecatedPlaceholder)) {
             errors.add(deprecationNotice(fileName));
         }
     }
 
-    /** Notes, without blocking the load, when a code uses deprecated curly-brace tokens. */
-    private static void warnCodeTokens(String fileName, VoucherCode code, List<String> errors) {
+    /** Notes, without blocking the load, when a code uses deprecated curly-brace placeholders. */
+    private static void warnCodePlaceholders(String fileName, VoucherCode code, List<String> errors) {
         List<String> texts = new ArrayList<>();
         addRewardAndConditionText(texts, code.rewards(), code.randomRewards(), code.conditionMaps());
-        if (texts.stream().anyMatch(ConfigManager::usesDeprecatedToken)) {
+        if (texts.stream().anyMatch(ConfigManager::usesDeprecatedPlaceholder)) {
             errors.add(deprecationNotice(fileName));
         }
     }
@@ -159,12 +159,12 @@ public final class ConfigManager {
         }
     }
 
-    private static boolean usesDeprecatedToken(String text) {
+    private static boolean usesDeprecatedPlaceholder(String text) {
         return text.contains("{player}") || text.contains("{arg}") || text.contains("{random:");
     }
 
     private static String deprecationNotice(String fileName) {
-        return fileName + ": uses deprecated curly-brace tokens ({player}, {arg}, {random:..}); switch to "
+        return fileName + ": uses deprecated curly-brace placeholders ({player}, {arg}, {random:..}); switch to "
             + "%player%, %arg%, and %random:..% (the curly-brace form still works for now)";
     }
 
