@@ -32,6 +32,7 @@ import java.util.Map;
  *                      requires a stackable voucher with no cooldown
  * @param twoStep       if {@code true}, redeeming requires a confirmation click within the window
  * @param confirmMessage the per-voucher confirmation prompt, or {@code null} to use the locale default
+ * @param effects       optional sound and particle played to the redeemer, or {@code null} for none
  */
 public record Voucher(
     String id,
@@ -49,7 +50,8 @@ public record Voucher(
     boolean stackable,
     boolean batchOpen,
     boolean twoStep,
-    @Nullable String confirmMessage
+    @Nullable String confirmMessage,
+    @Nullable VoucherEffects effects
 ) implements so.alaz.provouchers.api.Voucher {
 
     public Voucher {

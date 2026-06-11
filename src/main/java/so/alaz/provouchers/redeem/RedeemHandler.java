@@ -1,9 +1,12 @@
 package so.alaz.provouchers.redeem;
 
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.Particle;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -23,6 +26,7 @@ import so.alaz.provouchers.reward.RewardSet;
 import so.alaz.provouchers.storage.VoucherStorage;
 import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.provouchers.voucher.VoucherCode;
+import so.alaz.provouchers.voucher.VoucherEffects;
 import so.alaz.provouchers.voucher.VoucherRegistry;
 import so.alaz.provouchers.util.Expiry;
 import so.alaz.provouchers.condition.Condition;
@@ -39,6 +43,7 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -218,8 +223,45 @@ public final class RedeemHandler {
             cooldowns.apply(player.getUniqueId(), voucher.id(), voucher.cooldownSeconds());
         }
         grant(player, "voucher '" + voucher.id() + "'", voucher.rewards(), voucher.randomRewards(), null, quiet);
+        if (!quiet) {
+            playEffects(player, voucher.effects());
+        }
         counters.recordVoucherRedemption();
         new VoucherRedeemEvent(player, voucher, uid).callEvent();
+    }
+
+    /**
+     * Plays the voucher's optional redeem effects to the player: a sound
+     * ({@code "key [volume] [pitch]"}) and/or a particle spawned at the player. Suppressed
+     * for quiet redemptions (such as batch open) so a whole stack does not spam them.
+     */
+    private void playEffects(Player player, @Nullable VoucherEffects effects) {
+        if (effects == null) {
+            return;
+        }
+        if (effects.sound() != null && !effects.sound().isBlank()) {
+            String[] parts = effects.sound().trim().split("\\s+");
+            float volume = parts.length > 1 ? parseFloat(parts[1]) : 1f;
+            float pitch = parts.length > 2 ? parseFloat(parts[2]) : 1f;
+            player.playSound(Sound.sound(Key.key(parts[0]), Sound.Source.MASTER, volume, pitch));
+        }
+        if (effects.particle() != null && !effects.particle().isBlank()) {
+            try {
+                Particle particle = Particle.valueOf(effects.particle().trim().toUpperCase(Locale.ROOT));
+                player.spawnParticle(particle, player.getLocation().add(0, 1, 0), 20, 0.3, 0.5, 0.3, 0.0);
+            } catch (IllegalArgumentException | IllegalStateException ignored) {
+                // Validated at load; this guards particles that need extra data we do not supply.
+            }
+        }
+    }
+
+    /** A volume or pitch token, defaulting to {@code 1} when it is not a number. */
+    private static float parseFloat(String value) {
+        try {
+            return Float.parseFloat(value);
+        } catch (NumberFormatException ex) {
+            return 1f;
+        }
     }
 
     /** Handles a physical voucher that failed the duplicate check: warns, notifies, and refunds. */
