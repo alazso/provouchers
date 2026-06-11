@@ -1,6 +1,5 @@
 package so.alaz.provouchers.config;
 
-import org.bukkit.Particle;
 import org.bukkit.configuration.ConfigurationSection;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.reward.RewardLine;
@@ -20,7 +19,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -74,31 +72,19 @@ public final class VoucherParser {
             batchOpen,
             section.getBoolean("two-step-authentication", false),
             emptyToNull(section.getString("two-step-authentication-message", "")),
-            parseEffects(section, voucherId)
+            parseEffects(section)
         );
     }
 
-    /** Parses the optional {@code effects} block (a sound and/or particle), or {@code null} when absent. */
+    /** Parses the optional {@code effects} block (a redeem sound), or {@code null} when absent or empty. */
     @Nullable
-    private static VoucherEffects parseEffects(ConfigurationSection section, String id) {
+    private static VoucherEffects parseEffects(ConfigurationSection section) {
         ConfigurationSection effects = section.getConfigurationSection("effects");
         if (effects == null) {
             return null;
         }
         String sound = emptyToNull(effects.getString("sound", ""));
-        String particle = emptyToNull(effects.getString("particle", ""));
-        if (sound == null && particle == null) {
-            return null;
-        }
-        if (particle != null) {
-            try {
-                Particle.valueOf(particle.trim().toUpperCase(Locale.ROOT));
-            } catch (IllegalArgumentException ex) {
-                throw new VoucherParseException(
-                    "voucher '" + id + "': effects.particle '" + particle + "' is not a valid particle name");
-            }
-        }
-        return new VoucherEffects(sound, particle);
+        return sound == null ? null : new VoucherEffects(sound);
     }
 
     /** Parses a code whose code value defaults to {@code id} when no {@code code} key is present. */

@@ -45,10 +45,9 @@ stackable: true                   # false = anti-dupe: each copy tracked, never 
 # two-step-authentication: false  # require a second confirmation click before redeeming
 # two-step-authentication-message: "{prefix}<yellow>Click again to confirm."   # optional custom prompt
 
-# ---- Effects: a sound and/or particle played to the redeemer on success -----
+# ---- Effects: a sound played to the redeemer on success ---------------------
 # effects:
 #   sound: "minecraft:entity.player.levelup 1 1"   # key [volume] [pitch]
-#   particle: TOTEM_OF_UNDYING                      # a Bukkit particle name
 
 # ---- Conditions: all must pass; the first failure stops the redeem ----------
 conditions:

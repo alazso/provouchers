@@ -113,26 +113,16 @@ class VoucherParserTest {
               material: PAPER
             effects:
               sound: "minecraft:entity.player.levelup 1 1"
-              particle: TOTEM_OF_UNDYING
             """);
         Voucher voucher = VoucherParser.parseVoucher(config, "fx");
         assertThat(voucher.effects()).isNotNull();
         assertThat(voucher.effects().sound()).isEqualTo("minecraft:entity.player.levelup 1 1");
-        assertThat(voucher.effects().particle()).isEqualTo("TOTEM_OF_UNDYING");
     }
 
     @Test
     void noEffectsBlockMeansNullEffects() throws Exception {
         Voucher voucher = VoucherParser.parseVoucher(yaml("item:\n  material: PAPER\n"), "plain");
         assertThat(voucher.effects()).isNull();
-    }
-
-    @Test
-    void invalidParticleNameIsRejected() throws Exception {
-        YamlConfiguration config = yaml("item:\n  material: PAPER\neffects:\n  particle: NOT_A_PARTICLE\n");
-        assertThatThrownBy(() -> VoucherParser.parseVoucher(config, "bad"))
-            .isInstanceOf(VoucherParseException.class)
-            .hasMessageContaining("particle");
     }
 
     @Test

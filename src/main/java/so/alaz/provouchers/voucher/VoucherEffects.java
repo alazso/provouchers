@@ -3,14 +3,13 @@ package so.alaz.provouchers.voucher;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Optional cosmetic effects played to the redeemer on a successful redeem: a sound
- * (a {@code "key [volume] [pitch]"} string) and/or a particle (a Bukkit
- * {@link org.bukkit.Particle} name spawned at the player). Either may be {@code null}.
+ * Optional cosmetic effects played to the redeemer on a successful redeem. Currently a
+ * sound (a {@code "key [volume] [pitch]"} string), which may be {@code null}.
  */
-public record VoucherEffects(@Nullable String sound, @Nullable String particle) {
+public record VoucherEffects(@Nullable String sound) {
 
-    /** Whether neither a sound nor a particle is configured. */
+    /** Whether no effect is configured. */
     public boolean isEmpty() {
-        return (sound == null || sound.isBlank()) && (particle == null || particle.isBlank());
+        return sound == null || sound.isBlank();
     }
 }
