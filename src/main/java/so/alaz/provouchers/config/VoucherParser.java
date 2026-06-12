@@ -7,7 +7,10 @@ import so.alaz.provouchers.reward.RewardLineParser;
 import so.alaz.provouchers.reward.RewardSet;
 import so.alaz.provouchers.platform.ItemBuilder;
 import so.alaz.provouchers.util.Expiry;
+import so.alaz.provouchers.reward.RewardItemPayload;
+import so.alaz.provouchers.reward.RewardType;
 import so.alaz.provouchers.voucher.CustomItemRef;
+import so.alaz.provouchers.voucher.DefinedItem;
 import so.alaz.provouchers.voucher.FireworkSpec;
 import so.alaz.provouchers.voucher.Materials;
 import so.alaz.provouchers.voucher.SkullSpec;
@@ -20,6 +23,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -56,14 +60,20 @@ public final class VoucherParser {
                 "voucher '" + voucherId + "': batch-open requires a stackable voucher");
         }
 
+        Map<String, DefinedItem> definedItems = parseDefinedItems(section, voucherId);
+        List<RewardLine> rewards = parseRewards(section.getStringList("rewards"), voucherId);
+        List<RewardSet> randomRewards = parseRandomRewards(section, voucherId);
+        validateItemRefs(rewards, randomRewards, definedItems, voucherId);
+
         return new Voucher(
             voucherId,
             section.getString("display-name"),
             section.getStringList("lore"),
             item,
             parseConditions(section, voucherId),
-            parseRewards(section.getStringList("rewards"), voucherId),
-            parseRandomRewards(section, voucherId),
+            rewards,
+            randomRewards,
+            definedItems,
             section.getBoolean("unredeemable", false),
             section.getBoolean("owner-only", false),
             cooldown,
@@ -114,6 +124,10 @@ public final class VoucherParser {
         if (usesPerPlayer < 1) {
             throw new VoucherParseException("code '" + code + "': uses-per-player must be at least 1");
         }
+        Map<String, DefinedItem> definedItems = parseDefinedItems(section, code);
+        List<RewardLine> rewards = parseRewards(section.getStringList("rewards"), code);
+        List<RewardSet> randomRewards = parseRandomRewards(section, code);
+        validateItemRefs(rewards, randomRewards, definedItems, code);
         return new VoucherCode(
             code,
             section.getBoolean("case-sensitive", false),
@@ -122,10 +136,51 @@ public final class VoucherParser {
             parseExpiry(section, code),
             parseActiveFrom(section, code),
             parseConditions(section, code),
-            parseRewards(section.getStringList("rewards"), code),
-            parseRandomRewards(section, code),
+            rewards,
+            randomRewards,
+            definedItems,
             section.getBoolean("has-argument", false)
         );
+    }
+
+    /** The {@code items:} map of reusable decorated items, keyed by lower-cased name. */
+    private static Map<String, DefinedItem> parseDefinedItems(ConfigurationSection section, String id) {
+        ConfigurationSection items = section.getConfigurationSection("items");
+        if (items == null) {
+            return Map.of();
+        }
+        Map<String, DefinedItem> result = new LinkedHashMap<>();
+        for (String name : items.getKeys(false)) {
+            ConfigurationSection entry = items.getConfigurationSection(name);
+            if (entry == null) {
+                throw new VoucherParseException("'" + id + "': items." + name + " must be a section");
+            }
+            result.put(name.toLowerCase(Locale.ROOT), new DefinedItem(
+                entry.getString("name"),
+                entry.getStringList("lore"),
+                parseItem(entry, id + "' items '" + name)));
+        }
+        return result;
+    }
+
+    /** Rejects an {@code item: @name} reward whose name is not in the {@code items:} map. */
+    private static void validateItemRefs(List<RewardLine> rewards, List<RewardSet> randomRewards,
+                                         Map<String, DefinedItem> definedItems, String id) {
+        List<RewardLine> all = new ArrayList<>(rewards);
+        for (RewardSet set : randomRewards) {
+            all.addAll(set.rewards());
+        }
+        for (RewardLine line : all) {
+            if (line.type() != RewardType.ITEM) {
+                continue;
+            }
+            String reference = RewardItemPayload.parse(line.payload()).reference();
+            if (reference.startsWith("@")
+                && !definedItems.containsKey(reference.substring(1).toLowerCase(Locale.ROOT))) {
+                throw new VoucherParseException("'" + id + "': reward '" + line.payload()
+                    + "' references undefined item '" + reference.substring(1) + "'");
+            }
+        }
     }
 
     /** A use limit: {@code -1} (unlimited, the default) or a positive count. */

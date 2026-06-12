@@ -107,6 +107,40 @@ class VoucherParserTest {
     }
 
     @Test
+    void parsesDefinedItemsAndRefs() throws Exception {
+        YamlConfiguration config = yaml("""
+            item:
+              material: PAPER
+            items:
+              vip_sword:
+                material: DIAMOND_SWORD
+                name: "<gold>Excalibur"
+                lore:
+                  - "<gray>Legendary"
+                glow: true
+            rewards:
+              - "item: @vip_sword 2"
+            """);
+        Voucher voucher = VoucherParser.parseVoucher(config, "kit");
+        assertThat(voucher.definedItems()).containsKey("vip_sword");
+        assertThat(voucher.definedItems().get("vip_sword").displayName()).isEqualTo("<gold>Excalibur");
+        assertThat(voucher.definedItems().get("vip_sword").item().glow()).isTrue();
+    }
+
+    @Test
+    void undefinedItemRefIsRejected() throws Exception {
+        YamlConfiguration config = yaml("""
+            item:
+              material: PAPER
+            rewards:
+              - "item: @missing 1"
+            """);
+        assertThatThrownBy(() -> VoucherParser.parseVoucher(config, "bad"))
+            .isInstanceOf(VoucherParseException.class)
+            .hasMessageContaining("missing");
+    }
+
+    @Test
     void parsesUseLimits() throws Exception {
         YamlConfiguration config = yaml("item:\n  material: PAPER\nmax-uses: 100\nuses-per-player: 2\n");
         Voucher voucher = VoucherParser.parseVoucher(config, "limited");

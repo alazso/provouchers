@@ -112,10 +112,10 @@ public final class ProVouchersPlugin extends JavaPlugin {
         guiManager = new GuiManager(this);
 
         VoucherStamp stamp = new VoucherStamp(this);
-        RewardExecutor rewardExecutor = new RewardExecutor(
-            scheduler, text, itemResolver, hooks,
-            getComponentLogger());
         VoucherItemFactory factory = new VoucherItemFactory(text, stamp, itemResolver);
+        RewardExecutor rewardExecutor = new RewardExecutor(
+            scheduler, text, itemResolver, factory, hooks,
+            getComponentLogger());
         VoucherGiveService giveService = new VoucherGiveService(factory, scheduler);
         PreviewGui previewGui = new PreviewGui(registry, factory, giveService,
             new VoucherAdminMenu(text), guiManager, scheduler,

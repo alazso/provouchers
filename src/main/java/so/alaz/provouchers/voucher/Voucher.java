@@ -20,6 +20,7 @@ import java.util.Map;
  * @param conditionMaps raw condition sections, each a {@code type} plus its keys
  * @param rewards       reward lines that always run on a successful redeem
  * @param randomRewards weighted reward sets, exactly one of which runs per redeem
+ * @param definedItems  decorated items from the {@code items:} map, granted via {@code item: @name}
  * @param unredeemable  if {@code true} the item exists for show and cannot be redeemed
  * @param ownerOnly     if {@code true} only the player it was given to may redeem it
  * @param cooldownSeconds per-player cooldown between redemptions, in seconds
@@ -45,6 +46,7 @@ public record Voucher(
     List<Map<String, Object>> conditionMaps,
     List<RewardLine> rewards,
     List<RewardSet> randomRewards,
+    Map<String, DefinedItem> definedItems,
     boolean unredeemable,
     boolean ownerOnly,
     long cooldownSeconds,
@@ -68,6 +70,7 @@ public record Voucher(
         conditionMaps = List.copyOf(conditionMaps);
         rewards = List.copyOf(rewards);
         randomRewards = List.copyOf(randomRewards);
+        definedItems = Map.copyOf(definedItems);
         if (cooldownSeconds < 0) {
             throw new IllegalArgumentException("Voucher '" + id + "' cooldown must not be negative");
         }

@@ -22,6 +22,7 @@ import java.util.Map;
  * @param conditionMaps raw condition sections
  * @param rewards       always-run reward lines
  * @param randomRewards weighted reward sets
+ * @param definedItems  decorated items from the {@code items:} map, granted via {@code item: @name}
  * @param hasArgument   whether a free-form argument is accepted
  */
 public record VoucherCode(
@@ -34,6 +35,7 @@ public record VoucherCode(
     List<Map<String, Object>> conditionMaps,
     List<RewardLine> rewards,
     List<RewardSet> randomRewards,
+    Map<String, DefinedItem> definedItems,
     boolean hasArgument
 ) implements so.alaz.provouchers.api.VoucherCode {
 
@@ -47,6 +49,7 @@ public record VoucherCode(
         conditionMaps = List.copyOf(conditionMaps);
         rewards = List.copyOf(rewards);
         randomRewards = List.copyOf(randomRewards);
+        definedItems = Map.copyOf(definedItems);
     }
 
     /** The lookup key for this code: itself, or its lower-cased form when case-insensitive. */

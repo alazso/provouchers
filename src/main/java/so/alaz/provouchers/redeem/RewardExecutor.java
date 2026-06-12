@@ -22,11 +22,14 @@ import so.alaz.provouchers.hook.HookRegistry;
 import so.alaz.provouchers.hook.PermissionHook;
 import so.alaz.provouchers.platform.Scheduler;
 import so.alaz.provouchers.platform.Text;
+import so.alaz.provouchers.voucher.DefinedItem;
 import so.alaz.provouchers.voucher.ItemResolver;
+import so.alaz.provouchers.voucher.VoucherItemFactory;
 
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -49,14 +52,16 @@ public final class RewardExecutor {
     private final Scheduler scheduler;
     private final Text text;
     private final ItemResolver items;
+    private final VoucherItemFactory factory;
     private final HookRegistry hooks;
     private final ComponentLogger logger;
 
     public RewardExecutor(Scheduler scheduler, Text text, ItemResolver items,
-                          HookRegistry hooks, ComponentLogger logger) {
+                          VoucherItemFactory factory, HookRegistry hooks, ComponentLogger logger) {
         this.scheduler = scheduler;
         this.text = text;
         this.items = items;
+        this.factory = factory;
         this.hooks = hooks;
         this.logger = logger;
     }
@@ -64,13 +69,14 @@ public final class RewardExecutor {
     /**
      * Runs every reward line for {@code player}, substituting {@code arg}. A reward
      * that fails is logged against {@code source} (the voucher or code) and skipped.
+     * {@code definedItems} resolves {@code item: @name} references.
      */
     public void execute(Player player, String source, List<RewardLine> rewards, @Nullable String arg,
-                        boolean quiet) {
+                        boolean quiet, Map<String, DefinedItem> definedItems) {
         Map<String, Long> namedRolls = new HashMap<>();
         for (RewardLine reward : rewards) {
             try {
-                execute(player, source, reward, arg, quiet, namedRolls);
+                execute(player, source, reward, arg, quiet, namedRolls, definedItems);
             } catch (RuntimeException ex) {
                 warn(source, reward.type().name().toLowerCase(), reward.payload(), ex.getMessage());
             }
@@ -78,7 +84,7 @@ public final class RewardExecutor {
     }
 
     private void execute(Player player, String source, RewardLine reward, @Nullable String arg, boolean quiet,
-                         Map<String, Long> namedRolls) {
+                         Map<String, Long> namedRolls, Map<String, DefinedItem> definedItems) {
         // Batch open runs quiet: substantive rewards still apply, but per-item feedback that would
         // spam chat (messages, broadcasts, titles, action bars, sounds) is skipped.
         if (quiet && isFeedbackOnly(reward.type())) {
@@ -104,7 +110,7 @@ public final class RewardExecutor {
             }
             case ACTIONBAR -> player.sendActionBar(text.render(payload, player));
             case SOUND -> playSound(player, payload);
-            case ITEM -> giveItem(player, payload);
+            case ITEM -> giveItem(player, payload, definedItems);
             case CURRENCY -> applyCurrency(player, payload);
             case XP -> giveXp(player, payload);
             case GROUP -> applyGroup(player, source, payload);
@@ -112,9 +118,23 @@ public final class RewardExecutor {
         }
     }
 
-    private void giveItem(Player player, String payload) {
+    private void giveItem(Player player, String payload, Map<String, DefinedItem> definedItems) {
         RewardItemPayload spec = RewardItemPayload.parse(payload);
-        ItemStack item = items.give(spec.reference(), spec.resolveAmount());
+        if (spec.reference().startsWith("@")) {
+            String name = spec.reference().substring(1).toLowerCase(Locale.ROOT);
+            DefinedItem defined = definedItems.get(name);
+            if (defined == null) {
+                throw new IllegalArgumentException("no defined item named '" + name + "'");
+            }
+            // Skull-based items may resolve off-thread; deliver on the player's region thread.
+            factory.createDefinedItem(defined, spec.resolveAmount(), player).thenAccept(item ->
+                scheduler.entity(player, () -> deliver(player, item)));
+            return;
+        }
+        deliver(player, items.give(spec.reference(), spec.resolveAmount()));
+    }
+
+    private void deliver(Player player, ItemStack item) {
         player.getInventory().addItem(item).values()
             .forEach(leftover -> player.getWorld().dropItemNaturally(player.getLocation(), leftover));
     }

@@ -29,7 +29,9 @@ public final class RewardDescriber {
         return switch (reward.type()) {
             case ITEM -> {
                 RewardItemPayload item = RewardItemPayload.parse(reward.payload());
-                yield amount(item.amount()) + "x " + humanize(item.reference());
+                String reference = item.reference().startsWith("@")
+                    ? item.reference().substring(1) : item.reference();
+                yield amount(item.amount()) + "x " + humanize(reference);
             }
             case CURRENCY -> {
                 CurrencyRewardPayload currency = CurrencyRewardPayload.parse(reward.payload());

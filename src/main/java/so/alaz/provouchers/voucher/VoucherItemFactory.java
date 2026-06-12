@@ -111,43 +111,74 @@ public final class VoucherItemFactory {
         }
     }
 
+    /**
+     * Builds a defined reward item ({@code items:} map) for {@code viewer}, carrying
+     * {@code amount}. Shares the voucher icon build path: base precedence (custom, skull,
+     * material), name and lore rendering, glow, and model data all behave identically.
+     */
+    public CompletableFuture<ItemStack> createDefinedItem(DefinedItem defined, int amount,
+                                                          @Nullable Player viewer) {
+        return buildAppearance(defined.displayName(), defined.lore(), defined.item(), null, null, viewer)
+            .thenApply(item -> {
+                item.setAmount(amount);
+                return item;
+            });
+    }
+
     private CompletableFuture<ItemStack> buildBase(Voucher voucher, @Nullable Player viewer) {
-        ItemStack custom = items.custom(voucher.item().customItem());
+        return buildAppearance(voucher.displayName(), voucher.lore(), voucher.item(),
+            voucher.expiry(), voucher.id(), viewer);
+    }
+
+    /**
+     * Builds a single decorated item from an appearance: a custom provider item, a skull,
+     * or a vanilla material, with name and lore rendered for {@code viewer}. With no display
+     * name, {@code fallbackName} is used; when that is also null the base item keeps its own.
+     */
+    private CompletableFuture<ItemStack> buildAppearance(@Nullable String displayName, List<String> lore,
+                                                         VoucherItem spec, @Nullable String expiryRaw,
+                                                         @Nullable String fallbackName, @Nullable Player viewer) {
+        ItemStack custom = items.custom(spec.customItem());
         if (custom != null) {
             custom.setAmount(1);
-            decorate(custom, voucher, viewer, false);
+            decorate(custom, displayName, lore, spec, expiryRaw, viewer, false);
             return CompletableFuture.completedFuture(custom);
         }
-        SkullSpec skull = voucher.item().skull();
+        SkullSpec skull = spec.skull();
         if (skull != null) {
             return buildSkull(skull, 1).thenApply(head -> {
-                decorate(head, voucher, viewer, true);
+                decorate(head, displayName, lore, spec, expiryRaw, viewer, true);
                 return head;
             });
         }
-        return CompletableFuture.completedFuture(buildMaterial(voucher, 1, viewer));
+        return CompletableFuture.completedFuture(
+            buildMaterial(spec, displayName, lore, expiryRaw, fallbackName, viewer));
     }
 
-    private ItemStack buildMaterial(Voucher voucher, int amount, @Nullable Player viewer) {
-        Material material = Materials.resolve(voucher.item().material());
+    private ItemStack buildMaterial(VoucherItem spec, @Nullable String displayName, List<String> lore,
+                                    @Nullable String expiryRaw, @Nullable String fallbackName,
+                                    @Nullable Player viewer) {
+        Material material = Materials.resolve(spec.material());
         if (!material.isItem()) {
             throw new IllegalArgumentException(
                 "material '" + material.name() + "' is not an obtainable item");
         }
         String viewerName = viewerName(viewer);
-        String expiry = Expiry.describe(voucher.expiry());
-        String name = (voucher.displayName() != null ? voucher.displayName() : voucher.id())
-            .replace("%expiry%", expiry);
+        String expiry = Expiry.describe(expiryRaw);
+        String name = displayName != null ? displayName : fallbackName;
         ItemBuilder builder = new ItemBuilder(material)
-            .amount(amount)
-            .glow(voucher.item().glow())
-            .name(text.render(Placeholders.apply(name, viewerName, null), viewer));
-        if (!voucher.lore().isEmpty()) {
+            .amount(1)
+            .glow(spec.glow());
+        if (name != null) {
+            builder.name(text.render(
+                Placeholders.apply(name.replace("%expiry%", expiry), viewerName, null), viewer));
+        }
+        if (!lore.isEmpty()) {
             builder.lore(text.render(
-                Placeholders.applyAll(withExpiry(voucher.lore(), expiry), viewerName, null), viewer));
+                Placeholders.applyAll(withExpiry(lore, expiry), viewerName, null), viewer));
         }
         ItemStack item = builder.build();
-        Integer customModelData = voucher.item().customModelData();
+        Integer customModelData = spec.customModelData();
         if (customModelData != null) {
             item.editMeta(meta -> meta.setCustomModelData(customModelData));
         }
@@ -168,29 +199,31 @@ public final class VoucherItemFactory {
     }
 
     /**
-     * Applies the voucher's name, lore, and glow onto an already-built base item
-     * (a custom provider item or a skull). The display name is only overridden when
-     * the voucher sets one; custom model data is applied only when {@code applyModelData}.
+     * Applies a name, lore, and glow onto an already-built base item (a custom provider
+     * item or a skull). The display name is only overridden when one is set; custom model
+     * data is applied only when {@code applyModelData}.
      */
-    private void decorate(ItemStack item, Voucher voucher, @Nullable Player viewer, boolean applyModelData) {
+    private void decorate(ItemStack item, @Nullable String displayName, List<String> lore,
+                          VoucherItem spec, @Nullable String expiryRaw, @Nullable Player viewer,
+                          boolean applyModelData) {
         String viewerName = viewerName(viewer);
-        String expiry = Expiry.describe(voucher.expiry());
+        String expiry = Expiry.describe(expiryRaw);
         item.editMeta(meta -> {
-            if (voucher.displayName() != null) {
+            if (displayName != null) {
                 meta.displayName(text.render(
-                    Placeholders.apply(voucher.displayName().replace("%expiry%", expiry), viewerName, null), viewer)
+                    Placeholders.apply(displayName.replace("%expiry%", expiry), viewerName, null), viewer)
                     .decoration(TextDecoration.ITALIC, false));
             }
-            if (!voucher.lore().isEmpty()) {
+            if (!lore.isEmpty()) {
                 meta.lore(text.render(
-                    Placeholders.applyAll(withExpiry(voucher.lore(), expiry), viewerName, null), viewer).stream()
+                    Placeholders.applyAll(withExpiry(lore, expiry), viewerName, null), viewer).stream()
                     .map(line -> line.decoration(TextDecoration.ITALIC, false))
                     .toList());
             }
-            if (voucher.item().glow() && !meta.hasEnchants()) {
+            if (spec.glow() && !meta.hasEnchants()) {
                 ItemBuilder.applyGlow(meta);
             }
-            Integer customModelData = voucher.item().customModelData();
+            Integer customModelData = spec.customModelData();
             if (applyModelData && customModelData != null) {
                 meta.setCustomModelData(customModelData);
             }

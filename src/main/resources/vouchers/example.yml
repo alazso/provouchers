@@ -83,6 +83,17 @@ conditions:
   # - { type: item,       material: DIAMOND, amount: 3 }            # checks only, never consumes
   # - { type: advancement, advancement: "minecraft:story/mine_diamond" }
 
+# ---- Defined items: decorated items granted with "item: @<name>" ------------
+# Same keys as the voucher's own appearance (material/custom/skull, glow,
+# custom-model-data) plus name and lore.
+# items:
+#   vip_sword:
+#     material: DIAMOND_SWORD
+#     name: "<gold>Excalibur"
+#     lore:
+#       - "<gray>A legendary blade."
+#     glow: true
+
 # ---- Rewards: all of these run ----------------------------------------------
 rewards:
   - "message: <green>You redeemed the example voucher!"
@@ -93,6 +104,7 @@ rewards:
   # - "actionbar: <green>Reward granted"
   # - "sound: minecraft:entity.player.levelup 1 1"    # key [volume] [pitch]; keys: minecraft.wiki/w/Sounds.json
   # - "item: DIAMOND_SWORD 1"                          # vanilla or provider:id, optional amount
+  # - "item: @vip_sword 1"                              # a decorated item from the items map above
   # - "currency: give 250"                             # Vault; give|take, amount may be {random:..}
   # - "xp: 30 levels"                                   # experience; amount [levels|points]
   # - "group: add vip 7d"                              # LuckPerms; add|remove, optional duration
