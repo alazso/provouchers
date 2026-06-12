@@ -37,6 +37,7 @@ import so.alaz.provouchers.gui.RewardPreviewGui;
 import so.alaz.provouchers.gui.VoucherAdminMenu;
 import so.alaz.provouchers.listener.CooldownLoadListener;
 import so.alaz.provouchers.listener.FireworkGuardListener;
+import so.alaz.provouchers.listener.FirstJoinListener;
 import so.alaz.provouchers.listener.SoulboundListener;
 import so.alaz.provouchers.listener.VoucherInteractListener;
 import so.alaz.provouchers.listener.VoucherStationListener;
@@ -162,6 +163,11 @@ public final class ProVouchersPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new FireworkGuardListener(), this);
         getServer().getPluginManager().registerEvents(
             new SoulboundListener(stamp, registry, text, messages), this);
+        List<String> firstJoin = getConfig().getStringList("auto-give.first-join");
+        if (!firstJoin.isEmpty()) {
+            getServer().getPluginManager().registerEvents(
+                new FirstJoinListener(registry, giveService, firstJoin, getComponentLogger()), this);
+        }
         getServer().getOnlinePlayers().forEach(player -> cooldowns.hydrate(player.getUniqueId()));
         Diagnostics diagnostics = new Diagnostics(this, storage, registry, hooks, messages,
             () -> backend.name().toLowerCase(Locale.ROOT));

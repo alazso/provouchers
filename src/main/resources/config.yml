@@ -54,6 +54,12 @@ redeem:
   # "gui" (a confirm/cancel menu showing the voucher).
   confirm-style: chat
 
+# Vouchers given automatically to a player joining for the first time.
+# Requires a restart to enable or disable; the listed ids resolve at join time.
+#auto-give:
+#  first-join:
+#    - welcome_crate
+
 # Cooldown tiers: permission-based multipliers applied to every voucher cooldown.
 # A player with provouchers.cooldown.<tier> gets that tier's multiplier; holding
 # several, the lowest wins. 0 removes the cooldown. Changing tiers needs a restart.
