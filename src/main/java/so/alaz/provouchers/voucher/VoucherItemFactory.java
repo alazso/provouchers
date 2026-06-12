@@ -89,15 +89,6 @@ public final class VoucherItemFactory {
         return viewer != null ? viewer.getName() : "";
     }
 
-    /** Replaces the {@code %expiry%} placeholder in each line with the voucher's expiry description. */
-    private static List<String> withExpiry(List<String> lines, String expiry) {
-        List<String> out = new ArrayList<>(lines.size());
-        for (String line : lines) {
-            out.add(line.replace("%expiry%", expiry));
-        }
-        return out;
-    }
-
     private void stampCommon(ItemMeta meta, Voucher voucher, @Nullable Player viewer, long now) {
         stamp.stamp(meta, voucher.id());
         // Anchor the give time only for relative expiry (e.g. "30d"), which measures from it.
@@ -171,11 +162,11 @@ public final class VoucherItemFactory {
             .glow(spec.glow());
         if (name != null) {
             builder.name(text.render(
-                Placeholders.apply(name.replace("%expiry%", expiry), viewerName, null), viewer));
+                Placeholders.apply(Placeholders.applyExpiry(name, expiry), viewerName, null), viewer));
         }
         if (!lore.isEmpty()) {
             builder.lore(text.render(
-                Placeholders.applyAll(withExpiry(lore, expiry), viewerName, null), viewer));
+                Placeholders.applyAll(Placeholders.applyExpiryAll(lore, expiry), viewerName, null), viewer));
         }
         ItemStack item = builder.build();
         Integer customModelData = spec.customModelData();
@@ -211,12 +202,12 @@ public final class VoucherItemFactory {
         item.editMeta(meta -> {
             if (displayName != null) {
                 meta.displayName(text.render(
-                    Placeholders.apply(displayName.replace("%expiry%", expiry), viewerName, null), viewer)
+                    Placeholders.apply(Placeholders.applyExpiry(displayName, expiry), viewerName, null), viewer)
                     .decoration(TextDecoration.ITALIC, false));
             }
             if (!lore.isEmpty()) {
                 meta.lore(text.render(
-                    Placeholders.applyAll(withExpiry(lore, expiry), viewerName, null), viewer).stream()
+                    Placeholders.applyAll(Placeholders.applyExpiryAll(lore, expiry), viewerName, null), viewer).stream()
                     .map(line -> line.decoration(TextDecoration.ITALIC, false))
                     .toList());
             }

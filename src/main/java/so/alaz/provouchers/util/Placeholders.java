@@ -30,7 +30,24 @@ public final class Placeholders {
     /** Random placeholder, with an optional capture name: {@code %random:a-b%} or {@code %random:a-b:name%}. */
     private static final Pattern RANDOM = Pattern.compile("[%{]random:(-?\\d+)-(-?\\d+)(?::(\\w+))?[%}]");
 
+    /** The expiry token, valid in a voucher's display name and lore, resolved at build time. */
+    public static final String EXPIRY = "%expiry%";
+
     private Placeholders() {
+    }
+
+    /** Replaces {@link #EXPIRY} with the rendered expiry description ("in 30d", "never"). */
+    public static String applyExpiry(String input, String description) {
+        return input.replace(EXPIRY, description);
+    }
+
+    /** {@link #applyExpiry(String, String)} over every line. */
+    public static List<String> applyExpiryAll(List<String> lines, String description) {
+        List<String> out = new ArrayList<>(lines.size());
+        for (String line : lines) {
+            out.add(applyExpiry(line, description));
+        }
+        return out;
     }
 
     /** Applies all placeholders using the shared thread-local random for {@code %random:%}. */
