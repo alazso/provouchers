@@ -76,7 +76,7 @@ public final class VoucherCommand {
      *  Descriptions are localized under {@code command.help.descriptions.<name>}. */
     private static final List<Sub> HELP = List.of(
         new Sub("give", "give <id> [amount] [player]", PERM_GIVE),
-        new Sub("giveall", "giveall <id> [amount]", PERM_GIVEALL),
+        new Sub("giveall", "giveall <id> [amount] [permission]", PERM_GIVEALL),
         new Sub("redeem", "redeem <code> [argument]", PERM_REDEEM),
         new Sub("preview", "preview", PERM_PREVIEW),
         new Sub("list", "list", PERM_LIST),
@@ -177,10 +177,13 @@ public final class VoucherCommand {
         return Commands.literal("giveall").requires(perm(PERM_GIVEALL))
             .then(Commands.argument("id", StringArgumentType.word())
                 .suggests((ctx, builder) -> suggest(builder, registry.voucherIds()))
-                .executes(run(ctx -> giveAll(ctx, 1)))
+                .executes(run(ctx -> giveAll(ctx, 1, false)))
                 .then(Commands.argument("amount", IntegerArgumentType.integer(1, MAX_AMOUNT))
                     .suggests((ctx, builder) -> suggest(builder, AMOUNT_SUGGESTIONS))
-                    .executes(run(ctx -> giveAll(ctx, IntegerArgumentType.getInteger(ctx, "amount"))))));
+                    .executes(run(ctx -> giveAll(ctx, IntegerArgumentType.getInteger(ctx, "amount"), false)))
+                    .then(Commands.argument("permission", StringArgumentType.word())
+                        .executes(run(ctx ->
+                            giveAll(ctx, IntegerArgumentType.getInteger(ctx, "amount"), true))))));
     }
 
     private LiteralArgumentBuilder<CommandSourceStack> redeemTree() {
@@ -243,7 +246,8 @@ public final class VoucherCommand {
             "amount", amount, "voucher", voucher.id(), "target", target.getName()));
     }
 
-    private void giveAll(CommandContext<CommandSourceStack> ctx, int amount) {
+    /** Gives to every online player, or only those holding {@code permission} when one is set. */
+    private void giveAll(CommandContext<CommandSourceStack> ctx, int amount, boolean hasPermission) {
         CommandSourceStack source = ctx.getSource();
         Player viewer = asPlayer(source);
         String id = StringArgumentType.getString(ctx, "id");
@@ -252,13 +256,18 @@ public final class VoucherCommand {
             reply(source, messages.get(viewer, "command.unknown-voucher", "id", id));
             return;
         }
+        String permission = hasPermission ? StringArgumentType.getString(ctx, "permission") : null;
         int count = 0;
         for (Player online : source.getSender().getServer().getOnlinePlayers()) {
+            if (permission != null && !online.hasPermission(permission)) {
+                continue;
+            }
             giveService.give(online, voucher, amount);
             count++;
         }
         if (count == 0) {
-            reply(source, messages.get(viewer, "command.giveall.none-online"));
+            reply(source, messages.get(viewer, permission != null
+                ? "command.giveall.none-matched" : "command.giveall.none-online"));
             return;
         }
         reply(source, messages.get(viewer, "command.giveall.success",

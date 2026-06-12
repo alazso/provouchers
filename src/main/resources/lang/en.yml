@@ -23,6 +23,7 @@ command:
     success: "{prefix}<green>Gave <yellow>{amount}x</yellow> <gold>{voucher}</gold> to <yellow>{target}</yellow>."  # {amount} {voucher} {target}
   giveall:
     none-online: "{prefix}<gray>No players are online to give to."
+    none-matched: "{prefix}<gray>No online player has that permission."
     success: "{prefix}<green>Gave <yellow>{amount}x</yellow> <gold>{voucher}</gold> to <yellow>{count}</yellow> player(s)."  # {amount} {voucher} {count}
   redeem:
     players-only: "{prefix}<red>Only players can redeem codes."
