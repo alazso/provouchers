@@ -275,11 +275,15 @@ final class BuiltinConditions {
         Item(String materialName, int amount, @Nullable String deny, Text text) {
             super(deny, text);
             this.materialName = materialName;
-            this.amount = Math.max(1, amount);
+            this.amount = amount;
         }
 
         @Override
         public ConditionResult test(ConditionContext context) {
+            // A misconfigured amount or material denies rather than passing, like playerstat.
+            if (amount < 1) {
+                return denied(context, "condition.requirement-not-met");
+            }
             Material material;
             try {
                 material = Material.valueOf(materialName.trim().toUpperCase(Locale.ROOT));

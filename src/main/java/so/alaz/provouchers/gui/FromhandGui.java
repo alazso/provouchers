@@ -10,7 +10,9 @@ import so.alaz.provouchers.platform.Text;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 
 /**
@@ -62,13 +64,14 @@ public final class FromhandGui {
     private void confirm(Player admin, String id, String serialized) {
         admin.closeInventory();
         File file = new File(vouchersDir, id + ".yml");
-        if (file.isFile()) {
-            send(admin, "command.fromhand.exists", "id", id);
-            return;
-        }
         try {
             Files.createDirectories(vouchersDir.toPath());
-            Files.writeString(file.toPath(), template(id, serialized));
+            // CREATE_NEW makes the existence check and the write atomic, so two admins
+            // confirming the same id cannot overwrite each other.
+            Files.writeString(file.toPath(), template(id, serialized), StandardOpenOption.CREATE_NEW);
+        } catch (FileAlreadyExistsException ex) {
+            send(admin, "command.fromhand.exists", "id", id);
+            return;
         } catch (IOException ex) {
             send(admin, "command.fromhand.failed");
             return;
