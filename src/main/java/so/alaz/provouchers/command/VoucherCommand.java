@@ -380,7 +380,7 @@ public final class VoucherCommand {
         scheduler.async(() -> {
             boolean ok = true;
             try {
-                for (String key : new String[] {"voucher:" + id.toLowerCase(Locale.ROOT), id}) {
+                for (String key : new String[] {Voucher.voucherUseKey(id), id}) {
                     if (target != null) {
                         storage.clearUses(key, target.getUniqueId());
                     } else {

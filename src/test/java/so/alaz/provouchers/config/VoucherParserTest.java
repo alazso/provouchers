@@ -152,6 +152,18 @@ class VoucherParserTest {
     }
 
     @Test
+    void longIdWithUseLimitsIsRejected() throws Exception {
+        String longId = "a".repeat(57);
+        YamlConfiguration config = yaml("item:\n  material: PAPER\nmax-uses: 5\n");
+        assertThatThrownBy(() -> VoucherParser.parseVoucher(config, longId))
+            .isInstanceOf(VoucherParseException.class)
+            .hasMessageContaining("56");
+        // The same id without limits loads fine; only the use counter has the length bound.
+        assertThat(VoucherParser.parseVoucher(yaml("item:\n  material: PAPER\n"), longId).id())
+            .isEqualTo(longId);
+    }
+
+    @Test
     void zeroUseLimitIsRejected() throws Exception {
         YamlConfiguration config = yaml("item:\n  material: PAPER\nmax-uses: 0\n");
         assertThatThrownBy(() -> VoucherParser.parseVoucher(config, "bad"))

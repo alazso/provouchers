@@ -205,7 +205,7 @@ public final class RedeemHandler {
     @Nullable
     private String useDenial(Player player, Voucher voucher, int requested) {
         try {
-            String key = useKey(voucher);
+            String key = voucher.useKey();
             if (voucher.hasPerPlayerLimit()
                 && storage.codeUsesByPlayer(key, player.getUniqueId()) + requested > voucher.usesPerPlayer()) {
                 return messages.get(player, "redeem.use-limit");
@@ -222,7 +222,7 @@ public final class RedeemHandler {
 
     /** How many more redemptions the limits allow right now (async context). */
     private long remainingUses(Player player, Voucher voucher) throws SQLException {
-        String key = useKey(voucher);
+        String key = voucher.useKey();
         long remaining = Long.MAX_VALUE;
         if (voucher.hasPerPlayerLimit()) {
             remaining = voucher.usesPerPlayer() - storage.codeUsesByPlayer(key, player.getUniqueId());
@@ -233,10 +233,6 @@ public final class RedeemHandler {
         return Math.max(0, remaining);
     }
 
-    /** The use-counter storage key for a voucher, namespaced apart from code keys. */
-    private static String useKey(Voucher voucher) {
-        return "voucher:" + voucher.id().toLowerCase(Locale.ROOT);
-    }
 
     /**
      * The source-agnostic gates a voucher redemption must pass before it commits:
@@ -306,7 +302,7 @@ public final class RedeemHandler {
         scheduler.async(() -> {
             try {
                 for (int i = 0; i < count; i++) {
-                    storage.incrementCodeUse(useKey(voucher), player.getUniqueId());
+                    storage.incrementCodeUse(voucher.useKey(), player.getUniqueId());
                 }
             } catch (SQLException | RuntimeException ignored) {
                 // The redemption already committed; the counter is advisory.

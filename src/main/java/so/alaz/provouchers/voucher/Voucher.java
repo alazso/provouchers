@@ -5,6 +5,7 @@ import so.alaz.provouchers.reward.RewardLine;
 import so.alaz.provouchers.reward.RewardSet;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -100,5 +101,19 @@ public record Voucher(
     /** Whether any use limit is configured, requiring the persistent use check. */
     public boolean hasUseLimits() {
         return hasGlobalLimit() || hasPerPlayerLimit();
+    }
+
+    /** This voucher's persistent use-counter key. See {@link #voucherUseKey(String)}. */
+    public String useKey() {
+        return voucherUseKey(id);
+    }
+
+    /**
+     * The use-counter storage key for a voucher id, namespaced apart from code keys (which
+     * are stored raw). The counter column holds 64 characters, so an id used with limits
+     * must fit {@code "voucher:" + id}; the parser enforces this at load.
+     */
+    public static String voucherUseKey(String id) {
+        return "voucher:" + id.toLowerCase(Locale.ROOT);
     }
 }

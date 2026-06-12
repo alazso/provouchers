@@ -64,6 +64,13 @@ public final class VoucherParser {
         List<RewardLine> rewards = parseRewards(section.getStringList("rewards"), voucherId);
         List<RewardSet> randomRewards = parseRandomRewards(section, voucherId);
         validateItemRefs(rewards, randomRewards, definedItems, voucherId);
+        int maxUses = parseLimit(section, "max-uses", voucherId);
+        int usesPerPlayer = parseLimit(section, "uses-per-player", voucherId);
+        // The use-counter column holds 64 characters; "voucher:" + a longer id would overflow it.
+        if ((maxUses > 0 || usesPerPlayer > 0) && Voucher.voucherUseKey(voucherId).length() > 64) {
+            throw new VoucherParseException("voucher '" + voucherId
+                + "': ids longer than 56 characters cannot use max-uses or uses-per-player");
+        }
 
         return new Voucher(
             voucherId,
@@ -77,8 +84,8 @@ public final class VoucherParser {
             section.getBoolean("unredeemable", false),
             section.getBoolean("owner-only", false),
             cooldown,
-            parseLimit(section, "max-uses", voucherId),
-            parseLimit(section, "uses-per-player", voucherId),
+            maxUses,
+            usesPerPlayer,
             parseExpiry(section, voucherId),
             parseActiveFrom(section, voucherId),
             section.getBoolean("has-argument", false),
