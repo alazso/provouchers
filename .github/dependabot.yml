@@ -32,6 +32,8 @@ updates:
     open-pull-requests-limit: 10
     ignore:
       - dependency-name: "io.papermc.paper:paper-api"
+      # Pinned to the WorldEdit version WorldGuard is built against; bumped by hand with WorldGuard.
+      - dependency-name: "com.sk89q.worldedit:*"
     groups:
       # compileOnly plugin APIs - low urgency w/ one collective PR.
       integration-apis:
