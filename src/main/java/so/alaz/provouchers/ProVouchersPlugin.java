@@ -30,6 +30,7 @@ import so.alaz.provouchers.hook.PermissionHook;
 import so.alaz.provouchers.hook.RegionHook;
 import so.alaz.provouchers.hook.VaultEconomyHook;
 import so.alaz.provouchers.hook.WorldGuardRegionHook;
+import so.alaz.provouchers.gui.ConfirmGui;
 import so.alaz.provouchers.gui.FromhandGui;
 import so.alaz.provouchers.gui.PreviewGui;
 import so.alaz.provouchers.gui.RewardPreviewGui;
@@ -141,6 +142,8 @@ public final class ProVouchersPlugin extends JavaPlugin {
             conditionRegistry,
             counters,
             loadCooldownTiers(),
+            "gui".equalsIgnoreCase(getConfig().getString("redeem.confirm-style", "chat"))
+                ? new ConfirmGui(factory, guiManager, scheduler, text) : null,
             getConfig().getBoolean("anti-dupe.remove-on-discovery", true),
             getConfig().getBoolean("anti-dupe.warning.enabled", false),
             getConfig().getString("anti-dupe.warning.text", "<red>This item has been duplicated"),

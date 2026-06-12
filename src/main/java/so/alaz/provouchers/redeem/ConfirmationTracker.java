@@ -47,6 +47,11 @@ public final class ConfirmationTracker {
         return true;
     }
 
+    /** Clears any pending confirmation, used when the player explicitly cancels. */
+    public void clear(UUID player) {
+        pending.remove(player);
+    }
+
     /** The confirmation window in seconds, for use in the confirmation message. */
     public long windowSeconds() {
         return windowMillis / 1000L;

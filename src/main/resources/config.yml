@@ -50,6 +50,9 @@ redeem:
   # Vouchers with "two-step-authentication: true" need a confirmation click; this is
   # how many seconds that confirmation stays valid.
   confirm-window-seconds: 5
+  # How the confirmation is asked: "chat" (click again after a chat prompt) or
+  # "gui" (a confirm/cancel menu showing the voucher).
+  confirm-style: chat
 
 # Cooldown tiers: permission-based multipliers applied to every voucher cooldown.
 # A player with provouchers.cooldown.<tier> gets that tier's multiplier; holding

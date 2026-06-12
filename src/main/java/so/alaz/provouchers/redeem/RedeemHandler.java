@@ -40,6 +40,7 @@ import so.alaz.provouchers.condition.ConditionResult;
 import so.alaz.provouchers.condition.Conditions;
 import so.alaz.provouchers.cooldown.CooldownService;
 import so.alaz.provouchers.cooldown.CooldownTiers;
+import so.alaz.provouchers.gui.ConfirmGui;
 import so.alaz.provouchers.locale.Messages;
 import so.alaz.provouchers.platform.Items;
 import so.alaz.provouchers.platform.Scheduler;
@@ -79,6 +80,8 @@ public final class RedeemHandler {
     private final boolean batchQuiet;
     private final ConfirmationTracker confirmations;
     private final CooldownTiers cooldownTiers;
+    /** The GUI confirm dialog, or {@code null} for the chat style. */
+    @Nullable private final ConfirmGui confirmGui;
 
     public RedeemHandler(
         VoucherRegistry registry,
@@ -93,6 +96,7 @@ public final class RedeemHandler {
         ConditionRegistry conditions,
         MetricCounters counters,
         CooldownTiers cooldownTiers,
+        @Nullable ConfirmGui confirmGui,
         boolean removeOnDiscovery,
         boolean warningEnabled,
         String warningText,
@@ -112,6 +116,7 @@ public final class RedeemHandler {
         this.conditions = conditions;
         this.counters = counters;
         this.cooldownTiers = cooldownTiers;
+        this.confirmGui = confirmGui;
         this.removeOnDiscovery = removeOnDiscovery;
         this.warningEnabled = warningEnabled;
         this.warningText = warningText;
@@ -158,7 +163,7 @@ public final class RedeemHandler {
             send(player, messages.get(player, "redeem.not-yet-active"));
             return;
         }
-        if (!voucherPreChecks(player, voucher)) {
+        if (!voucherPreChecks(player, voucher, hand)) {
             return;
         }
 
@@ -246,7 +251,7 @@ public final class RedeemHandler {
      * game mode, cooldown, conditions, and the cancellable pre-redeem event. Replies
      * to the player on failure. Reused by the item path and (later) virtual vouchers.
      */
-    private boolean voucherPreChecks(Player player, Voucher voucher) {
+    private boolean voucherPreChecks(Player player, Voucher voucher, EquipmentSlot hand) {
         if (!gameModeAllowed(player)) {
             send(player, messages.get(player, "redeem.wrong-gamemode"));
             return false;
@@ -264,7 +269,14 @@ public final class RedeemHandler {
             return false;
         }
         if (voucher.twoStep() && confirmations.needsConfirm(player.getUniqueId(), voucher.id())) {
-            send(player, confirmMessage(player, voucher));
+            if (confirmGui != null) {
+                // GUI style: confirming re-runs the redeem, which finds the live pending entry.
+                confirmGui.open(player, voucher,
+                    () -> scheduler.entity(player, () -> redeemHeldVoucher(player, hand, false)),
+                    () -> confirmations.clear(player.getUniqueId()));
+            } else {
+                send(player, confirmMessage(player, voucher));
+            }
             return false;
         }
         return new VoucherPreRedeemEvent(player, voucher).callEvent();
