@@ -1,6 +1,6 @@
 [versions]
 shadow          = "9.4.2"
-foojay          = "0.9.0"
+foojay          = "1.0.0"
 paper           = "26.1.2.build.66-stable"
 annotations     = "24.1.0"
 placeholderapi  = "2.11.6"

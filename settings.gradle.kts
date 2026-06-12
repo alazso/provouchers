@@ -3,7 +3,7 @@ rootProject.name = "provouchers"
 plugins {
     // Auto-provisions the Java 25 toolchain when not installed locally.
     // Declared with an explicit version: the version catalog is not available in settings scripts.
-    id("org.gradle.toolchains.foojay-resolver-convention") version "0.9.0"
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
 dependencyResolutionManagement {
