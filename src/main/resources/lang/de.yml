@@ -31,6 +31,18 @@ command:
     unknown-file: "{prefix}<red>Keine Gutschein- oder Code-Datei namens <gold>{id}</gold>."  # {id}
     errors: "{prefix}<red>Neu geladen mit <yellow>{errors}</yellow> Fehler(n):"   # {errors}
     error-line: "<red>  - <gray>{error}"                            # {error}
+  resetuses:
+    success: "{prefix}<green>Alle erfassten Nutzungen von <gold>{id}</gold> zurückgesetzt."        # {id}
+    success-player: "{prefix}<green>Erfasste Nutzungen von <gold>{id}</gold> für <yellow>{target}</yellow> zurückgesetzt."  # {id} {target}
+    failed: "{prefix}<red>Nutzungen konnten nicht zurückgesetzt werden; Speicher nicht verfügbar."
+  fromhand:
+    players-only: "{prefix}<red>Nur Spieler können ein Item erfassen."
+    empty-hand: "{prefix}<red>Halte das Item, das du erfassen möchtest."
+    bad-id: "{prefix}<red><gold>{id}</gold> ist kein gültiger Dateiname (Buchstaben, Zahlen, - und _)."  # {id}
+    exists: "{prefix}<red>Ein Gutschein namens <gold>{id}</gold> existiert bereits."     # {id}
+    created: "{prefix}<green><gold>{id}</gold> erstellt und geladen (<yellow>{file}</yellow>)."  # {id} {file}
+    cancelled: "{prefix}<gray>Abgebrochen; nichts wurde gespeichert."
+    failed: "{prefix}<red>Das Item konnte nicht erfasst werden. Bitte versuche es erneut."
   doctor:
     heading: "{prefix}<gold>Diagnose"
   help:
@@ -43,6 +55,8 @@ command:
       preview: "Gutscheine in einem Menü durchstöbern"
       list: "Geladene Gutscheine und Codes auflisten"
       reload: "Alles oder eine Datei (per Id) neu laden"
+      resetuses: "Erfasste Nutzungen eines Gutscheins oder Codes zurücksetzen"
+      fromhand: "Das gehaltene Item als neuen Gutschein erfassen"
       doctor: "Einen Diagnosebericht anzeigen"
       help: "Dieses Hilfemenü anzeigen"
 
@@ -52,9 +66,12 @@ redeem:
   unredeemable: "<red>Dieser Gutschein kann nicht eingelöst werden."
   not-owner: "<red>Dieser Gutschein gehört jemand anderem."
   expired: "<red>Dieser Gutschein ist abgelaufen."
+  not-yet-active: "<red>Dieser Gutschein ist noch nicht aktiv."
   wrong-gamemode: "<red>In diesem Spielmodus kannst du keine Gutscheine einlösen."
   cooldown: "<red>Du musst noch {seconds}s warten, bevor du das erneut einlösen kannst."   # {seconds}
   already-redeemed: "<red>Dieser Gutschein wurde bereits eingelöst."
+  use-limit: "<red>Du hast diesen Gutschein bereits so oft wie erlaubt eingelöst."
+  global-limit: "<red>Dieser Gutschein hat sein globales Einlöselimit erreicht."
   verify-failed: "<red>Der Gutschein konnte nicht überprüft werden. Bitte versuche es erneut."
   requirements-not-met: "<red>Du erfüllst die Voraussetzungen zum Einlösen nicht."
   opened: "<green>{count}x {voucher} geöffnet."   # {count} {voucher} (batch-open)
@@ -64,6 +81,7 @@ redeem:
 code:
   unknown: "<red>Unbekannter Code."
   expired: "<red>Dieser Code ist abgelaufen."
+  not-yet-active: "<red>Dieser Code ist noch nicht aktiv."
   wrong-gamemode: "<red>In diesem Spielmodus kannst du keine Codes einlösen."
   already-redeemed: "<red>Du hast diesen Code bereits eingelöst."
   global-limit: "<red>Dieser Code hat sein globales Nutzungslimit erreicht."
@@ -81,6 +99,9 @@ condition:
   gamemode: "<red>Falscher Spielmodus."
   exp: "<red>Du brauchst Level {level}."   # {level}
   expiry: "<red>Dies ist abgelaufen."
+  playtime: "<red>Du brauchst {time} Spielzeit."   # {time}
+  item: "<red>Du brauchst {amount}x {material} im Inventar."   # {amount} {material}
+  advancement: "<red>Du hast den erforderlichen Fortschritt noch nicht freigeschaltet."
   requirement-not-met: "<red>Voraussetzung nicht erfüllt."
   statistic-unreadable: "<red>Diese Statistik konnte nicht gelesen werden."
   economy-unavailable: "<red>Das Wirtschaftssystem ist nicht verfügbar."

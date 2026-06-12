@@ -31,6 +31,18 @@ command:
     unknown-file: "{prefix}<red>Ingen voucher- eller kodefil med navnet <gold>{id}</gold>."  # {id}
     errors: "{prefix}<red>Genindlæst med <yellow>{errors}</yellow> fejl:"   # {errors}
     error-line: "<red>  - <gray>{error}"                            # {error}
+  resetuses:
+    success: "{prefix}<green>Nulstillede alle registrerede anvendelser af <gold>{id}</gold>."      # {id}
+    success-player: "{prefix}<green>Nulstillede <yellow>{target}</yellow>s anvendelser af <gold>{id}</gold>."  # {id} {target}
+    failed: "{prefix}<red>Kunne ikke nulstille anvendelser; lageret er utilgængeligt."
+  fromhand:
+    players-only: "{prefix}<red>Kun spillere kan indfange en genstand."
+    empty-hand: "{prefix}<red>Hold den genstand, du vil indfange."
+    bad-id: "{prefix}<red><gold>{id}</gold> er ikke et gyldigt filnavn (bogstaver, tal, - og _)."  # {id}
+    exists: "{prefix}<red>En voucher ved navn <gold>{id}</gold> findes allerede."     # {id}
+    created: "{prefix}<green>Oprettede og indlæste <gold>{id}</gold> (<yellow>{file}</yellow>)."  # {id} {file}
+    cancelled: "{prefix}<gray>Annulleret; intet blev gemt."
+    failed: "{prefix}<red>Kunne ikke indfange genstanden. Prøv igen."
   doctor:
     heading: "{prefix}<gold>Diagnose"
   help:
@@ -43,6 +55,8 @@ command:
       preview: "Gennemse vouchers i en menu"
       list: "Vis indlæste vouchers og koder"
       reload: "Genindlæs alt, eller én fil efter id"
+      resetuses: "Nulstil registrerede anvendelser for en voucher eller kode"
+      fromhand: "Indfang den holdte genstand som en ny voucher"
       doctor: "Vis en diagnoserapport"
       help: "Vis denne hjælpemenu"
 
@@ -52,9 +66,12 @@ redeem:
   unredeemable: "<red>Denne voucher kan ikke indløses."
   not-owner: "<red>Denne voucher tilhører en anden."
   expired: "<red>Denne voucher er udløbet."
+  not-yet-active: "<red>Denne voucher er ikke aktiv endnu."
   wrong-gamemode: "<red>Du kan ikke indløse vouchers i denne spiltilstand."
   cooldown: "<red>Du skal vente {seconds}s, før du kan indløse dette igen."   # {seconds}
   already-redeemed: "<red>Denne voucher er allerede indløst."
+  use-limit: "<red>Du har allerede indløst denne voucher det maksimale antal gange."
+  global-limit: "<red>Denne voucher har nået sin globale indløsningsgrænse."
   verify-failed: "<red>Kunne ikke verificere denne voucher. Prøv igen."
   requirements-not-met: "<red>Du opfylder ikke kravene for at indløse dette."
   opened: "<green>Åbnede {count}x {voucher}."   # {count} {voucher} (batch-open)
@@ -64,6 +81,7 @@ redeem:
 code:
   unknown: "<red>Ukendt kode."
   expired: "<red>Denne kode er udløbet."
+  not-yet-active: "<red>Denne kode er ikke aktiv endnu."
   wrong-gamemode: "<red>Du kan ikke indløse koder i denne spiltilstand."
   already-redeemed: "<red>Du har allerede indløst denne kode."
   global-limit: "<red>Denne kode har nået sin globale brugsgrænse."
@@ -81,6 +99,9 @@ condition:
   gamemode: "<red>Forkert spiltilstand."
   exp: "<red>Du skal være level {level}."   # {level}
   expiry: "<red>Dette er udløbet."
+  playtime: "<red>Du skal have {time} spilletid."   # {time}
+  item: "<red>Du skal have {amount}x {material} i dit inventar."   # {amount} {material}
+  advancement: "<red>Du har ikke opnået det påkrævede fremskridt."
   requirement-not-met: "<red>Krav ikke opfyldt."
   statistic-unreadable: "<red>Kunne ikke læse den statistik."
   economy-unavailable: "<red>Økonomien er utilgængelig."

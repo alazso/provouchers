@@ -31,6 +31,18 @@ command:
     unknown-file: "{prefix}<red>No existe ningún archivo de vale o código llamado <gold>{id}</gold>."  # {id}
     errors: "{prefix}<red>Recargado con <yellow>{errors}</yellow> error(es):"   # {errors}
     error-line: "<red>  - <gray>{error}"                            # {error}
+  resetuses:
+    success: "{prefix}<green>Se restablecieron todos los usos registrados de <gold>{id}</gold>."   # {id}
+    success-player: "{prefix}<green>Se restablecieron los usos de <gold>{id}</gold> para <yellow>{target}</yellow>."  # {id} {target}
+    failed: "{prefix}<red>No se pudieron restablecer los usos; el almacenamiento no está disponible."
+  fromhand:
+    players-only: "{prefix}<red>Solo los jugadores pueden capturar un objeto."
+    empty-hand: "{prefix}<red>Sostén el objeto que quieres capturar."
+    bad-id: "{prefix}<red><gold>{id}</gold> no es un nombre de archivo válido (letras, números, - y _)."  # {id}
+    exists: "{prefix}<red>Ya existe un vale llamado <gold>{id}</gold>."     # {id}
+    created: "{prefix}<green><gold>{id}</gold> creado y cargado (<yellow>{file}</yellow>)."  # {id} {file}
+    cancelled: "{prefix}<gray>Cancelado; no se escribió nada."
+    failed: "{prefix}<red>No se pudo capturar el objeto. Inténtalo de nuevo."
   doctor:
     heading: "{prefix}<gold>Diagnóstico"
   help:
@@ -43,6 +55,8 @@ command:
       preview: "Explorar los vales en un menú"
       list: "Listar los vales y códigos cargados"
       reload: "Recargar todo, o un solo archivo por id"
+      resetuses: "Restablecer los usos registrados de un vale o código"
+      fromhand: "Capturar el objeto en mano como nuevo vale"
       doctor: "Mostrar un informe de diagnóstico"
       help: "Mostrar este menú de ayuda"
 
@@ -52,9 +66,12 @@ redeem:
   unredeemable: "<red>Este vale no se puede canjear."
   not-owner: "<red>Este vale pertenece a otra persona."
   expired: "<red>Este vale ha caducado."
+  not-yet-active: "<red>Este vale aún no está activo."
   wrong-gamemode: "<red>No puedes canjear vales en este modo de juego."
   cooldown: "<red>Debes esperar {seconds}s antes de volver a canjear esto."   # {seconds}
   already-redeemed: "<red>Este vale ya fue canjeado."
+  use-limit: "<red>Ya has canjeado este vale el número máximo de veces."
+  global-limit: "<red>Este vale alcanzó su límite global de canjes."
   verify-failed: "<red>No se pudo verificar este vale. Inténtalo de nuevo."
   requirements-not-met: "<red>No cumples los requisitos para canjear esto."
   opened: "<green>Abierto {count}x {voucher}."   # {count} {voucher} (batch-open)
@@ -64,6 +81,7 @@ redeem:
 code:
   unknown: "<red>Código desconocido."
   expired: "<red>Este código ha caducado."
+  not-yet-active: "<red>Este código aún no está activo."
   wrong-gamemode: "<red>No puedes canjear códigos en este modo de juego."
   already-redeemed: "<red>Ya has canjeado este código."
   global-limit: "<red>Este código alcanzó su límite global de usos."
@@ -81,6 +99,9 @@ condition:
   gamemode: "<red>Modo de juego incorrecto."
   exp: "<red>Necesitas nivel {level}."   # {level}
   expiry: "<red>Esto ha caducado."
+  playtime: "<red>Necesitas {time} de tiempo de juego."   # {time}
+  item: "<red>Necesitas {amount}x {material} en tu inventario."   # {amount} {material}
+  advancement: "<red>No has desbloqueado el progreso requerido."
   requirement-not-met: "<red>Requisito no cumplido."
   statistic-unreadable: "<red>No se pudo leer esa estadística."
   economy-unavailable: "<red>La economía no está disponible."

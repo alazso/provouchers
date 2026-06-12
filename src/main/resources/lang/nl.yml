@@ -31,6 +31,18 @@ command:
     unknown-file: "{prefix}<red>Geen voucher- of codebestand met de naam <gold>{id}</gold>."  # {id}
     errors: "{prefix}<red>Opnieuw geladen met <yellow>{errors}</yellow> fout(en):"   # {errors}
     error-line: "<red>  - <gray>{error}"                            # {error}
+  resetuses:
+    success: "{prefix}<green>Alle geregistreerde gebruiken van <gold>{id}</gold> zijn gereset."    # {id}
+    success-player: "{prefix}<green>Gebruiken van <gold>{id}</gold> voor <yellow>{target}</yellow> gereset."  # {id} {target}
+    failed: "{prefix}<red>Kon de gebruiken niet resetten; opslag is niet beschikbaar."
+  fromhand:
+    players-only: "{prefix}<red>Alleen spelers kunnen een item vastleggen."
+    empty-hand: "{prefix}<red>Houd het item vast dat je wilt vastleggen."
+    bad-id: "{prefix}<red><gold>{id}</gold> is geen geldige bestandsnaam (letters, cijfers, - en _)."  # {id}
+    exists: "{prefix}<red>Een voucher met de naam <gold>{id}</gold> bestaat al."     # {id}
+    created: "{prefix}<green><gold>{id}</gold> aangemaakt en geladen (<yellow>{file}</yellow>)."  # {id} {file}
+    cancelled: "{prefix}<gray>Geannuleerd; er is niets weggeschreven."
+    failed: "{prefix}<red>Kon dat item niet vastleggen. Probeer het opnieuw."
   doctor:
     heading: "{prefix}<gold>Diagnose"
   help:
@@ -43,6 +55,8 @@ command:
       preview: "Blader door vouchers in een menu"
       list: "Toon geladen vouchers en codes"
       reload: "Herlaad alles, of één bestand op id"
+      resetuses: "Reset geregistreerde gebruiken van een voucher of code"
+      fromhand: "Leg het vastgehouden item vast als nieuwe voucher"
       doctor: "Toon een diagnoserapport"
       help: "Toon dit hulpmenu"
 
@@ -52,9 +66,12 @@ redeem:
   unredeemable: "<red>Deze voucher kan niet worden ingewisseld."
   not-owner: "<red>Deze voucher is van iemand anders."
   expired: "<red>Deze voucher is verlopen."
+  not-yet-active: "<red>Deze voucher is nog niet actief."
   wrong-gamemode: "<red>Je kunt geen vouchers inwisselen in deze spelmodus."
   cooldown: "<red>Je moet {seconds}s wachten voordat je dit opnieuw kunt inwisselen."   # {seconds}
   already-redeemed: "<red>Deze voucher is al ingewisseld."
+  use-limit: "<red>Je hebt deze voucher al het maximale aantal keren ingewisseld."
+  global-limit: "<red>Deze voucher heeft zijn globale inwissellimiet bereikt."
   verify-failed: "<red>Kon deze voucher niet verifiëren. Probeer het opnieuw."
   requirements-not-met: "<red>Je voldoet niet aan de vereisten om dit in te wisselen."
   opened: "<green>{count}x {voucher} geopend."   # {count} {voucher} (batch-open)
@@ -64,6 +81,7 @@ redeem:
 code:
   unknown: "<red>Onbekende code."
   expired: "<red>Deze code is verlopen."
+  not-yet-active: "<red>Deze code is nog niet actief."
   wrong-gamemode: "<red>Je kunt geen codes inwisselen in deze spelmodus."
   already-redeemed: "<red>Je hebt deze code al ingewisseld."
   global-limit: "<red>Deze code heeft zijn globale gebruikslimiet bereikt."
@@ -81,6 +99,9 @@ condition:
   gamemode: "<red>Verkeerde spelmodus."
   exp: "<red>Je hebt level {level} nodig."   # {level}
   expiry: "<red>Dit is verlopen."
+  playtime: "<red>Je hebt {time} speeltijd nodig."   # {time}
+  item: "<red>Je hebt {amount}x {material} in je inventaris nodig."   # {amount} {material}
+  advancement: "<red>Je hebt de vereiste vooruitgang nog niet behaald."
   requirement-not-met: "<red>Niet aan de vereiste voldaan."
   statistic-unreadable: "<red>Kon die statistiek niet lezen."
   economy-unavailable: "<red>Economie is niet beschikbaar."

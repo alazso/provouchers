@@ -4,6 +4,37 @@ All notable changes to ProVouchers are documented here. This project follows
 [Semantic Versioning](https://semver.org). Releases before 0.5.0 are listed on the
 [GitHub releases](https://github.com/alazso/provouchers/releases) page.
 
+## [1.2.0] - 2026-06-11
+
+### Added
+- `playtime`, `item`, and `advancement` conditions. Playtime takes a duration
+  (`"2h"`), item checks the inventory without consuming, advancement checks a
+  completed advancement key.
+- `active-from`: vouchers and codes can start at a date, date-time, or instant.
+  A plain date activates at the start of that day.
+- `max-uses` and `uses-per-player` on vouchers: persistent global and per-player
+  redemption caps (`-1` = unlimited, the default). Batch open caps at the
+  remaining allowance and refunds the rest.
+- `/voucher resetuses <id> [player]`: clears the recorded use counters for a
+  voucher or code.
+- `cooldown.tiers` in config.yml: permission-based cooldown multipliers via
+  `provouchers.cooldown.<tier>`. The lowest held tier wins; `0` removes the
+  cooldown.
+- `xp` reward type: `"xp: 500"` gives points, `"xp: 30 levels"` gives levels.
+  The amount accepts `%random%`.
+- `effects.firework`: a firework on redeem with named or hex colors, a shape,
+  and a flight power. Deals no damage.
+- `items:` map: define decorated items (name, lore, glow, custom or skull bases,
+  model data) once and grant them with `"item: @<name>"`.
+- `/voucher fromhand <id>`: captures the held item as a new voucher behind a
+  confirm GUI. The preview is rebuilt from the serialized data, so the item
+  shown is exactly what the voucher will give.
+- Bundled translations: German, French, Spanish, Polish, Danish, and Dutch ship
+  alongside English. Players see their client language automatically.
+
+### Changed
+- Updated FastStats to 0.26.0.
+
 ## [1.1.0] - 2026-06-11
 
 ### Added
@@ -120,6 +151,7 @@ and Purpur 26.1+. 0.6.0 was never published; its work is included here.
 - Removed two no-op trailing argument slots from `/voucher give` and
   `/voucher giveall`.
 
+[1.2.0]: https://github.com/alazso/provouchers/releases/tag/v1.2.0
 [1.1.0]: https://github.com/alazso/provouchers/releases/tag/v1.1.0
 [1.0.0]: https://github.com/alazso/provouchers/releases/tag/v1.0.0
 [0.5.0]: https://github.com/alazso/provouchers/releases/tag/v0.5.0

@@ -31,6 +31,18 @@ command:
     unknown-file: "{prefix}<red>Brak pliku vouchera lub kodu o nazwie <gold>{id}</gold>."  # {id}
     errors: "{prefix}<red>Przeładowano z błędami (<yellow>{errors}</yellow>):"   # {errors}
     error-line: "<red>  - <gray>{error}"                            # {error}
+  resetuses:
+    success: "{prefix}<green>Zresetowano wszystkie zapisane użycia <gold>{id}</gold>."     # {id}
+    success-player: "{prefix}<green>Zresetowano użycia <gold>{id}</gold> dla gracza <yellow>{target}</yellow>."  # {id} {target}
+    failed: "{prefix}<red>Nie udało się zresetować użyć; magazyn danych jest niedostępny."
+  fromhand:
+    players-only: "{prefix}<red>Tylko gracze mogą przechwycić przedmiot."
+    empty-hand: "{prefix}<red>Trzymaj przedmiot, który chcesz przechwycić."
+    bad-id: "{prefix}<red><gold>{id}</gold> nie jest poprawną nazwą pliku (litery, cyfry, - i _)."  # {id}
+    exists: "{prefix}<red>Voucher o nazwie <gold>{id}</gold> już istnieje."     # {id}
+    created: "{prefix}<green>Utworzono i wczytano <gold>{id}</gold> (<yellow>{file}</yellow>)."  # {id} {file}
+    cancelled: "{prefix}<gray>Anulowano; niczego nie zapisano."
+    failed: "{prefix}<red>Nie udało się przechwycić przedmiotu. Spróbuj ponownie."
   doctor:
     heading: "{prefix}<gold>Diagnostyka"
   help:
@@ -43,6 +55,8 @@ command:
       preview: "Przeglądaj vouchery w menu"
       list: "Wyświetl wczytane vouchery i kody"
       reload: "Przeładuj wszystko lub jeden plik po id"
+      resetuses: "Zresetuj zapisane użycia vouchera lub kodu"
+      fromhand: "Przechwyć trzymany przedmiot jako nowy voucher"
       doctor: "Pokaż raport diagnostyczny"
       help: "Pokaż to menu pomocy"
 
@@ -52,9 +66,12 @@ redeem:
   unredeemable: "<red>Tego vouchera nie da się zrealizować."
   not-owner: "<red>Ten voucher należy do kogoś innego."
   expired: "<red>Ten voucher wygasł."
+  not-yet-active: "<red>Ten voucher nie jest jeszcze aktywny."
   wrong-gamemode: "<red>Nie możesz realizować voucherów w tym trybie gry."
   cooldown: "<red>Musisz poczekać {seconds}s, zanim zrealizujesz to ponownie."   # {seconds}
   already-redeemed: "<red>Ten voucher został już zrealizowany."
+  use-limit: "<red>Zrealizowano już ten voucher maksymalną liczbę razy."
+  global-limit: "<red>Ten voucher osiągnął globalny limit realizacji."
   verify-failed: "<red>Nie udało się zweryfikować vouchera. Spróbuj ponownie."
   requirements-not-met: "<red>Nie spełniasz wymagań, aby to zrealizować."
   opened: "<green>Otwarto {count}x {voucher}."   # {count} {voucher} (batch-open)
@@ -64,6 +81,7 @@ redeem:
 code:
   unknown: "<red>Nieznany kod."
   expired: "<red>Ten kod wygasł."
+  not-yet-active: "<red>Ten kod nie jest jeszcze aktywny."
   wrong-gamemode: "<red>Nie możesz realizować kodów w tym trybie gry."
   already-redeemed: "<red>Ten kod został już przez ciebie zrealizowany."
   global-limit: "<red>Ten kod osiągnął globalny limit użyć."
@@ -81,6 +99,9 @@ condition:
   gamemode: "<red>Niewłaściwy tryb gry."
   exp: "<red>Potrzebujesz poziomu {level}."   # {level}
   expiry: "<red>To wygasło."
+  playtime: "<red>Potrzebujesz {time} czasu gry."   # {time}
+  item: "<red>Potrzebujesz {amount}x {material} w ekwipunku."   # {amount} {material}
+  advancement: "<red>Nie masz wymaganego postępu."
   requirement-not-met: "<red>Wymaganie niespełnione."
   statistic-unreadable: "<red>Nie udało się odczytać tej statystyki."
   economy-unavailable: "<red>Ekonomia jest niedostępna."
