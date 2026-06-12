@@ -27,9 +27,9 @@ public final class ProVouchersLoader implements PluginLoader {
     public static final List<String> LIBRARIES = List.of(
         "com.zaxxer:HikariCP:7.0.2",
         "org.xerial:sqlite-jdbc:3.53.2.0",
-        "com.mysql:mysql-connector-j:8.4.0",
+        "com.mysql:mysql-connector-j:9.7.0",
         "org.mariadb.jdbc:mariadb-java-client:3.5.8",
-        "org.postgresql:postgresql:42.7.7"
+        "org.postgresql:postgresql:42.7.11"
     );
 
     @Override
