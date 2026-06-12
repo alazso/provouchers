@@ -39,6 +39,10 @@ command:
     unknown-file: "{prefix}<red>No voucher or code file named <gold>{id}</gold>."  # {id}
     errors: "{prefix}<red>Reloaded with <yellow>{errors}</yellow> error(s):"   # {errors}
     error-line: "<red>  - <gray>{error}"                            # {error}
+  resetuses:
+    success: "{prefix}<green>Reset all recorded uses of <gold>{id}</gold>."        # {id}
+    success-player: "{prefix}<green>Reset <yellow>{target}</yellow>'s recorded uses of <gold>{id}</gold>."  # {id} {target}
+    failed: "{prefix}<red>Could not reset uses; storage is unavailable."
   doctor:
     heading: "{prefix}<gold>Doctor"
   help:
@@ -51,6 +55,7 @@ command:
       preview: "Browse vouchers in a GUI"
       list: "List loaded vouchers and codes"
       reload: "Reload all, or one file by id, from disk"
+      resetuses: "Reset recorded uses for a voucher or code"
       doctor: "Show a diagnostic health report"
       help: "Show this help menu"
 
@@ -64,6 +69,8 @@ redeem:
   wrong-gamemode: "<red>You cannot redeem vouchers in this game mode."
   cooldown: "<red>You must wait {seconds}s before redeeming this again."   # {seconds}
   already-redeemed: "<red>This voucher has already been redeemed."
+  use-limit: "<red>You have redeemed this voucher the maximum number of times."
+  global-limit: "<red>This voucher has reached its global redemption limit."
   verify-failed: "<red>Could not verify this voucher. Please try again."
   requirements-not-met: "<red>You do not meet the requirements to redeem this."
   opened: "<green>Opened {count}x {voucher}."   # {count} {voucher} (batch-open)

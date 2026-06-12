@@ -152,7 +152,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
         Diagnostics diagnostics = new Diagnostics(this, storage, registry, hooks, messages,
             () -> backend.name().toLowerCase(Locale.ROOT));
         new VoucherCommand(registry, giveService, redeemHandler, configManager, previewGui, text,
-            messages, diagnostics).register(this);
+            messages, diagnostics, storage, scheduler).register(this);
 
         getServer().getServicesManager().register(VoucherService.class,
             new VoucherServiceImpl(registry, giveService), this,

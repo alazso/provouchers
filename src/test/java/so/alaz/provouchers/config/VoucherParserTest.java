@@ -107,6 +107,25 @@ class VoucherParserTest {
     }
 
     @Test
+    void parsesUseLimits() throws Exception {
+        YamlConfiguration config = yaml("item:\n  material: PAPER\nmax-uses: 100\nuses-per-player: 2\n");
+        Voucher voucher = VoucherParser.parseVoucher(config, "limited");
+        assertThat(voucher.maxUses()).isEqualTo(100);
+        assertThat(voucher.usesPerPlayer()).isEqualTo(2);
+        assertThat(voucher.hasUseLimits()).isTrue();
+        Voucher unlimited = VoucherParser.parseVoucher(yaml("item:\n  material: PAPER\n"), "free");
+        assertThat(unlimited.hasUseLimits()).isFalse();
+    }
+
+    @Test
+    void zeroUseLimitIsRejected() throws Exception {
+        YamlConfiguration config = yaml("item:\n  material: PAPER\nmax-uses: 0\n");
+        assertThatThrownBy(() -> VoucherParser.parseVoucher(config, "bad"))
+            .isInstanceOf(VoucherParseException.class)
+            .hasMessageContaining("max-uses");
+    }
+
+    @Test
     void parsesAbsoluteActiveFrom() throws Exception {
         YamlConfiguration config = yaml("item:\n  material: PAPER\nactive-from: \"2026-07-01\"\n");
         assertThat(VoucherParser.parseVoucher(config, "event").activeFrom()).isEqualTo("2026-07-01");

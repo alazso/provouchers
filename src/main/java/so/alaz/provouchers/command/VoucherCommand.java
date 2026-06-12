@@ -24,10 +24,13 @@ import so.alaz.provouchers.give.VoucherGiveService;
 import so.alaz.provouchers.gui.PreviewGui;
 import so.alaz.provouchers.locale.Messages;
 import so.alaz.provouchers.platform.Text;
+import so.alaz.provouchers.platform.Scheduler;
 import so.alaz.provouchers.redeem.RedeemHandler;
+import so.alaz.provouchers.storage.VoucherStorage;
 import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.provouchers.voucher.VoucherRegistry;
 
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -55,6 +58,7 @@ public final class VoucherCommand {
     private static final String PERM_LIST = "provouchers.list";
     private static final String PERM_RELOAD = "provouchers.reload";
     private static final String PERM_DOCTOR = "provouchers.doctor";
+    private static final String PERM_RESETUSES = "provouchers.resetuses";
 
     /** A single subcommand's help metadata; Brigadier nodes carry none of this, so it lives here. */
     private record Sub(String name, String usage, @Nullable String permission) {
@@ -69,6 +73,7 @@ public final class VoucherCommand {
         new Sub("preview", "preview", PERM_PREVIEW),
         new Sub("list", "list", PERM_LIST),
         new Sub("reload", "reload [id]", PERM_RELOAD),
+        new Sub("resetuses", "resetuses <id> [player]", PERM_RESETUSES),
         new Sub("doctor", "doctor", PERM_DOCTOR),
         new Sub("help", "help", null));
 
@@ -80,6 +85,8 @@ public final class VoucherCommand {
     private final Text text;
     private final Messages messages;
     private final Diagnostics diagnostics;
+    private final VoucherStorage storage;
+    private final Scheduler scheduler;
 
     public VoucherCommand(
         VoucherRegistry registry,
@@ -89,7 +96,9 @@ public final class VoucherCommand {
         PreviewGui previewGui,
         Text text,
         Messages messages,
-        Diagnostics diagnostics
+        Diagnostics diagnostics,
+        VoucherStorage storage,
+        Scheduler scheduler
     ) {
         this.registry = registry;
         this.giveService = giveService;
@@ -99,6 +108,8 @@ public final class VoucherCommand {
         this.text = text;
         this.messages = messages;
         this.diagnostics = diagnostics;
+        this.storage = storage;
+        this.scheduler = scheduler;
     }
 
     /** Builds and registers the command for {@code plugin}. Call during {@code onEnable}. */
@@ -122,6 +133,12 @@ public final class VoucherCommand {
                 .then(Commands.argument("id", StringArgumentType.word())
                     .suggests((ctx, builder) -> suggest(builder, registry.voucherIds()))
                     .executes(run(ctx -> reloadOne(ctx.getSource(), StringArgumentType.getString(ctx, "id"))))))
+            .then(Commands.literal("resetuses").requires(perm(PERM_RESETUSES))
+                .then(Commands.argument("id", StringArgumentType.word())
+                    .suggests((ctx, builder) -> suggest(builder, registry.voucherIds()))
+                    .executes(run(ctx -> resetUses(ctx, false)))
+                    .then(Commands.argument("target", ArgumentTypes.player())
+                        .executes(run(ctx -> resetUses(ctx, true))))))
             .then(Commands.literal("doctor").requires(perm(PERM_DOCTOR))
                 .executes(run(ctx -> doctor(ctx.getSource()))))
             .then(Commands.literal("help")
@@ -296,6 +313,42 @@ public final class VoucherCommand {
         for (String error : errors) {
             reply(source, messages.get(viewer, "command.reload.error-line", "error", error));
         }
+    }
+
+    /**
+     * Clears the persistent use counters recorded for {@code id}, either for one player or
+     * for everyone. Clears both the voucher key and the code key so the id works for either.
+     */
+    private void resetUses(CommandContext<CommandSourceStack> ctx, boolean hasTarget) {
+        CommandSourceStack source = ctx.getSource();
+        Player viewer = asPlayer(source);
+        String id = StringArgumentType.getString(ctx, "id");
+        Player target = hasTarget ? firstTarget(ctx) : null;
+        if (hasTarget && target == null) {
+            reply(source, messages.get(viewer, "command.give.no-target"));
+            return;
+        }
+        scheduler.async(() -> {
+            boolean ok = true;
+            try {
+                for (String key : new String[] {"voucher:" + id.toLowerCase(Locale.ROOT), id}) {
+                    if (target != null) {
+                        storage.clearUses(key, target.getUniqueId());
+                    } else {
+                        storage.clearUses(key);
+                    }
+                }
+            } catch (SQLException | RuntimeException ex) {
+                ok = false;
+            }
+            boolean finalOk = ok;
+            scheduler.global(() -> reply(source, finalOk
+                ? (target != null
+                    ? messages.get(viewer, "command.resetuses.success-player", "id", id,
+                        "target", target.getName())
+                    : messages.get(viewer, "command.resetuses.success", "id", id))
+                : messages.get(viewer, "command.resetuses.failed")));
+        });
     }
 
     private void doctor(CommandSourceStack source) {

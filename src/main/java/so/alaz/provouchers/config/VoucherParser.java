@@ -66,6 +66,8 @@ public final class VoucherParser {
             section.getBoolean("unredeemable", false),
             section.getBoolean("owner-only", false),
             cooldown,
+            parseLimit(section, "max-uses", voucherId),
+            parseLimit(section, "uses-per-player", voucherId),
             parseExpiry(section, voucherId),
             parseActiveFrom(section, voucherId),
             section.getBoolean("has-argument", false),
@@ -110,6 +112,15 @@ public final class VoucherParser {
             parseRandomRewards(section, code),
             section.getBoolean("has-argument", false)
         );
+    }
+
+    /** A use limit: {@code -1} (unlimited, the default) or a positive count. */
+    private static int parseLimit(ConfigurationSection section, String key, String id) {
+        int value = section.getInt(key, -1);
+        if (value == 0 || value < -1) {
+            throw new VoucherParseException("voucher '" + id + "': " + key + " must be -1 or at least 1");
+        }
+        return value;
     }
 
     /** Validates the optional absolute {@code active-from} gate; a relative duration is rejected. */

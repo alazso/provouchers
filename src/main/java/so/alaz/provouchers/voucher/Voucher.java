@@ -23,6 +23,8 @@ import java.util.Map;
  * @param unredeemable  if {@code true} the item exists for show and cannot be redeemed
  * @param ownerOnly     if {@code true} only the player it was given to may redeem it
  * @param cooldownSeconds per-player cooldown between redemptions, in seconds
+ * @param maxUses       global redemption cap across all players, or {@code -1} for unlimited
+ * @param usesPerPlayer lifetime redemptions allowed per player, or {@code -1} for unlimited
  * @param expiry        raw expiry value (ISO-8601 or relative), or {@code null}
  * @param activeFrom    raw absolute instant before which redeeming is refused, or {@code null}
  * @param hasArgument   if {@code true} a free-form argument is accepted and exposed as {@code %arg%}
@@ -46,6 +48,8 @@ public record Voucher(
     boolean unredeemable,
     boolean ownerOnly,
     long cooldownSeconds,
+    int maxUses,
+    int usesPerPlayer,
     @Nullable String expiry,
     @Nullable String activeFrom,
     boolean hasArgument,
@@ -67,10 +71,31 @@ public record Voucher(
         if (cooldownSeconds < 0) {
             throw new IllegalArgumentException("Voucher '" + id + "' cooldown must not be negative");
         }
+        if (maxUses == 0 || maxUses < -1) {
+            throw new IllegalArgumentException("Voucher '" + id + "' max-uses must be -1 or at least 1");
+        }
+        if (usesPerPlayer == 0 || usesPerPlayer < -1) {
+            throw new IllegalArgumentException("Voucher '" + id + "' uses-per-player must be -1 or at least 1");
+        }
     }
 
     /** Whether this voucher grants any reward at all. */
     public boolean hasRewards() {
         return !rewards.isEmpty() || !randomRewards.isEmpty();
+    }
+
+    /** Whether a global redemption cap is configured. */
+    public boolean hasGlobalLimit() {
+        return maxUses > 0;
+    }
+
+    /** Whether a per-player lifetime limit is configured. */
+    public boolean hasPerPlayerLimit() {
+        return usesPerPlayer > 0;
+    }
+
+    /** Whether any use limit is configured, requiring the persistent use check. */
+    public boolean hasUseLimits() {
+        return hasGlobalLimit() || hasPerPlayerLimit();
     }
 }

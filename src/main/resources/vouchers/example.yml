@@ -49,6 +49,8 @@ stackable: true                   # false = anti-dupe: each copy tracked, never 
 # unredeemable: false             # display only, cannot be redeemed
 # owner-only: false               # only the player it was given to may redeem
 # has-argument: false             # fills %arg% from /voucher redeem <code> <arg>
+# max-uses: -1                    # global cap on redemptions across all players (-1 = unlimited)
+# uses-per-player: -1             # lifetime redemptions per player (-1 = unlimited)
 # expiry: "30d"                   # "30d" from give time, or a date like 2026-12-31; blank = never
 # active-from: "2026-07-01"       # not redeemable before this date; blank = immediately
 # two-step-authentication: false  # require a second confirmation click before redeeming

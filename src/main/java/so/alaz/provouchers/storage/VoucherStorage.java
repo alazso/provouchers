@@ -81,14 +81,17 @@ public final class VoucherStorage {
         }
     }
 
-    /** How many times this player has redeemed this code. */
+    /**
+     * How many times this player has redeemed this use key. A key is a code's literal
+     * value, or {@code "voucher:<id>"} for an item voucher's use counters.
+     */
     public int codeUsesByPlayer(String code, UUID player) throws SQLException {
         try (Connection connection = provider.dataSource().getConnection()) {
             return codeUsesByPlayer(connection, code, player);
         }
     }
 
-    /** How many times this code has been redeemed across all players. */
+    /** How many times this use key (a code, or {@code "voucher:<id>"}) was redeemed by anyone. */
     public long codeUsesTotal(String code) throws SQLException {
         try (Connection connection = provider.dataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(
@@ -139,6 +142,27 @@ public final class VoucherStorage {
             } finally {
                 connection.setAutoCommit(previousAutoCommit);
             }
+        }
+    }
+
+    /** Deletes every recorded use of this key (a code, or {@code "voucher:<id>"}). */
+    public void clearUses(String key) throws SQLException {
+        try (Connection connection = provider.dataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                 "DELETE FROM provouchers_code_uses WHERE code = ?")) {
+            statement.setString(1, key);
+            statement.executeUpdate();
+        }
+    }
+
+    /** Deletes one player's recorded uses of this key. */
+    public void clearUses(String key, UUID player) throws SQLException {
+        try (Connection connection = provider.dataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                 "DELETE FROM provouchers_code_uses WHERE code = ? AND player_uuid = ?")) {
+            statement.setString(1, key);
+            statement.setString(2, player.toString());
+            statement.executeUpdate();
         }
     }
 
