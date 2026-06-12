@@ -29,6 +29,8 @@ public enum RewardType {
     ITEM,
     /** Give or take currency through the server's economy (Vault and compatibles). */
     CURRENCY,
+    /** Give experience points or levels. */
+    XP,
     /** Add or remove a permission group (LuckPerms), optionally for a duration. */
     GROUP,
     /** Set or clear a permission node (LuckPerms). */
@@ -50,6 +52,7 @@ public enum RewardType {
             case "sound" -> SOUND;
             case "item", "give-item", "itemsadder", "ia", "oraxen", "nexo" -> ITEM;
             case "currency", "economy", "money", "eco" -> CURRENCY;
+            case "xp", "experience", "exp" -> XP;
             case "group", "rank" -> GROUP;
             case "permission", "perm" -> PERMISSION;
             default -> null;

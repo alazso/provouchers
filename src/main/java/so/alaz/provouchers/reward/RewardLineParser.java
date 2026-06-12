@@ -48,6 +48,7 @@ public final class RewardLineParser {
         switch (type) {
             case ITEM -> validateItemPayload(payload);
             case CURRENCY -> CurrencyRewardPayload.parse(payload);
+            case XP -> XpRewardPayload.parse(payload);
             case GROUP -> GroupRewardPayload.parse(payload);
             case PERMISSION -> PermissionRewardPayload.parse(payload);
             default -> { /* other reward types have free-form payloads */ }

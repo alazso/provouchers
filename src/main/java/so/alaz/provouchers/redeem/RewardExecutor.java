@@ -15,6 +15,7 @@ import so.alaz.provouchers.reward.PermissionRewardPayload;
 import so.alaz.provouchers.reward.RewardItemPayload;
 import so.alaz.provouchers.reward.RewardLine;
 import so.alaz.provouchers.reward.RewardType;
+import so.alaz.provouchers.reward.XpRewardPayload;
 import so.alaz.provouchers.util.Placeholders;
 import so.alaz.provouchers.hook.EconomyHook;
 import so.alaz.provouchers.hook.HookRegistry;
@@ -105,6 +106,7 @@ public final class RewardExecutor {
             case SOUND -> playSound(player, payload);
             case ITEM -> giveItem(player, payload);
             case CURRENCY -> applyCurrency(player, payload);
+            case XP -> giveXp(player, payload);
             case GROUP -> applyGroup(player, source, payload);
             case PERMISSION -> applyPermission(player, source, payload);
         }
@@ -115,6 +117,16 @@ public final class RewardExecutor {
         ItemStack item = items.give(spec.reference(), spec.resolveAmount());
         player.getInventory().addItem(item).values()
             .forEach(leftover -> player.getWorld().dropItemNaturally(player.getLocation(), leftover));
+    }
+
+    private void giveXp(Player player, String payload) {
+        XpRewardPayload spec = XpRewardPayload.parse(payload);
+        int amount = spec.resolveAmount();
+        if (spec.levels()) {
+            player.giveExpLevels(amount);
+        } else {
+            player.giveExp(amount);
+        }
     }
 
     private void applyCurrency(Player player, String payload) {

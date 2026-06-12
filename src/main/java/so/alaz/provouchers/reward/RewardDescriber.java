@@ -37,6 +37,10 @@ public final class RewardDescriber {
                 yield currency.action() == CurrencyRewardPayload.Action.GIVE
                     ? amount(currency.amount()) + " currency" : null;
             }
+            case XP -> {
+                XpRewardPayload xp = XpRewardPayload.parse(reward.payload());
+                yield amount(xp.amount()) + (xp.levels() ? " levels" : " XP");
+            }
             case GROUP -> {
                 GroupRewardPayload group = GroupRewardPayload.parse(reward.payload());
                 yield group.action() == GroupRewardPayload.Action.ADD
