@@ -11,7 +11,9 @@ import so.alaz.provouchers.command.VoucherCommand;
 import so.alaz.provouchers.condition.ConditionRegistry;
 import so.alaz.provouchers.config.ConfigManager;
 import so.alaz.provouchers.service.VoucherServiceImpl;
+import org.bukkit.configuration.ConfigurationSection;
 import so.alaz.provouchers.cooldown.CooldownService;
+import so.alaz.provouchers.cooldown.CooldownTiers;
 import so.alaz.provouchers.locale.Messages;
 import so.alaz.provouchers.give.VoucherGiveService;
 import so.alaz.provouchers.gui.GuiListener;
@@ -52,7 +54,9 @@ import so.alaz.provouchers.voucher.VoucherRegistry;
 
 import java.io.File;
 import java.util.List;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 import static net.kyori.adventure.text.Component.text;
 
@@ -134,6 +138,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
             cooldowns,
             conditionRegistry,
             counters,
+            loadCooldownTiers(),
             getConfig().getBoolean("anti-dupe.remove-on-discovery", true),
             getConfig().getBoolean("anti-dupe.warning.enabled", false),
             getConfig().getString("anti-dupe.warning.text", "<red>This item has been duplicated"),
@@ -194,6 +199,19 @@ public final class ProVouchersPlugin extends JavaPlugin {
         hooks.register(ItemHook.class, new NexoItemHook());
         hooks.register(ItemHook.class, new HeadDatabaseItemHook());
         return hooks;
+    }
+
+    /** The {@code cooldown.tiers} config section as tier-name to multiplier; read once at enable. */
+    private CooldownTiers loadCooldownTiers() {
+        ConfigurationSection section = getConfig().getConfigurationSection("cooldown.tiers");
+        if (section == null) {
+            return CooldownTiers.none();
+        }
+        Map<String, Double> tiers = new HashMap<>();
+        for (String tier : section.getKeys(false)) {
+            tiers.put(tier.toLowerCase(Locale.ROOT), section.getDouble(tier, 1.0));
+        }
+        return new CooldownTiers(tiers);
     }
 
     private StorageConfig buildStorageConfig(Backend backend) {

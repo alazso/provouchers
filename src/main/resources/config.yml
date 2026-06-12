@@ -51,6 +51,14 @@ redeem:
   # how many seconds that confirmation stays valid.
   confirm-window-seconds: 5
 
+# Cooldown tiers: permission-based multipliers applied to every voucher cooldown.
+# A player with provouchers.cooldown.<tier> gets that tier's multiplier; holding
+# several, the lowest wins. 0 removes the cooldown. Changing tiers needs a restart.
+#cooldown:
+#  tiers:
+#    vip: 0.5
+#    mvp: 0.0
+
 metrics:
   # Submit anonymous usage statistics (bStats and FastStats).
   # Set to false to opt out entirely.

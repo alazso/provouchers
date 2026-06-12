@@ -34,6 +34,7 @@ import so.alaz.provouchers.condition.ConditionRegistry;
 import so.alaz.provouchers.condition.ConditionResult;
 import so.alaz.provouchers.condition.Conditions;
 import so.alaz.provouchers.cooldown.CooldownService;
+import so.alaz.provouchers.cooldown.CooldownTiers;
 import so.alaz.provouchers.locale.Messages;
 import so.alaz.provouchers.platform.Scheduler;
 import so.alaz.provouchers.platform.Text;
@@ -70,6 +71,7 @@ public final class RedeemHandler {
     private final boolean notifyEnabled;
     private final boolean batchQuiet;
     private final ConfirmationTracker confirmations;
+    private final CooldownTiers cooldownTiers;
 
     public RedeemHandler(
         VoucherRegistry registry,
@@ -83,6 +85,7 @@ public final class RedeemHandler {
         CooldownService cooldowns,
         ConditionRegistry conditions,
         MetricCounters counters,
+        CooldownTiers cooldownTiers,
         boolean removeOnDiscovery,
         boolean warningEnabled,
         String warningText,
@@ -101,6 +104,7 @@ public final class RedeemHandler {
         this.cooldowns = cooldowns;
         this.conditions = conditions;
         this.counters = counters;
+        this.cooldownTiers = cooldownTiers;
         this.removeOnDiscovery = removeOnDiscovery;
         this.warningEnabled = warningEnabled;
         this.warningText = warningText;
@@ -272,7 +276,11 @@ public final class RedeemHandler {
      */
     private void completeVoucherRedeem(Player player, Voucher voucher, @Nullable String uid, boolean quiet) {
         if (voucher.cooldownSeconds() > 0) {
-            cooldowns.apply(player.getUniqueId(), voucher.id(), voucher.cooldownSeconds());
+            long effective = (long) Math.ceil(
+                voucher.cooldownSeconds() * cooldownTiers.multiplier(player::hasPermission));
+            if (effective > 0) {
+                cooldowns.apply(player.getUniqueId(), voucher.id(), effective);
+            }
         }
         grant(player, "voucher '" + voucher.id() + "'", voucher.rewards(), voucher.randomRewards(), null, quiet);
         if (!quiet) {
