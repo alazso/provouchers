@@ -171,7 +171,7 @@ public final class RedeemHandler {
         String uid = readUid(consumed);
         if (uid == null && !voucher.hasUseLimits()) {
             // Stackable, unlimited voucher: nothing persistent to check, commit on the current thread.
-            completeVoucherRedeem(player, voucher, null, false);
+            completeVoucherRedeem(player, voucher, null, false, true);
             return;
         }
         scheduler.async(() -> {
@@ -191,46 +191,53 @@ public final class RedeemHandler {
                     handleRejectedItem(player, voucher, consumed, status);
                     return;
                 }
-                completeVoucherRedeem(player, voucher, uid, false);
+                completeVoucherRedeem(player, voucher, uid, false, true);
             });
         });
     }
 
     /**
-     * Checks the voucher's use limits against storage (async context). Returns the denial
-     * message when fewer than {@code requested} uses remain, or {@code null} when allowed.
-     * Limits are checked before commit and recorded after, so simultaneous redeems can
-     * briefly exceed a cap by the in-flight count.
+     * The remaining per-player and global allowance, read from storage once (async
+     * context). Limits are checked before commit and recorded after, so simultaneous
+     * redeems can briefly exceed a cap by the in-flight count.
      */
-    @Nullable
-    private String useDenial(Player player, Voucher voucher, int requested) {
-        try {
-            String key = voucher.useKey();
-            if (voucher.hasPerPlayerLimit()
-                && storage.codeUsesByPlayer(key, player.getUniqueId()) + requested > voucher.usesPerPlayer()) {
-                return messages.get(player, "redeem.use-limit");
-            }
-            if (voucher.hasGlobalLimit()
-                && storage.codeUsesTotal(key) + requested > voucher.maxUses()) {
-                return messages.get(player, "redeem.global-limit");
-            }
-            return null;
-        } catch (SQLException | RuntimeException ex) {
-            return messages.get(player, "redeem.verify-failed");
+    private record Allowance(long perPlayer, long global) {
+        long remaining() {
+            return Math.max(0, Math.min(perPlayer, global));
         }
     }
 
-    /** How many more redemptions the limits allow right now (async context). */
-    private long remainingUses(Player player, Voucher voucher) throws SQLException {
+    private Allowance readAllowance(Player player, Voucher voucher) throws SQLException {
         String key = voucher.useKey();
-        long remaining = Long.MAX_VALUE;
-        if (voucher.hasPerPlayerLimit()) {
-            remaining = voucher.usesPerPlayer() - storage.codeUsesByPlayer(key, player.getUniqueId());
+        long perPlayer = voucher.hasPerPlayerLimit()
+            ? voucher.usesPerPlayer() - storage.codeUsesByPlayer(key, player.getUniqueId())
+            : Long.MAX_VALUE;
+        long global = voucher.hasGlobalLimit()
+            ? voucher.maxUses() - storage.codeUsesTotal(key)
+            : Long.MAX_VALUE;
+        return new Allowance(perPlayer, global);
+    }
+
+    /** The denial message for an allowance short of {@code requested}, or {@code null} when it fits. */
+    @Nullable
+    private String denialFor(Player player, Allowance allowance, int requested) {
+        if (allowance.perPlayer() < requested) {
+            return messages.get(player, "redeem.use-limit");
         }
-        if (voucher.hasGlobalLimit()) {
-            remaining = Math.min(remaining, voucher.maxUses() - storage.codeUsesTotal(key));
+        if (allowance.global() < requested) {
+            return messages.get(player, "redeem.global-limit");
         }
-        return Math.max(0, remaining);
+        return null;
+    }
+
+    /** One-shot limit check (async context): the denial message, or {@code null} when allowed. */
+    @Nullable
+    private String useDenial(Player player, Voucher voucher, int requested) {
+        try {
+            return denialFor(player, readAllowance(player, voucher), requested);
+        } catch (SQLException | RuntimeException ex) {
+            return messages.get(player, "redeem.verify-failed");
+        }
     }
 
 
@@ -275,9 +282,11 @@ public final class RedeemHandler {
      * Commits a successful voucher redemption: applies the cooldown, grants the
      * rewards, records the metric, and fires {@link VoucherRedeemEvent}. The
      * {@code uid} is the redeemed item's unique id, or {@code null} for a stackable
-     * voucher. Reused by the item path and (later) virtual vouchers and batch open.
+     * voucher. Batch open passes {@code recordUse=false} and records the whole batch
+     * in one write instead.
      */
-    private void completeVoucherRedeem(Player player, Voucher voucher, @Nullable String uid, boolean quiet) {
+    private void completeVoucherRedeem(Player player, Voucher voucher, @Nullable String uid, boolean quiet,
+                                       boolean recordUse) {
         if (voucher.cooldownSeconds() > 0) {
             long effective = (long) Math.ceil(
                 voucher.cooldownSeconds() * cooldownTiers.multiplier(player::hasPermission));
@@ -290,7 +299,7 @@ public final class RedeemHandler {
         if (!quiet) {
             playEffects(player, voucher.effects());
         }
-        if (voucher.hasUseLimits()) {
+        if (recordUse && voucher.hasUseLimits()) {
             recordVoucherUse(player, voucher, 1);
         }
         counters.recordVoucherRedemption();
@@ -506,8 +515,9 @@ public final class RedeemHandler {
             int allowed;
             String denial;
             try {
-                allowed = (int) Math.min(count, remainingUses(player, voucher));
-                denial = allowed < count ? useDenial(player, voucher, count) : null;
+                Allowance allowance = readAllowance(player, voucher);
+                allowed = (int) Math.min(count, allowance.remaining());
+                denial = allowed < count ? denialFor(player, allowance, count) : null;
             } catch (SQLException | RuntimeException ex) {
                 allowed = 0;
                 denial = messages.get(player, "redeem.verify-failed");
@@ -528,7 +538,11 @@ public final class RedeemHandler {
 
     private void redeemBatch(Player player, Voucher voucher, int count) {
         for (int i = 0; i < count; i++) {
-            completeVoucherRedeem(player, voucher, null, batchQuiet);
+            completeVoucherRedeem(player, voucher, null, batchQuiet, false);
+        }
+        // One persistent write for the whole batch instead of one task per item.
+        if (voucher.hasUseLimits()) {
+            recordVoucherUse(player, voucher, count);
         }
         send(player, messages.get(player, "redeem.opened", "count", count, "voucher", voucher.id()));
     }
