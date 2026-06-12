@@ -53,6 +53,11 @@ stackable: true                   # false = anti-dupe: each copy tracked, never 
 # uses-per-player: -1             # lifetime redemptions per player (-1 = unlimited)
 # expiry: "30d"                   # "30d" from give time, or a date like 2026-12-31; blank = never
 # active-from: "2026-07-01"       # not redeemable before this date; blank = immediately
+# soulbound: false                # true = cannot be dropped, stored, or traded; binds on pickup
+# soulbound:                      # or toggle each restriction individually
+#   block-drop: true
+#   block-containers: true
+#   bind-on-pickup: true
 # two-step-authentication: false  # require a second confirmation click before redeeming
 # two-step-authentication-message: "{prefix}<yellow>Click again to confirm."   # optional custom prompt
 

@@ -38,6 +38,7 @@ import java.util.Map;
  * @param twoStep       if {@code true}, redeeming requires a confirmation click within the window
  * @param confirmMessage the per-voucher confirmation prompt, or {@code null} to use the locale default
  * @param effects       optional sound and particle played to the redeemer, or {@code null} for none
+ * @param soulbound     transfer restrictions binding the item to its player, or {@code null}
  */
 public record Voucher(
     String id,
@@ -60,7 +61,8 @@ public record Voucher(
     boolean batchOpen,
     boolean twoStep,
     @Nullable String confirmMessage,
-    @Nullable VoucherEffects effects
+    @Nullable VoucherEffects effects,
+    @Nullable SoulboundSpec soulbound
 ) implements so.alaz.provouchers.api.Voucher {
 
     public Voucher {

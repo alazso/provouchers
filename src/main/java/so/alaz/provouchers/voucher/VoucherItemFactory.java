@@ -97,7 +97,9 @@ public final class VoucherItemFactory {
         if (Expiry.isRelative(voucher.expiry())) {
             stamp.setGivenAt(meta, now);
         }
-        if (voucher.ownerOnly() && viewer != null) {
+        // Soulbound vouchers carry an owner like owner-only ones, so bind-on-pickup and
+        // ownership checks have a subject from the moment the item is given.
+        if ((voucher.ownerOnly() || voucher.soulbound() != null) && viewer != null) {
             stamp.setOwner(meta, viewer.getUniqueId());
         }
     }

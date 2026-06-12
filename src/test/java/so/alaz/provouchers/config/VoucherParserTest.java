@@ -186,6 +186,22 @@ class VoucherParserTest {
     }
 
     @Test
+    void parsesSoulboundShorthandAndToggles() throws Exception {
+        Voucher all = VoucherParser.parseVoucher(yaml("item:\n  material: PAPER\nsoulbound: true\n"), "sb");
+        assertThat(all.soulbound()).isEqualTo(new so.alaz.provouchers.voucher.SoulboundSpec(true, true, true));
+        Voucher partial = VoucherParser.parseVoucher(yaml("""
+            item:
+              material: PAPER
+            soulbound:
+              block-drop: false
+            """), "sb2");
+        assertThat(partial.soulbound().blockDrop()).isFalse();
+        assertThat(partial.soulbound().blockContainers()).isTrue();
+        assertThat(VoucherParser.parseVoucher(yaml("item:\n  material: PAPER\nsoulbound: false\n"), "sb3")
+            .soulbound()).isNull();
+    }
+
+    @Test
     void parsesEffectsBlock() throws Exception {
         YamlConfiguration config = yaml("""
             item:

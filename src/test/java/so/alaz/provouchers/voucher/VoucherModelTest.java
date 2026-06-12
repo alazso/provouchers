@@ -13,7 +13,7 @@ class VoucherModelTest {
     private static Voucher voucher(String id, long cooldown) {
         return new Voucher(id, id, List.of(), new VoucherItem("PAPER", null, null, false, null),
             List.of(), List.of(), List.of(), Map.of(), false, false, cooldown, -1, -1, null, null,
-            false, true, false, false, null, null);
+            false, true, false, false, null, null, null);
     }
 
     @Test

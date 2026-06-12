@@ -14,6 +14,7 @@ import so.alaz.provouchers.voucher.DefinedItem;
 import so.alaz.provouchers.voucher.FireworkSpec;
 import so.alaz.provouchers.voucher.Materials;
 import so.alaz.provouchers.voucher.SkullSpec;
+import so.alaz.provouchers.voucher.SoulboundSpec;
 import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.provouchers.voucher.VoucherCode;
 import so.alaz.provouchers.voucher.VoucherEffects;
@@ -93,8 +94,28 @@ public final class VoucherParser {
             batchOpen,
             section.getBoolean("two-step-authentication", false),
             emptyToNull(section.getString("two-step-authentication-message", "")),
-            parseEffects(section, voucherId)
+            parseEffects(section, voucherId),
+            parseSoulbound(section)
         );
+    }
+
+    /**
+     * The optional {@code soulbound} key: {@code true} enables every restriction, a section
+     * toggles them individually, and absence (or {@code false}) means freely tradeable.
+     */
+    @Nullable
+    private static SoulboundSpec parseSoulbound(ConfigurationSection section) {
+        if (section.isBoolean("soulbound")) {
+            return section.getBoolean("soulbound") ? SoulboundSpec.all() : null;
+        }
+        ConfigurationSection soulbound = section.getConfigurationSection("soulbound");
+        if (soulbound == null) {
+            return null;
+        }
+        return new SoulboundSpec(
+            soulbound.getBoolean("block-drop", true),
+            soulbound.getBoolean("block-containers", true),
+            soulbound.getBoolean("bind-on-pickup", true));
     }
 
     /** Parses the optional {@code effects} block (sound, firework), or {@code null} when absent or empty. */

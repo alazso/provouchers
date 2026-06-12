@@ -97,6 +97,11 @@ code:
   verify-failed: "<red>Could not verify the code. Please try again."
   redeemed: "<green>Code redeemed."
 
+# ---- Soulbound restrictions (shown as an action bar) -------------------------
+soulbound:
+  no-drop: "<red>This voucher is bound to you and cannot be dropped."
+  no-container: "<red>This voucher is bound to you and cannot be stored."
+
 # ---- Staff alerts (shown to players with provouchers.notify) -----------------
 staff:
   duplicate-alert: "<gold>[ProVouchers] <yellow>{player} tried to redeem a duplicate '{voucher}' in {world}."   # {player} {voucher} {world}
