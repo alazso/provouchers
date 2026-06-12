@@ -52,6 +52,12 @@ command:
     created: "{prefix}<green>Created and loaded <gold>{id}</gold> (<yellow>{file}</yellow>)."  # {id} {file}
     cancelled: "{prefix}<gray>Cancelled; nothing was written."
     failed: "{prefix}<red>Could not capture that item. Please try again."
+  import:
+    not-found: "{prefix}<red>No CrazyVouchers folder was found next to ProVouchers."
+    summary: "{prefix}<green>Imported <yellow>{imported}</yellow> voucher(s), skipped <yellow>{skipped}</yellow>."  # {imported} {skipped}
+    skipped-line: "<red>  - <gray>{line}"     # {line}
+    warning-line: "<yellow>  ! <gray>{line}"  # {line}
+    more: "<dark_gray>  ... and {count} more."  # {count}
   doctor:
     heading: "{prefix}<gold>Doctor"
   help:
@@ -66,6 +72,7 @@ command:
       reload: "Reload all, or one file by id, from disk"
       resetuses: "Reset recorded uses for a voucher or code"
       fromhand: "Capture the held item as a new voucher"
+      import: "Import vouchers from CrazyVouchers"
       doctor: "Show a diagnostic health report"
       help: "Show this help menu"
 
