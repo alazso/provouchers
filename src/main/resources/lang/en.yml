@@ -89,6 +89,9 @@ condition:
   gamemode: "<red>Wrong game mode."
   exp: "<red>You need level {level}."   # {level}
   expiry: "<red>This has expired."
+  playtime: "<red>You need {time} of playtime."   # {time}
+  item: "<red>You need {amount}x {material} in your inventory."   # {amount} {material}
+  advancement: "<red>You haven't unlocked the required advancement."
   requirement-not-met: "<red>Requirement not met."
   statistic-unreadable: "<red>Could not read that statistic."
   economy-unavailable: "<red>Economy is unavailable."

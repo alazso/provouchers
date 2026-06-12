@@ -1,6 +1,8 @@
 package so.alaz.provouchers.condition;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Statistic;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.EntityType;
@@ -8,7 +10,9 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.locale.Messages;
 import so.alaz.provouchers.platform.Text;
+import so.alaz.provouchers.util.Durations;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -45,6 +49,13 @@ final class BuiltinConditions {
             new Playerstat(orEmpty(section.getString("statistic")), section.getString("material"),
                 section.getString("entity"), orDefault(section.getString("operator"), ">="),
                 section.getLong("value"), section.getString("deny"), text));
+        registry.register("playtime", section ->
+            new Playtime(orEmpty(section.getString("time")), section.getString("deny"), text));
+        registry.register("item", section ->
+            new Item(orEmpty(section.getString("material")), section.getInt("amount", 1),
+                section.getString("deny"), text));
+        registry.register("advancement", section ->
+            new Advancement(orEmpty(section.getString("advancement")), section.getString("deny"), text));
     }
 
     /** Shared base: renders the configured deny message, or a per-condition default, against the player. */
@@ -228,6 +239,78 @@ final class BuiltinConditions {
             } catch (RuntimeException ex) {
                 return null;
             }
+        }
+    }
+
+    /**
+     * Passes once the player's total playtime reaches the configured duration ({@code 2h}, {@code 30m}).
+     * Playtime is read from {@link Statistic#PLAY_ONE_MINUTE}, which despite its name counts ticks.
+     */
+    static final class Playtime extends Base {
+        private final String rawTime;
+        @Nullable private final Duration required;
+
+        Playtime(String rawTime, @Nullable String deny, Text text) {
+            super(deny, text);
+            this.rawTime = rawTime;
+            this.required = Durations.parseOrNull(rawTime.trim());
+        }
+
+        @Override
+        public ConditionResult test(ConditionContext context) {
+            if (required == null) {
+                return denied(context, "condition.requirement-not-met");
+            }
+            long playedSeconds = context.player().getStatistic(Statistic.PLAY_ONE_MINUTE) / 20L;
+            return playedSeconds >= required.toSeconds()
+                ? pass() : denied(context, "condition.playtime", "time", rawTime);
+        }
+    }
+
+    /** Passes if the inventory holds at least {@code amount} of the material. Checks only, never consumes. */
+    static final class Item extends Base {
+        private final String materialName;
+        private final int amount;
+
+        Item(String materialName, int amount, @Nullable String deny, Text text) {
+            super(deny, text);
+            this.materialName = materialName;
+            this.amount = Math.max(1, amount);
+        }
+
+        @Override
+        public ConditionResult test(ConditionContext context) {
+            Material material;
+            try {
+                material = Material.valueOf(materialName.trim().toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException ex) {
+                return denied(context, "condition.requirement-not-met");
+            }
+            return context.player().getInventory().contains(material, amount)
+                ? pass() : denied(context, "condition.item", "amount", amount,
+                    "material", material.name());
+        }
+    }
+
+    /** Passes if the player has completed the advancement. An unknown key denies rather than passing. */
+    static final class Advancement extends Base {
+        private final String key;
+
+        Advancement(String key, @Nullable String deny, Text text) {
+            super(deny, text);
+            this.key = key;
+        }
+
+        @Override
+        public ConditionResult test(ConditionContext context) {
+            NamespacedKey parsed = NamespacedKey.fromString(key.trim().toLowerCase(Locale.ROOT));
+            org.bukkit.advancement.Advancement advancement =
+                parsed == null ? null : Bukkit.getAdvancement(parsed);
+            if (advancement == null) {
+                return denied(context, "condition.requirement-not-met");
+            }
+            return context.player().getAdvancementProgress(advancement).isDone()
+                ? pass() : denied(context, "condition.advancement");
         }
     }
 

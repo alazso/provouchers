@@ -71,6 +71,9 @@ conditions:
   # - { type: region,     regions: [ spawn ] }                 # WorldGuard
   # - { type: papi,       placeholder: "%player_level%", operator: ">=", value: "30" }
   # - { type: playerstat, statistic: MINE_BLOCK, material: DIAMOND_ORE, operator: ">=", value: 100 }
+  # - { type: playtime,   time: "2h" }                              # total time played on the server
+  # - { type: item,       material: DIAMOND, amount: 3 }            # checks only, never consumes
+  # - { type: advancement, advancement: "minecraft:story/mine_diamond" }
 
 # ---- Rewards: all of these run ----------------------------------------------
 rewards:
