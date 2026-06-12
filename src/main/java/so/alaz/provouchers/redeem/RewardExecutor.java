@@ -29,7 +29,6 @@ import so.alaz.provouchers.voucher.VoucherItemFactory;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -120,11 +119,10 @@ public final class RewardExecutor {
 
     private void giveItem(Player player, String payload, Map<String, DefinedItem> definedItems) {
         RewardItemPayload spec = RewardItemPayload.parse(payload);
-        if (spec.reference().startsWith("@")) {
-            String name = spec.reference().substring(1).toLowerCase(Locale.ROOT);
-            DefinedItem defined = definedItems.get(name);
+        if (spec.isDefinedRef()) {
+            DefinedItem defined = definedItems.get(spec.definedName());
             if (defined == null) {
-                throw new IllegalArgumentException("no defined item named '" + name + "'");
+                throw new IllegalArgumentException("no defined item named '" + spec.definedName() + "'");
             }
             // Skull-based items may resolve off-thread; deliver on the player's region thread.
             factory.createDefinedItem(defined, spec.resolveAmount(), player).thenAccept(item ->

@@ -1,5 +1,7 @@
 package so.alaz.provouchers.reward;
 
+import java.util.Locale;
+
 /**
  * The parsed payload of an {@code item} reward: an item reference (a vanilla
  * material or a {@code provider:id} custom item) and an amount that defaults to 1.
@@ -36,6 +38,16 @@ public record RewardItemPayload(String reference, String amount) {
     /** Resolves the (possibly placeholder-substituted) amount to a positive count. */
     public int resolveAmount() {
         return requirePositiveInt(amount);
+    }
+
+    /** Whether the reference is an {@code @name} pointer into the file's defined-items map. */
+    public boolean isDefinedRef() {
+        return reference.startsWith("@");
+    }
+
+    /** The defined-item name behind an {@code @name} reference, lower-cased for map lookup. */
+    public String definedName() {
+        return reference.substring(1).toLowerCase(Locale.ROOT);
     }
 
     private static int requirePositiveInt(String value) {

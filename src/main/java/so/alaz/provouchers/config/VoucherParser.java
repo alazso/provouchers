@@ -181,11 +181,10 @@ public final class VoucherParser {
             if (line.type() != RewardType.ITEM) {
                 continue;
             }
-            String reference = RewardItemPayload.parse(line.payload()).reference();
-            if (reference.startsWith("@")
-                && !definedItems.containsKey(reference.substring(1).toLowerCase(Locale.ROOT))) {
+            RewardItemPayload payload = RewardItemPayload.parse(line.payload());
+            if (payload.isDefinedRef() && !definedItems.containsKey(payload.definedName())) {
                 throw new VoucherParseException("'" + id + "': reward '" + line.payload()
-                    + "' references undefined item '" + reference.substring(1) + "'");
+                    + "' references undefined item '" + payload.definedName() + "'");
             }
         }
     }

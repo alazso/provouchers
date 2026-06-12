@@ -28,6 +28,13 @@ class PlaceholdersTest {
     }
 
     @Test
+    void appliesExpiryToken() {
+        assertThat(Placeholders.applyExpiry("Expires %expiry%", "in 30d")).isEqualTo("Expires in 30d");
+        assertThat(Placeholders.applyExpiryAll(List.of("a %expiry%", "plain"), "never"))
+            .containsExactly("a never", "plain");
+    }
+
+    @Test
     void substitutesPercentPlaceholders() {
         String result = Placeholders.apply("give %player% %arg% (%random:5-5%)", "Steve", "diamond");
         assertThat(result).isEqualTo("give Steve diamond (5)");

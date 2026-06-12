@@ -61,4 +61,12 @@ class RewardItemPayloadTest {
         assertThatThrownBy(() -> RewardItemPayload.parse("DIAMOND 0"))
             .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void recognisesDefinedItemReferences() {
+        RewardItemPayload defined = RewardItemPayload.parse("@VIP_Sword 2");
+        assertThat(defined.isDefinedRef()).isTrue();
+        assertThat(defined.definedName()).isEqualTo("vip_sword");
+        assertThat(RewardItemPayload.parse("DIAMOND 2").isDefinedRef()).isFalse();
+    }
 }

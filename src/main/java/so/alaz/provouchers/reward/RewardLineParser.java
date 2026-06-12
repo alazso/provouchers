@@ -59,7 +59,7 @@ public final class RewardLineParser {
     private static void validateItemPayload(String payload) {
         RewardItemPayload parsed = RewardItemPayload.parse(payload);
         String reference = parsed.reference();
-        if (reference.startsWith("@")) {
+        if (parsed.isDefinedRef()) {
             return; // a defined-item reference; checked against the file's items map at load
         }
         if (ItemBuilder.isSerialized(reference)) {
