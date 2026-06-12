@@ -5,12 +5,17 @@ import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
+import org.bukkit.FireworkEffect;
 import org.bukkit.GameMode;
+import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.Nullable;
+import so.alaz.provouchers.listener.FireworkGuardListener;
 import so.alaz.provouchers.antidupe.DupeDetector;
 import so.alaz.provouchers.antidupe.StampStatus;
 import so.alaz.provouchers.antidupe.VoucherStamp;
@@ -23,6 +28,7 @@ import so.alaz.provouchers.reward.RewardLine;
 import so.alaz.provouchers.reward.RewardSelection;
 import so.alaz.provouchers.reward.RewardSet;
 import so.alaz.provouchers.storage.VoucherStorage;
+import so.alaz.provouchers.voucher.FireworkSpec;
 import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.provouchers.voucher.VoucherCode;
 import so.alaz.provouchers.voucher.VoucherEffects;
@@ -307,17 +313,43 @@ public final class RedeemHandler {
     }
 
     /**
-     * Plays the voucher's optional redeem sound ({@code "key [volume] [pitch]"}) to the player.
-     * Suppressed for quiet redemptions (such as batch open) so a whole stack does not spam it.
+     * Plays the voucher's optional redeem effects (sound, firework) to the player.
+     * Suppressed for quiet redemptions (such as batch open) so a whole stack does not spam them.
      */
     private void playEffects(Player player, @Nullable VoucherEffects effects) {
-        if (effects == null || effects.sound() == null || effects.sound().isBlank()) {
+        if (effects == null) {
             return;
         }
-        String[] parts = effects.sound().trim().split("\\s+");
-        float volume = parts.length > 1 ? parseFloat(parts[1]) : 1f;
-        float pitch = parts.length > 2 ? parseFloat(parts[2]) : 1f;
-        player.playSound(Sound.sound(Key.key(parts[0]), Sound.Source.MASTER, volume, pitch));
+        if (effects.sound() != null && !effects.sound().isBlank()) {
+            String[] parts = effects.sound().trim().split("\\s+");
+            float volume = parts.length > 1 ? parseFloat(parts[1]) : 1f;
+            float pitch = parts.length > 2 ? parseFloat(parts[2]) : 1f;
+            player.playSound(Sound.sound(Key.key(parts[0]), Sound.Source.MASTER, volume, pitch));
+        }
+        if (effects.firework() != null) {
+            spawnFirework(player, effects.firework());
+        }
+    }
+
+    /** Spawns the redeem firework at the player, tagged so its damage is cancelled. */
+    private void spawnFirework(Player player, FireworkSpec spec) {
+        Firework firework = player.getWorld().spawn(player.getLocation(), Firework.class, fw -> {
+            FireworkMeta meta = fw.getFireworkMeta();
+            FireworkEffect.Builder effect = FireworkEffect.builder()
+                .with(spec.type())
+                .withColor(spec.colors());
+            if (!spec.fade().isEmpty()) {
+                effect.withFade(spec.fade());
+            }
+            meta.addEffect(effect.build());
+            meta.setPower(spec.power());
+            fw.setFireworkMeta(meta);
+            fw.getPersistentDataContainer().set(FireworkGuardListener.EFFECT_FIREWORK,
+                PersistentDataType.BYTE, (byte) 1);
+        });
+        if (spec.power() <= 0) {
+            firework.detonate();
+        }
     }
 
     /** A volume or pitch token, defaulting to {@code 1} when it is not a number. */

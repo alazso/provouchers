@@ -56,10 +56,15 @@ stackable: true                   # false = anti-dupe: each copy tracked, never 
 # two-step-authentication: false  # require a second confirmation click before redeeming
 # two-step-authentication-message: "{prefix}<yellow>Click again to confirm."   # optional custom prompt
 
-# ---- Effects: a sound played to the redeemer on success ---------------------
+# ---- Effects: a sound and/or firework played to the redeemer on success -----
 # Sound keys: https://minecraft.wiki/w/Sounds.json
 # effects:
 #   sound: "minecraft:entity.player.levelup 1 1"   # key [volume] [pitch]
+#   firework:                       # a harmless celebratory burst at the player
+#     colors: [ YELLOW, "#FF8A00" ] # named colors or #RRGGBB hex
+#     fade: [ RED ]                 # optional fade colors
+#     type: BALL                    # BALL | BALL_LARGE | STAR | BURST | CREEPER
+#     power: 0                      # 0 = detonate at the player, up to 2 to fly
 
 # ---- Conditions: all must pass; the first failure stops the redeem ----------
 conditions:

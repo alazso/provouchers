@@ -34,6 +34,7 @@ import so.alaz.provouchers.gui.PreviewGui;
 import so.alaz.provouchers.gui.RewardPreviewGui;
 import so.alaz.provouchers.gui.VoucherAdminMenu;
 import so.alaz.provouchers.listener.CooldownLoadListener;
+import so.alaz.provouchers.listener.FireworkGuardListener;
 import so.alaz.provouchers.listener.VoucherInteractListener;
 import so.alaz.provouchers.listener.VoucherStationListener;
 import so.alaz.provouchers.metrics.MetricCounters;
@@ -153,6 +154,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new CooldownLoadListener(cooldowns), this);
         getServer().getPluginManager().registerEvents(new GuiListener(guiManager), this);
         getServer().getPluginManager().registerEvents(new VoucherStationListener(stamp), this);
+        getServer().getPluginManager().registerEvents(new FireworkGuardListener(), this);
         getServer().getOnlinePlayers().forEach(player -> cooldowns.hydrate(player.getUniqueId()));
         Diagnostics diagnostics = new Diagnostics(this, storage, registry, hooks, messages,
             () -> backend.name().toLowerCase(Locale.ROOT));

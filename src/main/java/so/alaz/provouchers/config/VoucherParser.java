@@ -8,6 +8,7 @@ import so.alaz.provouchers.reward.RewardSet;
 import so.alaz.provouchers.platform.ItemBuilder;
 import so.alaz.provouchers.util.Expiry;
 import so.alaz.provouchers.voucher.CustomItemRef;
+import so.alaz.provouchers.voucher.FireworkSpec;
 import so.alaz.provouchers.voucher.Materials;
 import so.alaz.provouchers.voucher.SkullSpec;
 import so.alaz.provouchers.voucher.Voucher;
@@ -75,19 +76,32 @@ public final class VoucherParser {
             batchOpen,
             section.getBoolean("two-step-authentication", false),
             emptyToNull(section.getString("two-step-authentication-message", "")),
-            parseEffects(section)
+            parseEffects(section, voucherId)
         );
     }
 
-    /** Parses the optional {@code effects} block (a redeem sound), or {@code null} when absent or empty. */
+    /** Parses the optional {@code effects} block (sound, firework), or {@code null} when absent or empty. */
     @Nullable
-    private static VoucherEffects parseEffects(ConfigurationSection section) {
+    private static VoucherEffects parseEffects(ConfigurationSection section, String id) {
         ConfigurationSection effects = section.getConfigurationSection("effects");
         if (effects == null) {
             return null;
         }
         String sound = emptyToNull(effects.getString("sound", ""));
-        return sound == null ? null : new VoucherEffects(sound);
+        FireworkSpec firework = null;
+        ConfigurationSection fireworkSection = effects.getConfigurationSection("firework");
+        if (fireworkSection != null) {
+            try {
+                firework = FireworkSpec.of(
+                    fireworkSection.getStringList("colors"),
+                    fireworkSection.getStringList("fade"),
+                    fireworkSection.getString("type", "BALL"),
+                    fireworkSection.getInt("power", 0));
+            } catch (IllegalArgumentException ex) {
+                throw new VoucherParseException("voucher '" + id + "': " + ex.getMessage(), ex);
+            }
+        }
+        return sound == null && firework == null ? null : new VoucherEffects(sound, firework);
     }
 
     /** Parses a code whose code value defaults to {@code id} when no {@code code} key is present. */
