@@ -1,7 +1,5 @@
 package so.alaz.provouchers.redeem;
 
-import net.kyori.adventure.key.Key;
-import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
@@ -43,7 +41,9 @@ import so.alaz.provouchers.condition.Conditions;
 import so.alaz.provouchers.cooldown.CooldownService;
 import so.alaz.provouchers.cooldown.CooldownTiers;
 import so.alaz.provouchers.locale.Messages;
+import so.alaz.provouchers.platform.Items;
 import so.alaz.provouchers.platform.Scheduler;
+import so.alaz.provouchers.platform.Sounds;
 import so.alaz.provouchers.platform.Text;
 
 import java.sql.SQLException;
@@ -328,10 +328,7 @@ public final class RedeemHandler {
             return;
         }
         if (effects.sound() != null && !effects.sound().isBlank()) {
-            String[] parts = effects.sound().trim().split("\\s+");
-            float volume = parts.length > 1 ? parseFloat(parts[1]) : 1f;
-            float pitch = parts.length > 2 ? parseFloat(parts[2]) : 1f;
-            player.playSound(Sound.sound(Key.key(parts[0]), Sound.Source.MASTER, volume, pitch));
+            Sounds.play(player, effects.sound());
         }
         if (effects.firework() != null) {
             spawnFirework(player, effects.firework());
@@ -356,15 +353,6 @@ public final class RedeemHandler {
         });
         if (spec.power() <= 0) {
             firework.detonate();
-        }
-    }
-
-    /** A volume or pitch token, defaulting to {@code 1} when it is not a number. */
-    private static float parseFloat(String value) {
-        try {
-            return Float.parseFloat(value);
-        } catch (NumberFormatException ex) {
-            return 1f;
         }
     }
 
@@ -548,8 +536,7 @@ public final class RedeemHandler {
     }
 
     private void refund(Player player, ItemStack item) {
-        player.getInventory().addItem(item).values()
-            .forEach(leftover -> player.getWorld().dropItemNaturally(player.getLocation(), leftover));
+        Items.giveOrDrop(player, item);
     }
 
     private void notifyStaff(String key, Object... placeholders) {
@@ -595,6 +582,6 @@ public final class RedeemHandler {
     }
 
     private void send(Player player, String miniMessage) {
-        player.sendMessage(text.render(miniMessage, player));
+        text.send(player, miniMessage);
     }
 }

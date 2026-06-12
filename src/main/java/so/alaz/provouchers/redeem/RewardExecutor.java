@@ -1,7 +1,5 @@
 package so.alaz.provouchers.redeem;
 
-import net.kyori.adventure.key.Key;
-import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import net.kyori.adventure.title.Title;
@@ -20,7 +18,9 @@ import so.alaz.provouchers.util.Placeholders;
 import so.alaz.provouchers.hook.EconomyHook;
 import so.alaz.provouchers.hook.HookRegistry;
 import so.alaz.provouchers.hook.PermissionHook;
+import so.alaz.provouchers.platform.Items;
 import so.alaz.provouchers.platform.Scheduler;
+import so.alaz.provouchers.platform.Sounds;
 import so.alaz.provouchers.platform.Text;
 import so.alaz.provouchers.voucher.DefinedItem;
 import so.alaz.provouchers.voucher.ItemResolver;
@@ -108,7 +108,7 @@ public final class RewardExecutor {
                 player.showTitle(Title.title(title, subtitle, TITLE_TIMES));
             }
             case ACTIONBAR -> player.sendActionBar(text.render(payload, player));
-            case SOUND -> playSound(player, payload);
+            case SOUND -> Sounds.play(player, payload);
             case ITEM -> giveItem(player, payload, definedItems);
             case CURRENCY -> applyCurrency(player, payload);
             case XP -> giveXp(player, payload);
@@ -126,15 +126,10 @@ public final class RewardExecutor {
             }
             // Skull-based items may resolve off-thread; deliver on the player's region thread.
             factory.createDefinedItem(defined, spec.resolveAmount(), player).thenAccept(item ->
-                scheduler.entity(player, () -> deliver(player, item)));
+                scheduler.entity(player, () -> Items.giveOrDrop(player, item)));
             return;
         }
-        deliver(player, items.give(spec.reference(), spec.resolveAmount()));
-    }
-
-    private void deliver(Player player, ItemStack item) {
-        player.getInventory().addItem(item).values()
-            .forEach(leftover -> player.getWorld().dropItemNaturally(player.getLocation(), leftover));
+        Items.giveOrDrop(player, items.give(spec.reference(), spec.resolveAmount()));
     }
 
     private void giveXp(Player player, String payload) {
@@ -208,22 +203,4 @@ public final class RewardExecutor {
         logger.warn("Reward '{}: {}' in {} failed: {}", type, payload, source, reason);
     }
 
-    private void playSound(Player player, String payload) {
-        String[] parts = payload.trim().split("\\s+");
-        if (parts.length == 0 || parts[0].isEmpty()) {
-            return;
-        }
-        Key key = Key.key(parts[0]);
-        float volume = parts.length > 1 ? parseFloat(parts[1], 1f) : 1f;
-        float pitch = parts.length > 2 ? parseFloat(parts[2], 1f) : 1f;
-        player.playSound(Sound.sound(key, Sound.Source.MASTER, volume, pitch));
-    }
-
-    private static float parseFloat(String value, float fallback) {
-        try {
-            return Float.parseFloat(value);
-        } catch (NumberFormatException ex) {
-            return fallback;
-        }
-    }
 }

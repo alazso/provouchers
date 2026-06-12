@@ -108,6 +108,6 @@ public final class FromhandGui {
     }
 
     private void send(Player player, String key, Object... placeholders) {
-        player.sendMessage(text.render(messages.get(player, key, placeholders), player));
+        text.send(player, messages.get(player, key, placeholders));
     }
 }

@@ -45,6 +45,11 @@ public final class Text {
         return lines.stream().map(line -> render(line, viewer)).toList();
     }
 
+    /** Renders {@code miniMessage} for the player and sends it as a chat message. */
+    public void send(Player player, String miniMessage) {
+        player.sendMessage(render(miniMessage, player));
+    }
+
     /**
      * Resolves PlaceholderAPI placeholders in the input against the viewer <em>without</em>
      * MiniMessage parsing, returning the raw resolved string. Returns the input unchanged when PAPI
