@@ -1,7 +1,15 @@
 # =============================================================================
 #  ProVouchers - example voucher
 #  Save as: plugins/ProVouchers/vouchers/<name>.yml   (the file name is the id)
-#  Apply changes with /voucher reload.
+#  Apply changes with /voucher reload, or /voucher reload <name> for one file.
+#  Docs: https://alaz.so/provouchers/docs
+#
+#  Most keys below are optional. A complete voucher can be this small:
+#    display-name: "<gold>Starter Kit"
+#    item:
+#      material: PAPER
+#    rewards:
+#      - "command: kit starter %player%"
 #
 #  Text uses MiniMessage (<gold>, <gradient:#a:#b>, ...), with PlaceholderAPI and
 #  MiniPlaceholders when installed. Placeholders, usable in text and rewards:
@@ -46,6 +54,7 @@ stackable: true                   # false = anti-dupe: each copy tracked, never 
 # two-step-authentication-message: "{prefix}<yellow>Click again to confirm."   # optional custom prompt
 
 # ---- Effects: a sound played to the redeemer on success ---------------------
+# Sound keys: https://minecraft.wiki/w/Sounds.json
 # effects:
 #   sound: "minecraft:entity.player.levelup 1 1"   # key [volume] [pitch]
 
@@ -71,7 +80,7 @@ rewards:
   # - "broadcast: <gold>%player% <yellow>redeemed a voucher!"
   # - "title: <gold>Redeemed!|<gray>Enjoy your loot"  # title|subtitle
   # - "actionbar: <green>Reward granted"
-  # - "sound: minecraft:entity.player.levelup 1 1"    # key [volume] [pitch]
+  # - "sound: minecraft:entity.player.levelup 1 1"    # key [volume] [pitch]; keys: minecraft.wiki/w/Sounds.json
   # - "item: DIAMOND_SWORD 1"                          # vanilla or provider:id, optional amount
   # - "currency: give 250"                             # Vault; give|take, amount may be {random:..}
   # - "group: add vip 7d"                              # LuckPerms; add|remove, optional duration
