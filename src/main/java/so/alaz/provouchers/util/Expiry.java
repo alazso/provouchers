@@ -75,6 +75,37 @@ public final class Expiry {
     }
 
     /**
+     * Resolves an {@code active-from} start gate. Accepts the same absolute formats as
+     * {@link #resolve}, but a plain date means the START of that day (an expiry means its end),
+     * and relative durations are not accepted: a start gate has no give-time anchor.
+     *
+     * @return the activation instant, or {@code null} when blank (active immediately)
+     */
+    @Nullable
+    public static Instant resolveStart(@Nullable String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String value = raw.trim();
+        try {
+            return Instant.parse(value);
+        } catch (DateTimeParseException ignored) {
+            // Not a full instant; try a zone-less date-time next.
+        }
+        try {
+            return LocalDateTime.parse(value).atZone(ZoneId.systemDefault()).toInstant();
+        } catch (DateTimeParseException ignored) {
+            // Not a date-time; try a plain calendar date next.
+        }
+        try {
+            return LocalDate.parse(value).atStartOfDay(ZoneId.systemDefault()).toInstant();
+        } catch (DateTimeParseException ignored) {
+            throw new IllegalArgumentException("Invalid active-from '" + raw + "': expected a date "
+                + "(2026-12-31), a date-time (2026-12-31T10:00:00), or an ISO-8601 instant");
+        }
+    }
+
+    /**
      * Whether {@code raw} is a relative duration (such as {@code 30d}), as opposed to blank or an
      * absolute instant. Only a relative expiry needs the per-item give time as its anchor, so this
      * is what decides whether to stamp that time (stamping it otherwise stops stackable vouchers

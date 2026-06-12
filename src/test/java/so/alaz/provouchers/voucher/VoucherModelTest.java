@@ -12,7 +12,7 @@ class VoucherModelTest {
 
     private static Voucher voucher(String id, long cooldown) {
         return new Voucher(id, id, List.of(), new VoucherItem("PAPER", null, null, false, null),
-            List.of(), List.of(), List.of(), false, false, cooldown, null, false, true, false,
+            List.of(), List.of(), List.of(), false, false, cooldown, null, null, false, true, false,
             false, null, null);
     }
 
@@ -46,7 +46,7 @@ class VoucherModelTest {
     @Test
     void globalLimitFlag() {
         assertThat(code("x", false).hasGlobalLimit()).isFalse();
-        VoucherCode capped = new VoucherCode("y", false, 5, 1, null,
+        VoucherCode capped = new VoucherCode("y", false, 5, 1, null, null,
             List.of(), List.of(), List.of(), false);
         assertThat(capped.hasGlobalLimit()).isTrue();
     }
@@ -67,7 +67,7 @@ class VoucherModelTest {
     }
 
     private static VoucherCode code(String value, boolean caseSensitive) {
-        return new VoucherCode(value, caseSensitive, -1, 1, null,
+        return new VoucherCode(value, caseSensitive, -1, 1, null, null,
             List.<Map<String, Object>>of(), List.of(), List.of(), false);
     }
 }

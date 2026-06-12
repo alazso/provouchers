@@ -18,6 +18,7 @@ import java.util.Map;
  * @param maxUses       global redemption cap across all players, or {@code -1} for unlimited
  * @param usesPerPlayer how many times a single player may redeem it
  * @param expiry        raw expiry value (ISO-8601 or relative), or {@code null}
+ * @param activeFrom    raw absolute instant before which redeeming is refused, or {@code null}
  * @param conditionMaps raw condition sections
  * @param rewards       always-run reward lines
  * @param randomRewards weighted reward sets
@@ -29,6 +30,7 @@ public record VoucherCode(
     int maxUses,
     int usesPerPlayer,
     @Nullable String expiry,
+    @Nullable String activeFrom,
     List<Map<String, Object>> conditionMaps,
     List<RewardLine> rewards,
     List<RewardSet> randomRewards,

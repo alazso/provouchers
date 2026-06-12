@@ -141,6 +141,11 @@ public final class RedeemHandler {
             send(player, messages.get(player, "redeem.expired"));
             return;
         }
+        Instant activeFrom = Expiry.resolveStart(voucher.activeFrom());
+        if (activeFrom != null && now.isBefore(activeFrom)) {
+            send(player, messages.get(player, "redeem.not-yet-active"));
+            return;
+        }
         if (!voucherPreChecks(player, voucher)) {
             return;
         }
@@ -295,6 +300,11 @@ public final class RedeemHandler {
         Instant now = Instant.now();
         if (Expiry.isExpired(Expiry.resolve(code.expiry(), now), now)) {
             send(player, messages.get(player, "code.expired"));
+            return;
+        }
+        Instant codeActiveFrom = Expiry.resolveStart(code.activeFrom());
+        if (codeActiveFrom != null && now.isBefore(codeActiveFrom)) {
+            send(player, messages.get(player, "code.not-yet-active"));
             return;
         }
         if (!gameModeAllowed(player)) {

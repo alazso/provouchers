@@ -107,6 +107,20 @@ class VoucherParserTest {
     }
 
     @Test
+    void parsesAbsoluteActiveFrom() throws Exception {
+        YamlConfiguration config = yaml("item:\n  material: PAPER\nactive-from: \"2026-07-01\"\n");
+        assertThat(VoucherParser.parseVoucher(config, "event").activeFrom()).isEqualTo("2026-07-01");
+    }
+
+    @Test
+    void relativeActiveFromIsRejected() throws Exception {
+        YamlConfiguration config = yaml("item:\n  material: PAPER\nactive-from: \"30d\"\n");
+        assertThatThrownBy(() -> VoucherParser.parseVoucher(config, "bad"))
+            .isInstanceOf(VoucherParseException.class)
+            .hasMessageContaining("active-from");
+    }
+
+    @Test
     void parsesEffectsBlock() throws Exception {
         YamlConfiguration config = yaml("""
             item:

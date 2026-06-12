@@ -67,6 +67,7 @@ public final class VoucherParser {
             section.getBoolean("owner-only", false),
             cooldown,
             parseExpiry(section, voucherId),
+            parseActiveFrom(section, voucherId),
             section.getBoolean("has-argument", false),
             stackable,
             batchOpen,
@@ -103,11 +104,31 @@ public final class VoucherParser {
             section.getInt("max-uses", -1),
             usesPerPlayer,
             parseExpiry(section, code),
+            parseActiveFrom(section, code),
             parseConditions(section, code),
             parseRewards(section.getStringList("rewards"), code),
             parseRandomRewards(section, code),
             section.getBoolean("has-argument", false)
         );
+    }
+
+    /** Validates the optional absolute {@code active-from} gate; a relative duration is rejected. */
+    @Nullable
+    private static String parseActiveFrom(ConfigurationSection section, String id) {
+        String raw = emptyToNull(section.getString("active-from", ""));
+        if (raw == null) {
+            return null;
+        }
+        if (Expiry.isRelative(raw)) {
+            throw new VoucherParseException("'" + id + "': active-from '" + raw
+                + "' must be an absolute date or instant, not a relative duration");
+        }
+        try {
+            Expiry.resolveStart(raw);
+        } catch (IllegalArgumentException ex) {
+            throw new VoucherParseException("'" + id + "': " + ex.getMessage(), ex);
+        }
+        return raw;
     }
 
     private static VoucherItem parseItem(ConfigurationSection item, String id) {

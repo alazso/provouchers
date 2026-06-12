@@ -93,6 +93,19 @@ class ExpiryTest {
     }
 
     @Test
+    void resolveStartTreatsPlainDateAsStartOfDay() {
+        Instant start = Expiry.resolveStart("2026-06-10");
+        assertThat(start).isEqualTo(
+            LocalDate.parse("2026-06-10").atStartOfDay(ZoneId.systemDefault()).toInstant());
+        assertThat(Expiry.resolveStart("2026-06-10T15:30:00Z"))
+            .isEqualTo(Instant.parse("2026-06-10T15:30:00Z"));
+        assertThat(Expiry.resolveStart(null)).isNull();
+        assertThat(Expiry.resolveStart("  ")).isNull();
+        assertThatThrownBy(() -> Expiry.resolveStart("not-a-date"))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void isExpiredComparesAgainstNow() {
         Instant past = NOW.minusSeconds(1);
         Instant future = NOW.plusSeconds(1);
