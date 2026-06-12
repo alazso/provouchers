@@ -39,7 +39,7 @@ public final class Expiry {
         if (relative != null) {
             return now.plus(relative);
         }
-        Instant absolute = parseAbsolute(value);
+        Instant absolute = parseAbsolute(value, true);
         if (absolute != null) {
             return absolute;
         }
@@ -48,9 +48,13 @@ public final class Expiry {
             + "duration such as 30d, 12h, or 90m");
     }
 
-    /** Parses an absolute moment: a full instant, a local date-time, or a plain date (end of day). */
+    /**
+     * Parses an absolute moment: a full instant, a local date-time, or a plain date. A plain
+     * date anchors to the END of that day for an expiry (usable through the date) and to the
+     * START of it for an activation gate.
+     */
     @Nullable
-    private static Instant parseAbsolute(String value) {
+    private static Instant parseAbsolute(String value, boolean dateAtEndOfDay) {
         try {
             return Instant.parse(value);
         } catch (DateTimeParseException ignored) {
@@ -62,8 +66,9 @@ public final class Expiry {
             // Not a date-time; try a plain calendar date next.
         }
         try {
-            // A plain date expires at the end of that day (the start of the next) in the server's zone.
-            return LocalDate.parse(value).plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+            LocalDate date = LocalDate.parse(value);
+            return (dateAtEndOfDay ? date.plusDays(1) : date)
+                .atStartOfDay(ZoneId.systemDefault()).toInstant();
         } catch (DateTimeParseException ignored) {
             return null;
         }
@@ -86,23 +91,12 @@ public final class Expiry {
         if (raw == null || raw.isBlank()) {
             return null;
         }
-        String value = raw.trim();
-        try {
-            return Instant.parse(value);
-        } catch (DateTimeParseException ignored) {
-            // Not a full instant; try a zone-less date-time next.
-        }
-        try {
-            return LocalDateTime.parse(value).atZone(ZoneId.systemDefault()).toInstant();
-        } catch (DateTimeParseException ignored) {
-            // Not a date-time; try a plain calendar date next.
-        }
-        try {
-            return LocalDate.parse(value).atStartOfDay(ZoneId.systemDefault()).toInstant();
-        } catch (DateTimeParseException ignored) {
+        Instant start = parseAbsolute(raw.trim(), false);
+        if (start == null) {
             throw new IllegalArgumentException("Invalid active-from '" + raw + "': expected a date "
                 + "(2026-12-31), a date-time (2026-12-31T10:00:00), or an ISO-8601 instant");
         }
+        return start;
     }
 
     /**
