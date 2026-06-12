@@ -1,0 +1,90 @@
+# =============================================================================
+#  ProVouchers - Messages en francais
+#  Toute cle absente retombe sur lang/en.yml.
+# =============================================================================
+
+prefix: "<gradient:#FFD700:#FF8A00><b>ProVouchers</b></gradient> <dark_gray>»</dark_gray> "
+
+# ---- Retour des commandes -----------------------------------------------------
+command:
+  unknown-voucher: "{prefix}<red>Bon <yellow>{id}</yellow> inconnu."     # {id}
+  give:
+    needs-target: "{prefix}<red>Exécutez cette commande en jeu, ou précisez un joueur cible depuis la console."
+    usage: "{prefix}<gray>Utilisation : <yellow>/voucher give <id> [quantité] [joueur]</yellow>"
+    no-target: "{prefix}<red>Aucun joueur en ligne ne correspond à cette cible."
+    success: "{prefix}<green><yellow>{amount}x</yellow> <gold>{voucher}</gold> donné(s) à <yellow>{target}</yellow>."  # {amount} {voucher} {target}
+  giveall:
+    none-online: "{prefix}<gray>Aucun joueur en ligne à qui donner."
+    success: "{prefix}<green><yellow>{amount}x</yellow> <gold>{voucher}</gold> donné(s) à <yellow>{count}</yellow> joueur(s)."  # {amount} {voucher} {count}
+  redeem:
+    players-only: "{prefix}<red>Seuls les joueurs peuvent utiliser des codes."
+  preview:
+    players-only: "{prefix}<red>Seuls les joueurs peuvent ouvrir l'aperçu."
+  list:
+    heading: "{prefix}<gold>Contenu chargé"
+    vouchers: "<gray>  Bons (<yellow>{count}</yellow>) : {ids}"   # {count} {ids}
+    codes: "<gray>  Codes : <yellow>{count}</yellow>"             # {count}
+    none: "<dark_gray>aucun"
+  reload:
+    success: "{prefix}<green><yellow>{vouchers}</yellow> bon(s) et <yellow>{codes}</yellow> code(s) rechargés."  # {vouchers} {codes}
+    one-success: "{prefix}<green><gold>{id}</gold> rechargé depuis le disque."        # {id}
+    unknown-file: "{prefix}<red>Aucun fichier de bon ou de code nommé <gold>{id}</gold>."  # {id}
+    errors: "{prefix}<red>Rechargé avec <yellow>{errors}</yellow> erreur(s) :"   # {errors}
+    error-line: "<red>  - <gray>{error}"                            # {error}
+  doctor:
+    heading: "{prefix}<gold>Diagnostic"
+  help:
+    heading: "{prefix}<gold>Commandes"
+    hover: "<gray>Cliquez pour insérer la commande dans le chat"
+    descriptions:
+      give: "Donner un bon à un joueur"
+      giveall: "Donner un bon à tous les joueurs en ligne"
+      redeem: "Utiliser un code"
+      preview: "Parcourir les bons dans un menu"
+      list: "Lister les bons et codes chargés"
+      reload: "Tout recharger, ou un seul fichier par id"
+      doctor: "Afficher un rapport de diagnostic"
+      help: "Afficher ce menu d'aide"
+
+# ---- Utilisation d'un bon (objet) ----------------------------------------------
+redeem:
+  not-configured: "<red>Ce bon n'est plus configuré."
+  unredeemable: "<red>Ce bon ne peut pas être utilisé."
+  not-owner: "<red>Ce bon appartient à quelqu'un d'autre."
+  expired: "<red>Ce bon a expiré."
+  wrong-gamemode: "<red>Vous ne pouvez pas utiliser de bons dans ce mode de jeu."
+  cooldown: "<red>Vous devez attendre {seconds}s avant de pouvoir réutiliser ceci."   # {seconds}
+  already-redeemed: "<red>Ce bon a déjà été utilisé."
+  verify-failed: "<red>Impossible de vérifier ce bon. Veuillez réessayer."
+  requirements-not-met: "<red>Vous ne remplissez pas les conditions pour utiliser ceci."
+  opened: "<green>{count}x {voucher} ouvert(s)."   # {count} {voucher} (batch-open)
+  confirm: "{prefix}<yellow>Cliquez à nouveau dans les {seconds}s pour confirmer l'utilisation de <gold>{voucher}</gold>."   # {seconds} {voucher}
+
+# ---- Utilisation d'un code ------------------------------------------------------
+code:
+  unknown: "<red>Code inconnu."
+  expired: "<red>Ce code a expiré."
+  wrong-gamemode: "<red>Vous ne pouvez pas utiliser de codes dans ce mode de jeu."
+  already-redeemed: "<red>Vous avez déjà utilisé ce code."
+  global-limit: "<red>Ce code a atteint sa limite d'utilisation globale."
+  verify-failed: "<red>Impossible de vérifier le code. Veuillez réessayer."
+  redeemed: "<green>Code utilisé."
+
+# ---- Alertes du staff (joueurs avec provouchers.notify) -------------------------
+staff:
+  duplicate-alert: "<gold>[ProVouchers] <yellow>{player} a tenté d'utiliser un duplicata de '{voucher}' dans {world}."   # {player} {voucher} {world}
+
+# ---- Messages de refus par défaut des conditions ("deny:" du bon les remplace) ----
+condition:
+  permission: "<red>Vous n'avez pas la permission."
+  world: "<red>Vous êtes dans le mauvais monde."
+  gamemode: "<red>Mauvais mode de jeu."
+  exp: "<red>Vous devez être niveau {level}."   # {level}
+  expiry: "<red>Ceci a expiré."
+  requirement-not-met: "<red>Condition non remplie."
+  statistic-unreadable: "<red>Impossible de lire cette statistique."
+  economy-unavailable: "<red>L'économie est indisponible."
+  economy: "<red>Vous n'avez pas assez d'argent."
+  rank: "<red>Vous n'avez pas le rang requis."
+  region-unavailable: "<red>La gestion des régions est indisponible."
+  region: "<red>Vous n'êtes pas dans la région requise."

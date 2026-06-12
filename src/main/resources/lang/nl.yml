@@ -1,0 +1,90 @@
+# =============================================================================
+#  ProVouchers - Nederlandse berichten
+#  Ontbrekende sleutels vallen terug op lang/en.yml.
+# =============================================================================
+
+prefix: "<gradient:#FFD700:#FF8A00><b>ProVouchers</b></gradient> <dark_gray>»</dark_gray> "
+
+# ---- Commandofeedback -----------------------------------------------------------
+command:
+  unknown-voucher: "{prefix}<red>Onbekende voucher <yellow>{id}</yellow>."     # {id}
+  give:
+    needs-target: "{prefix}<red>Voer dit in het spel uit, of geef vanuit de console een doelspeler op."
+    usage: "{prefix}<gray>Gebruik: <yellow>/voucher give <id> [aantal] [speler]</yellow>"
+    no-target: "{prefix}<red>Geen online speler komt overeen met dat doel."
+    success: "{prefix}<green><yellow>{amount}x</yellow> <gold>{voucher}</gold> gegeven aan <yellow>{target}</yellow>."  # {amount} {voucher} {target}
+  giveall:
+    none-online: "{prefix}<gray>Er zijn geen spelers online."
+    success: "{prefix}<green><yellow>{amount}x</yellow> <gold>{voucher}</gold> gegeven aan <yellow>{count}</yellow> speler(s)."  # {amount} {voucher} {count}
+  redeem:
+    players-only: "{prefix}<red>Alleen spelers kunnen codes inwisselen."
+  preview:
+    players-only: "{prefix}<red>Alleen spelers kunnen het voorbeeld openen."
+  list:
+    heading: "{prefix}<gold>Geladen inhoud"
+    vouchers: "<gray>  Vouchers (<yellow>{count}</yellow>): {ids}"   # {count} {ids}
+    codes: "<gray>  Codes: <yellow>{count}</yellow>"                 # {count}
+    none: "<dark_gray>geen"
+  reload:
+    success: "{prefix}<green><yellow>{vouchers}</yellow> voucher(s) en <yellow>{codes}</yellow> code(s) opnieuw geladen."  # {vouchers} {codes}
+    one-success: "{prefix}<green><gold>{id}</gold> opnieuw geladen vanaf schijf."     # {id}
+    unknown-file: "{prefix}<red>Geen voucher- of codebestand met de naam <gold>{id}</gold>."  # {id}
+    errors: "{prefix}<red>Opnieuw geladen met <yellow>{errors}</yellow> fout(en):"   # {errors}
+    error-line: "<red>  - <gray>{error}"                            # {error}
+  doctor:
+    heading: "{prefix}<gold>Diagnose"
+  help:
+    heading: "{prefix}<gold>Commando's"
+    hover: "<gray>Klik om het commando in de chat te plaatsen"
+    descriptions:
+      give: "Geef een voucher aan een speler"
+      giveall: "Geef een voucher aan alle online spelers"
+      redeem: "Wissel een code in"
+      preview: "Blader door vouchers in een menu"
+      list: "Toon geladen vouchers en codes"
+      reload: "Herlaad alles, of één bestand op id"
+      doctor: "Toon een diagnoserapport"
+      help: "Toon dit hulpmenu"
+
+# ---- Een voucher (item) inwisselen -------------------------------------------------
+redeem:
+  not-configured: "<red>Deze voucher is niet meer geconfigureerd."
+  unredeemable: "<red>Deze voucher kan niet worden ingewisseld."
+  not-owner: "<red>Deze voucher is van iemand anders."
+  expired: "<red>Deze voucher is verlopen."
+  wrong-gamemode: "<red>Je kunt geen vouchers inwisselen in deze spelmodus."
+  cooldown: "<red>Je moet {seconds}s wachten voordat je dit opnieuw kunt inwisselen."   # {seconds}
+  already-redeemed: "<red>Deze voucher is al ingewisseld."
+  verify-failed: "<red>Kon deze voucher niet verifiëren. Probeer het opnieuw."
+  requirements-not-met: "<red>Je voldoet niet aan de vereisten om dit in te wisselen."
+  opened: "<green>{count}x {voucher} geopend."   # {count} {voucher} (batch-open)
+  confirm: "{prefix}<yellow>Klik binnen {seconds}s nogmaals om het inwisselen van <gold>{voucher}</gold> te bevestigen."   # {seconds} {voucher}
+
+# ---- Een code inwisselen ------------------------------------------------------------
+code:
+  unknown: "<red>Onbekende code."
+  expired: "<red>Deze code is verlopen."
+  wrong-gamemode: "<red>Je kunt geen codes inwisselen in deze spelmodus."
+  already-redeemed: "<red>Je hebt deze code al ingewisseld."
+  global-limit: "<red>Deze code heeft zijn globale gebruikslimiet bereikt."
+  verify-failed: "<red>Kon de code niet verifiëren. Probeer het opnieuw."
+  redeemed: "<green>Code ingewisseld."
+
+# ---- Stafmeldingen (spelers met provouchers.notify) ----------------------------------
+staff:
+  duplicate-alert: "<gold>[ProVouchers] <yellow>{player} probeerde een duplicaat van '{voucher}' in te wisselen in {world}."   # {player} {voucher} {world}
+
+# ---- Standaard weigeringsberichten van voorwaarden ("deny:" op de voucher gaat voor) --
+condition:
+  permission: "<red>Je hebt hier geen toestemming voor."
+  world: "<red>Je bent in de verkeerde wereld."
+  gamemode: "<red>Verkeerde spelmodus."
+  exp: "<red>Je hebt level {level} nodig."   # {level}
+  expiry: "<red>Dit is verlopen."
+  requirement-not-met: "<red>Niet aan de vereiste voldaan."
+  statistic-unreadable: "<red>Kon die statistiek niet lezen."
+  economy-unavailable: "<red>Economie is niet beschikbaar."
+  economy: "<red>Je kunt dit niet betalen."
+  rank: "<red>Je mist de vereiste rang."
+  region-unavailable: "<red>Regio-ondersteuning is niet beschikbaar."
+  region: "<red>Je bent niet in de vereiste regio."

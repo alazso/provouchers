@@ -1,0 +1,90 @@
+# =============================================================================
+#  ProVouchers - Polskie komunikaty
+#  Brakujace klucze wracaja do lang/en.yml.
+# =============================================================================
+
+prefix: "<gradient:#FFD700:#FF8A00><b>ProVouchers</b></gradient> <dark_gray>»</dark_gray> "
+
+# ---- Odpowiedzi komend ---------------------------------------------------------
+command:
+  unknown-voucher: "{prefix}<red>Nieznany voucher <yellow>{id}</yellow>."     # {id}
+  give:
+    needs-target: "{prefix}<red>Użyj tej komendy w grze albo podaj gracza docelowego z konsoli."
+    usage: "{prefix}<gray>Użycie: <yellow>/voucher give <id> [ilość] [gracz]</yellow>"
+    no-target: "{prefix}<red>Żaden gracz online nie pasuje do tego celu."
+    success: "{prefix}<green>Przekazano <yellow>{amount}x</yellow> <gold>{voucher}</gold> graczowi <yellow>{target}</yellow>."  # {amount} {voucher} {target}
+  giveall:
+    none-online: "{prefix}<gray>Brak graczy online."
+    success: "{prefix}<green>Przekazano <yellow>{amount}x</yellow> <gold>{voucher}</gold> graczom: <yellow>{count}</yellow>."  # {amount} {voucher} {count}
+  redeem:
+    players-only: "{prefix}<red>Tylko gracze mogą realizować kody."
+  preview:
+    players-only: "{prefix}<red>Tylko gracze mogą otworzyć podgląd."
+  list:
+    heading: "{prefix}<gold>Wczytana zawartość"
+    vouchers: "<gray>  Vouchery (<yellow>{count}</yellow>): {ids}"   # {count} {ids}
+    codes: "<gray>  Kody: <yellow>{count}</yellow>"                  # {count}
+    none: "<dark_gray>brak"
+  reload:
+    success: "{prefix}<green>Przeładowano vouchery: <yellow>{vouchers}</yellow>, kody: <yellow>{codes}</yellow>."  # {vouchers} {codes}
+    one-success: "{prefix}<green>Przeładowano <gold>{id}</gold> z dysku."         # {id}
+    unknown-file: "{prefix}<red>Brak pliku vouchera lub kodu o nazwie <gold>{id}</gold>."  # {id}
+    errors: "{prefix}<red>Przeładowano z błędami (<yellow>{errors}</yellow>):"   # {errors}
+    error-line: "<red>  - <gray>{error}"                            # {error}
+  doctor:
+    heading: "{prefix}<gold>Diagnostyka"
+  help:
+    heading: "{prefix}<gold>Komendy"
+    hover: "<gray>Kliknij, aby wstawić komendę do czatu"
+    descriptions:
+      give: "Daj voucher graczowi"
+      giveall: "Daj voucher wszystkim graczom online"
+      redeem: "Zrealizuj kod"
+      preview: "Przeglądaj vouchery w menu"
+      list: "Wyświetl wczytane vouchery i kody"
+      reload: "Przeładuj wszystko lub jeden plik po id"
+      doctor: "Pokaż raport diagnostyczny"
+      help: "Pokaż to menu pomocy"
+
+# ---- Realizacja vouchera (przedmiotu) --------------------------------------------
+redeem:
+  not-configured: "<red>Ten voucher nie jest już skonfigurowany."
+  unredeemable: "<red>Tego vouchera nie da się zrealizować."
+  not-owner: "<red>Ten voucher należy do kogoś innego."
+  expired: "<red>Ten voucher wygasł."
+  wrong-gamemode: "<red>Nie możesz realizować voucherów w tym trybie gry."
+  cooldown: "<red>Musisz poczekać {seconds}s, zanim zrealizujesz to ponownie."   # {seconds}
+  already-redeemed: "<red>Ten voucher został już zrealizowany."
+  verify-failed: "<red>Nie udało się zweryfikować vouchera. Spróbuj ponownie."
+  requirements-not-met: "<red>Nie spełniasz wymagań, aby to zrealizować."
+  opened: "<green>Otwarto {count}x {voucher}."   # {count} {voucher} (batch-open)
+  confirm: "{prefix}<yellow>Kliknij ponownie w ciągu {seconds}s, aby potwierdzić realizację <gold>{voucher}</gold>."   # {seconds} {voucher}
+
+# ---- Realizacja kodu --------------------------------------------------------------
+code:
+  unknown: "<red>Nieznany kod."
+  expired: "<red>Ten kod wygasł."
+  wrong-gamemode: "<red>Nie możesz realizować kodów w tym trybie gry."
+  already-redeemed: "<red>Ten kod został już przez ciebie zrealizowany."
+  global-limit: "<red>Ten kod osiągnął globalny limit użyć."
+  verify-failed: "<red>Nie udało się zweryfikować kodu. Spróbuj ponownie."
+  redeemed: "<green>Kod zrealizowany."
+
+# ---- Powiadomienia dla administracji (gracze z provouchers.notify) -----------------
+staff:
+  duplicate-alert: "<gold>[ProVouchers] <yellow>{player} próbował zrealizować duplikat '{voucher}' w {world}."   # {player} {voucher} {world}
+
+# ---- Domyślne komunikaty odmowy warunków ("deny:" przy voucherze je nadpisuje) ------
+condition:
+  permission: "<red>Nie masz uprawnień."
+  world: "<red>Jesteś w niewłaściwym świecie."
+  gamemode: "<red>Niewłaściwy tryb gry."
+  exp: "<red>Potrzebujesz poziomu {level}."   # {level}
+  expiry: "<red>To wygasło."
+  requirement-not-met: "<red>Wymaganie niespełnione."
+  statistic-unreadable: "<red>Nie udało się odczytać tej statystyki."
+  economy-unavailable: "<red>Ekonomia jest niedostępna."
+  economy: "<red>Nie stać cię na to."
+  rank: "<red>Brakuje ci wymaganej rangi."
+  region-unavailable: "<red>Obsługa regionów jest niedostępna."
+  region: "<red>Nie znajdujesz się w wymaganym regionie."

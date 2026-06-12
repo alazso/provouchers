@@ -1,0 +1,90 @@
+# =============================================================================
+#  ProVouchers - Deutsche Nachrichten
+#  Fehlende Schluessel fallen auf lang/en.yml zurueck.
+# =============================================================================
+
+prefix: "<gradient:#FFD700:#FF8A00><b>ProVouchers</b></gradient> <dark_gray>»</dark_gray> "
+
+# ---- Befehls-Feedback --------------------------------------------------------
+command:
+  unknown-voucher: "{prefix}<red>Unbekannter Gutschein <yellow>{id}</yellow>."     # {id}
+  give:
+    needs-target: "{prefix}<red>Führe das im Spiel aus oder gib in der Konsole einen Zielspieler an."
+    usage: "{prefix}<gray>Verwendung: <yellow>/voucher give <id> [Anzahl] [Spieler]</yellow>"
+    no-target: "{prefix}<red>Kein Spieler online passt zu diesem Ziel."
+    success: "{prefix}<green><yellow>{amount}x</yellow> <gold>{voucher}</gold> an <yellow>{target}</yellow> vergeben."  # {amount} {voucher} {target}
+  giveall:
+    none-online: "{prefix}<gray>Es sind keine Spieler online."
+    success: "{prefix}<green><yellow>{amount}x</yellow> <gold>{voucher}</gold> an <yellow>{count}</yellow> Spieler vergeben."  # {amount} {voucher} {count}
+  redeem:
+    players-only: "{prefix}<red>Nur Spieler können Codes einlösen."
+  preview:
+    players-only: "{prefix}<red>Nur Spieler können die Vorschau öffnen."
+  list:
+    heading: "{prefix}<gold>Geladene Inhalte"
+    vouchers: "<gray>  Gutscheine (<yellow>{count}</yellow>): {ids}"   # {count} {ids}
+    codes: "<gray>  Codes: <yellow>{count}</yellow>"                   # {count}
+    none: "<dark_gray>keine"
+  reload:
+    success: "{prefix}<green><yellow>{vouchers}</yellow> Gutschein(e) und <yellow>{codes}</yellow> Code(s) neu geladen."  # {vouchers} {codes}
+    one-success: "{prefix}<green><gold>{id}</gold> wurde neu geladen."          # {id}
+    unknown-file: "{prefix}<red>Keine Gutschein- oder Code-Datei namens <gold>{id}</gold>."  # {id}
+    errors: "{prefix}<red>Neu geladen mit <yellow>{errors}</yellow> Fehler(n):"   # {errors}
+    error-line: "<red>  - <gray>{error}"                            # {error}
+  doctor:
+    heading: "{prefix}<gold>Diagnose"
+  help:
+    heading: "{prefix}<gold>Befehle"
+    hover: "<gray>Klicken, um den Befehl in den Chat einzufügen"
+    descriptions:
+      give: "Einem Spieler einen Gutschein geben"
+      giveall: "Allen Online-Spielern einen Gutschein geben"
+      redeem: "Einen Code einlösen"
+      preview: "Gutscheine in einem Menü durchstöbern"
+      list: "Geladene Gutscheine und Codes auflisten"
+      reload: "Alles oder eine Datei (per Id) neu laden"
+      doctor: "Einen Diagnosebericht anzeigen"
+      help: "Dieses Hilfemenü anzeigen"
+
+# ---- Einlösen eines Gutschein-Items ------------------------------------------
+redeem:
+  not-configured: "<red>Dieser Gutschein ist nicht mehr konfiguriert."
+  unredeemable: "<red>Dieser Gutschein kann nicht eingelöst werden."
+  not-owner: "<red>Dieser Gutschein gehört jemand anderem."
+  expired: "<red>Dieser Gutschein ist abgelaufen."
+  wrong-gamemode: "<red>In diesem Spielmodus kannst du keine Gutscheine einlösen."
+  cooldown: "<red>Du musst noch {seconds}s warten, bevor du das erneut einlösen kannst."   # {seconds}
+  already-redeemed: "<red>Dieser Gutschein wurde bereits eingelöst."
+  verify-failed: "<red>Der Gutschein konnte nicht überprüft werden. Bitte versuche es erneut."
+  requirements-not-met: "<red>Du erfüllst die Voraussetzungen zum Einlösen nicht."
+  opened: "<green>{count}x {voucher} geöffnet."   # {count} {voucher} (batch-open)
+  confirm: "{prefix}<yellow>Klicke innerhalb von {seconds}s erneut, um <gold>{voucher}</gold> einzulösen."   # {seconds} {voucher}
+
+# ---- Einlösen eines Codes -----------------------------------------------------
+code:
+  unknown: "<red>Unbekannter Code."
+  expired: "<red>Dieser Code ist abgelaufen."
+  wrong-gamemode: "<red>In diesem Spielmodus kannst du keine Codes einlösen."
+  already-redeemed: "<red>Du hast diesen Code bereits eingelöst."
+  global-limit: "<red>Dieser Code hat sein globales Nutzungslimit erreicht."
+  verify-failed: "<red>Der Code konnte nicht überprüft werden. Bitte versuche es erneut."
+  redeemed: "<green>Code eingelöst."
+
+# ---- Team-Benachrichtigungen (für Spieler mit provouchers.notify) -------------
+staff:
+  duplicate-alert: "<gold>[ProVouchers] <yellow>{player} hat versucht, ein Duplikat von '{voucher}' in {world} einzulösen."   # {player} {voucher} {world}
+
+# ---- Standard-Ablehnungen der Bedingungen ("deny:" am Gutschein überschreibt) ----
+condition:
+  permission: "<red>Dir fehlt die Berechtigung."
+  world: "<red>Du bist in der falschen Welt."
+  gamemode: "<red>Falscher Spielmodus."
+  exp: "<red>Du brauchst Level {level}."   # {level}
+  expiry: "<red>Dies ist abgelaufen."
+  requirement-not-met: "<red>Voraussetzung nicht erfüllt."
+  statistic-unreadable: "<red>Diese Statistik konnte nicht gelesen werden."
+  economy-unavailable: "<red>Das Wirtschaftssystem ist nicht verfügbar."
+  economy: "<red>Du kannst dir das nicht leisten."
+  rank: "<red>Dir fehlt der erforderliche Rang."
+  region-unavailable: "<red>Regionsunterstützung ist nicht verfügbar."
+  region: "<red>Du bist nicht in der erforderlichen Region."

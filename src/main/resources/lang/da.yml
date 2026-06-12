@@ -1,0 +1,90 @@
+# =============================================================================
+#  ProVouchers - Danske beskeder
+#  Manglende noegler falder tilbage til lang/en.yml.
+# =============================================================================
+
+prefix: "<gradient:#FFD700:#FF8A00><b>ProVouchers</b></gradient> <dark_gray>»</dark_gray> "
+
+# ---- Kommando-feedback ---------------------------------------------------------
+command:
+  unknown-voucher: "{prefix}<red>Ukendt voucher <yellow>{id}</yellow>."     # {id}
+  give:
+    needs-target: "{prefix}<red>Kør denne kommando i spillet, eller angiv en målspiller fra konsollen."
+    usage: "{prefix}<gray>Brug: <yellow>/voucher give <id> [antal] [spiller]</yellow>"
+    no-target: "{prefix}<red>Ingen online spiller matchede det mål."
+    success: "{prefix}<green>Gav <yellow>{amount}x</yellow> <gold>{voucher}</gold> til <yellow>{target}</yellow>."  # {amount} {voucher} {target}
+  giveall:
+    none-online: "{prefix}<gray>Der er ingen spillere online."
+    success: "{prefix}<green>Gav <yellow>{amount}x</yellow> <gold>{voucher}</gold> til <yellow>{count}</yellow> spiller(e)."  # {amount} {voucher} {count}
+  redeem:
+    players-only: "{prefix}<red>Kun spillere kan indløse koder."
+  preview:
+    players-only: "{prefix}<red>Kun spillere kan åbne forhåndsvisningen."
+  list:
+    heading: "{prefix}<gold>Indlæst indhold"
+    vouchers: "<gray>  Vouchers (<yellow>{count}</yellow>): {ids}"   # {count} {ids}
+    codes: "<gray>  Koder: <yellow>{count}</yellow>"                 # {count}
+    none: "<dark_gray>ingen"
+  reload:
+    success: "{prefix}<green>Genindlæste <yellow>{vouchers}</yellow> voucher(e) og <yellow>{codes}</yellow> kode(r)."  # {vouchers} {codes}
+    one-success: "{prefix}<green>Genindlæste <gold>{id}</gold> fra disken."        # {id}
+    unknown-file: "{prefix}<red>Ingen voucher- eller kodefil med navnet <gold>{id}</gold>."  # {id}
+    errors: "{prefix}<red>Genindlæst med <yellow>{errors}</yellow> fejl:"   # {errors}
+    error-line: "<red>  - <gray>{error}"                            # {error}
+  doctor:
+    heading: "{prefix}<gold>Diagnose"
+  help:
+    heading: "{prefix}<gold>Kommandoer"
+    hover: "<gray>Klik for at indsætte kommandoen i chatten"
+    descriptions:
+      give: "Giv en voucher til en spiller"
+      giveall: "Giv en voucher til alle online spillere"
+      redeem: "Indløs en kode"
+      preview: "Gennemse vouchers i en menu"
+      list: "Vis indlæste vouchers og koder"
+      reload: "Genindlæs alt, eller én fil efter id"
+      doctor: "Vis en diagnoserapport"
+      help: "Vis denne hjælpemenu"
+
+# ---- Indløsning af en voucher (genstand) -----------------------------------------
+redeem:
+  not-configured: "<red>Denne voucher er ikke længere konfigureret."
+  unredeemable: "<red>Denne voucher kan ikke indløses."
+  not-owner: "<red>Denne voucher tilhører en anden."
+  expired: "<red>Denne voucher er udløbet."
+  wrong-gamemode: "<red>Du kan ikke indløse vouchers i denne spiltilstand."
+  cooldown: "<red>Du skal vente {seconds}s, før du kan indløse dette igen."   # {seconds}
+  already-redeemed: "<red>Denne voucher er allerede indløst."
+  verify-failed: "<red>Kunne ikke verificere denne voucher. Prøv igen."
+  requirements-not-met: "<red>Du opfylder ikke kravene for at indløse dette."
+  opened: "<green>Åbnede {count}x {voucher}."   # {count} {voucher} (batch-open)
+  confirm: "{prefix}<yellow>Klik igen inden for {seconds}s for at bekræfte indløsningen af <gold>{voucher}</gold>."   # {seconds} {voucher}
+
+# ---- Indløsning af en kode ---------------------------------------------------------
+code:
+  unknown: "<red>Ukendt kode."
+  expired: "<red>Denne kode er udløbet."
+  wrong-gamemode: "<red>Du kan ikke indløse koder i denne spiltilstand."
+  already-redeemed: "<red>Du har allerede indløst denne kode."
+  global-limit: "<red>Denne kode har nået sin globale brugsgrænse."
+  verify-failed: "<red>Kunne ikke verificere koden. Prøv igen."
+  redeemed: "<green>Kode indløst."
+
+# ---- Personale-advarsler (spillere med provouchers.notify) --------------------------
+staff:
+  duplicate-alert: "<gold>[ProVouchers] <yellow>{player} forsøgte at indløse en duplikeret '{voucher}' i {world}."   # {player} {voucher} {world}
+
+# ---- Standard-afvisninger for betingelser (voucherens "deny:" tilsidesætter disse) ---
+condition:
+  permission: "<red>Du har ikke tilladelse."
+  world: "<red>Du er i den forkerte verden."
+  gamemode: "<red>Forkert spiltilstand."
+  exp: "<red>Du skal være level {level}."   # {level}
+  expiry: "<red>Dette er udløbet."
+  requirement-not-met: "<red>Krav ikke opfyldt."
+  statistic-unreadable: "<red>Kunne ikke læse den statistik."
+  economy-unavailable: "<red>Økonomien er utilgængelig."
+  economy: "<red>Du har ikke råd til dette."
+  rank: "<red>Du mangler den påkrævede rang."
+  region-unavailable: "<red>Region-understøttelse er utilgængelig."
+  region: "<red>Du er ikke i den påkrævede region."

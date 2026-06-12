@@ -1,0 +1,90 @@
+# =============================================================================
+#  ProVouchers - Mensajes en espanol
+#  Cualquier clave ausente recurre a lang/en.yml.
+# =============================================================================
+
+prefix: "<gradient:#FFD700:#FF8A00><b>ProVouchers</b></gradient> <dark_gray>»</dark_gray> "
+
+# ---- Respuestas de comandos ----------------------------------------------------
+command:
+  unknown-voucher: "{prefix}<red>Vale <yellow>{id}</yellow> desconocido."     # {id}
+  give:
+    needs-target: "{prefix}<red>Ejecuta esto dentro del juego, o indica un jugador objetivo desde la consola."
+    usage: "{prefix}<gray>Uso: <yellow>/voucher give <id> [cantidad] [jugador]</yellow>"
+    no-target: "{prefix}<red>Ningún jugador conectado coincide con ese objetivo."
+    success: "{prefix}<green>Entregado <yellow>{amount}x</yellow> <gold>{voucher}</gold> a <yellow>{target}</yellow>."  # {amount} {voucher} {target}
+  giveall:
+    none-online: "{prefix}<gray>No hay jugadores conectados."
+    success: "{prefix}<green>Entregado <yellow>{amount}x</yellow> <gold>{voucher}</gold> a <yellow>{count}</yellow> jugador(es)."  # {amount} {voucher} {count}
+  redeem:
+    players-only: "{prefix}<red>Solo los jugadores pueden canjear códigos."
+  preview:
+    players-only: "{prefix}<red>Solo los jugadores pueden abrir la vista previa."
+  list:
+    heading: "{prefix}<gold>Contenido cargado"
+    vouchers: "<gray>  Vales (<yellow>{count}</yellow>): {ids}"   # {count} {ids}
+    codes: "<gray>  Códigos: <yellow>{count}</yellow>"            # {count}
+    none: "<dark_gray>ninguno"
+  reload:
+    success: "{prefix}<green>Se recargaron <yellow>{vouchers}</yellow> vale(s) y <yellow>{codes}</yellow> código(s)."  # {vouchers} {codes}
+    one-success: "{prefix}<green>Se recargó <gold>{id}</gold> desde el disco."        # {id}
+    unknown-file: "{prefix}<red>No existe ningún archivo de vale o código llamado <gold>{id}</gold>."  # {id}
+    errors: "{prefix}<red>Recargado con <yellow>{errors}</yellow> error(es):"   # {errors}
+    error-line: "<red>  - <gray>{error}"                            # {error}
+  doctor:
+    heading: "{prefix}<gold>Diagnóstico"
+  help:
+    heading: "{prefix}<gold>Comandos"
+    hover: "<gray>Haz clic para insertar el comando en el chat"
+    descriptions:
+      give: "Dar un vale a un jugador"
+      giveall: "Dar un vale a todos los jugadores conectados"
+      redeem: "Canjear un código"
+      preview: "Explorar los vales en un menú"
+      list: "Listar los vales y códigos cargados"
+      reload: "Recargar todo, o un solo archivo por id"
+      doctor: "Mostrar un informe de diagnóstico"
+      help: "Mostrar este menú de ayuda"
+
+# ---- Canjear un vale (objeto) ---------------------------------------------------
+redeem:
+  not-configured: "<red>Este vale ya no está configurado."
+  unredeemable: "<red>Este vale no se puede canjear."
+  not-owner: "<red>Este vale pertenece a otra persona."
+  expired: "<red>Este vale ha caducado."
+  wrong-gamemode: "<red>No puedes canjear vales en este modo de juego."
+  cooldown: "<red>Debes esperar {seconds}s antes de volver a canjear esto."   # {seconds}
+  already-redeemed: "<red>Este vale ya fue canjeado."
+  verify-failed: "<red>No se pudo verificar este vale. Inténtalo de nuevo."
+  requirements-not-met: "<red>No cumples los requisitos para canjear esto."
+  opened: "<green>Abierto {count}x {voucher}."   # {count} {voucher} (batch-open)
+  confirm: "{prefix}<yellow>Haz clic de nuevo en {seconds}s para confirmar el canje de <gold>{voucher}</gold>."   # {seconds} {voucher}
+
+# ---- Canjear un código -----------------------------------------------------------
+code:
+  unknown: "<red>Código desconocido."
+  expired: "<red>Este código ha caducado."
+  wrong-gamemode: "<red>No puedes canjear códigos en este modo de juego."
+  already-redeemed: "<red>Ya has canjeado este código."
+  global-limit: "<red>Este código alcanzó su límite global de usos."
+  verify-failed: "<red>No se pudo verificar el código. Inténtalo de nuevo."
+  redeemed: "<green>Código canjeado."
+
+# ---- Alertas del staff (jugadores con provouchers.notify) ------------------------
+staff:
+  duplicate-alert: "<gold>[ProVouchers] <yellow>{player} intentó canjear un duplicado de '{voucher}' en {world}."   # {player} {voucher} {world}
+
+# ---- Mensajes de denegación por defecto (el "deny:" del vale los reemplaza) -------
+condition:
+  permission: "<red>No tienes permiso."
+  world: "<red>Estás en el mundo equivocado."
+  gamemode: "<red>Modo de juego incorrecto."
+  exp: "<red>Necesitas nivel {level}."   # {level}
+  expiry: "<red>Esto ha caducado."
+  requirement-not-met: "<red>Requisito no cumplido."
+  statistic-unreadable: "<red>No se pudo leer esa estadística."
+  economy-unavailable: "<red>La economía no está disponible."
+  economy: "<red>No puedes pagarlo."
+  rank: "<red>Te falta el rango requerido."
+  region-unavailable: "<red>El soporte de regiones no está disponible."
+  region: "<red>No estás en la región requerida."

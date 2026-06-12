@@ -91,7 +91,9 @@ public final class ProVouchersPlugin extends JavaPlugin {
 
         VoucherRegistry registry = new VoucherRegistry();
         Text text = new Text();
-        saveResource("lang/en.yml", false);
+        for (String lang : new String[] {"en", "de", "fr", "es", "pl", "da", "nl"}) {
+            saveResource("lang/" + lang + ".yml", false);
+        }
         Messages messages = new Messages(getDataFolder(),
             getConfig().getString("locale.default", "en"),
             getConfig().getBoolean("locale.per-player", true));
