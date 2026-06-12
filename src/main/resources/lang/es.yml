@@ -15,6 +15,7 @@ command:
     success: "{prefix}<green>Entregado <yellow>{amount}x</yellow> <gold>{voucher}</gold> a <yellow>{target}</yellow>."  # {amount} {voucher} {target}
   giveall:
     none-online: "{prefix}<gray>No hay jugadores conectados."
+    none-matched: "{prefix}<gray>Ningún jugador conectado tiene ese permiso."
     success: "{prefix}<green>Entregado <yellow>{amount}x</yellow> <gold>{voucher}</gold> a <yellow>{count}</yellow> jugador(es)."  # {amount} {voucher} {count}
   redeem:
     players-only: "{prefix}<red>Solo los jugadores pueden canjear códigos."
@@ -43,6 +44,12 @@ command:
     created: "{prefix}<green><gold>{id}</gold> creado y cargado (<yellow>{file}</yellow>)."  # {id} {file}
     cancelled: "{prefix}<gray>Cancelado; no se escribió nada."
     failed: "{prefix}<red>No se pudo capturar el objeto. Inténtalo de nuevo."
+  import:
+    not-found: "{prefix}<red>No se encontró ninguna carpeta de CrazyVouchers junto a ProVouchers."
+    summary: "{prefix}<green>Se importaron <yellow>{imported}</yellow> vale(s), se omitieron <yellow>{skipped}</yellow>."  # {imported} {skipped}
+    skipped-line: "<red>  - <gray>{line}"     # {line}
+    warning-line: "<yellow>  ! <gray>{line}"  # {line}
+    more: "<dark_gray>  ... y {count} más."  # {count}
   doctor:
     heading: "{prefix}<gold>Diagnóstico"
   help:
@@ -57,6 +64,7 @@ command:
       reload: "Recargar todo, o un solo archivo por id"
       resetuses: "Restablecer los usos registrados de un vale o código"
       fromhand: "Capturar el objeto en mano como nuevo vale"
+      import: "Importar vales desde CrazyVouchers"
       doctor: "Mostrar un informe de diagnóstico"
       help: "Mostrar este menú de ayuda"
 
@@ -87,6 +95,11 @@ code:
   global-limit: "<red>Este código alcanzó su límite global de usos."
   verify-failed: "<red>No se pudo verificar el código. Inténtalo de nuevo."
   redeemed: "<green>Código canjeado."
+
+# ---- Restricciones soulbound (mostradas en la barra de acción) --------------------
+soulbound:
+  no-drop: "<red>Este vale está vinculado a ti y no se puede tirar."
+  no-container: "<red>Este vale está vinculado a ti y no se puede guardar."
 
 # ---- Alertas del staff (jugadores con provouchers.notify) ------------------------
 staff:

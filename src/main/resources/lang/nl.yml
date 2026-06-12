@@ -15,6 +15,7 @@ command:
     success: "{prefix}<green><yellow>{amount}x</yellow> <gold>{voucher}</gold> gegeven aan <yellow>{target}</yellow>."  # {amount} {voucher} {target}
   giveall:
     none-online: "{prefix}<gray>Er zijn geen spelers online."
+    none-matched: "{prefix}<gray>Geen online speler heeft die permissie."
     success: "{prefix}<green><yellow>{amount}x</yellow> <gold>{voucher}</gold> gegeven aan <yellow>{count}</yellow> speler(s)."  # {amount} {voucher} {count}
   redeem:
     players-only: "{prefix}<red>Alleen spelers kunnen codes inwisselen."
@@ -43,6 +44,12 @@ command:
     created: "{prefix}<green><gold>{id}</gold> aangemaakt en geladen (<yellow>{file}</yellow>)."  # {id} {file}
     cancelled: "{prefix}<gray>Geannuleerd; er is niets weggeschreven."
     failed: "{prefix}<red>Kon dat item niet vastleggen. Probeer het opnieuw."
+  import:
+    not-found: "{prefix}<red>Er is geen CrazyVouchers-map naast ProVouchers gevonden."
+    summary: "{prefix}<green><yellow>{imported}</yellow> voucher(s) geïmporteerd, <yellow>{skipped}</yellow> overgeslagen."  # {imported} {skipped}
+    skipped-line: "<red>  - <gray>{line}"     # {line}
+    warning-line: "<yellow>  ! <gray>{line}"  # {line}
+    more: "<dark_gray>  ... en {count} meer."  # {count}
   doctor:
     heading: "{prefix}<gold>Diagnose"
   help:
@@ -57,6 +64,7 @@ command:
       reload: "Herlaad alles, of één bestand op id"
       resetuses: "Reset geregistreerde gebruiken van een voucher of code"
       fromhand: "Leg het vastgehouden item vast als nieuwe voucher"
+      import: "Importeer vouchers uit CrazyVouchers"
       doctor: "Toon een diagnoserapport"
       help: "Toon dit hulpmenu"
 
@@ -87,6 +95,11 @@ code:
   global-limit: "<red>Deze code heeft zijn globale gebruikslimiet bereikt."
   verify-failed: "<red>Kon de code niet verifiëren. Probeer het opnieuw."
   redeemed: "<green>Code ingewisseld."
+
+# ---- Soulbound-beperkingen (getoond in de actiebalk) ----------------------------------
+soulbound:
+  no-drop: "<red>Deze voucher is aan je gebonden en kan niet worden weggegooid."
+  no-container: "<red>Deze voucher is aan je gebonden en kan niet worden opgeborgen."
 
 # ---- Stafmeldingen (spelers met provouchers.notify) ----------------------------------
 staff:

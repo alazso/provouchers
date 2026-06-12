@@ -15,6 +15,7 @@ command:
     success: "{prefix}<green>Gav <yellow>{amount}x</yellow> <gold>{voucher}</gold> til <yellow>{target}</yellow>."  # {amount} {voucher} {target}
   giveall:
     none-online: "{prefix}<gray>Der er ingen spillere online."
+    none-matched: "{prefix}<gray>Ingen online spiller har den tilladelse."
     success: "{prefix}<green>Gav <yellow>{amount}x</yellow> <gold>{voucher}</gold> til <yellow>{count}</yellow> spiller(e)."  # {amount} {voucher} {count}
   redeem:
     players-only: "{prefix}<red>Kun spillere kan indløse koder."
@@ -43,6 +44,12 @@ command:
     created: "{prefix}<green>Oprettede og indlæste <gold>{id}</gold> (<yellow>{file}</yellow>)."  # {id} {file}
     cancelled: "{prefix}<gray>Annulleret; intet blev gemt."
     failed: "{prefix}<red>Kunne ikke indfange genstanden. Prøv igen."
+  import:
+    not-found: "{prefix}<red>Der blev ikke fundet en CrazyVouchers-mappe ved siden af ProVouchers."
+    summary: "{prefix}<green>Importerede <yellow>{imported}</yellow> voucher(e), sprang <yellow>{skipped}</yellow> over."  # {imported} {skipped}
+    skipped-line: "<red>  - <gray>{line}"     # {line}
+    warning-line: "<yellow>  ! <gray>{line}"  # {line}
+    more: "<dark_gray>  ... og {count} mere."  # {count}
   doctor:
     heading: "{prefix}<gold>Diagnose"
   help:
@@ -57,6 +64,7 @@ command:
       reload: "Genindlæs alt, eller én fil efter id"
       resetuses: "Nulstil registrerede anvendelser for en voucher eller kode"
       fromhand: "Indfang den holdte genstand som en ny voucher"
+      import: "Importer vouchers fra CrazyVouchers"
       doctor: "Vis en diagnoserapport"
       help: "Vis denne hjælpemenu"
 
@@ -87,6 +95,11 @@ code:
   global-limit: "<red>Denne kode har nået sin globale brugsgrænse."
   verify-failed: "<red>Kunne ikke verificere koden. Prøv igen."
   redeemed: "<green>Kode indløst."
+
+# ---- Soulbound-begrænsninger (vises i handlingslinjen) -------------------------------
+soulbound:
+  no-drop: "<red>Denne voucher er bundet til dig og kan ikke smides."
+  no-container: "<red>Denne voucher er bundet til dig og kan ikke opbevares."
 
 # ---- Personale-advarsler (spillere med provouchers.notify) --------------------------
 staff:

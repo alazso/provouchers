@@ -15,6 +15,7 @@ command:
     success: "{prefix}<green><yellow>{amount}x</yellow> <gold>{voucher}</gold> donné(s) à <yellow>{target}</yellow>."  # {amount} {voucher} {target}
   giveall:
     none-online: "{prefix}<gray>Aucun joueur en ligne à qui donner."
+    none-matched: "{prefix}<gray>Aucun joueur en ligne n'a cette permission."
     success: "{prefix}<green><yellow>{amount}x</yellow> <gold>{voucher}</gold> donné(s) à <yellow>{count}</yellow> joueur(s)."  # {amount} {voucher} {count}
   redeem:
     players-only: "{prefix}<red>Seuls les joueurs peuvent utiliser des codes."
@@ -43,6 +44,12 @@ command:
     created: "{prefix}<green><gold>{id}</gold> créé et chargé (<yellow>{file}</yellow>)."  # {id} {file}
     cancelled: "{prefix}<gray>Annulé, rien n'a été écrit."
     failed: "{prefix}<red>Impossible de capturer cet objet. Veuillez réessayer."
+  import:
+    not-found: "{prefix}<red>Aucun dossier CrazyVouchers n'a été trouvé à côté de ProVouchers."
+    summary: "{prefix}<green><yellow>{imported}</yellow> bon(s) importé(s), <yellow>{skipped}</yellow> ignoré(s)."  # {imported} {skipped}
+    skipped-line: "<red>  - <gray>{line}"     # {line}
+    warning-line: "<yellow>  ! <gray>{line}"  # {line}
+    more: "<dark_gray>  ... et {count} de plus."  # {count}
   doctor:
     heading: "{prefix}<gold>Diagnostic"
   help:
@@ -57,6 +64,7 @@ command:
       reload: "Tout recharger, ou un seul fichier par id"
       resetuses: "Réinitialiser les utilisations d'un bon ou d'un code"
       fromhand: "Capturer l'objet tenu comme nouveau bon"
+      import: "Importer les bons depuis CrazyVouchers"
       doctor: "Afficher un rapport de diagnostic"
       help: "Afficher ce menu d'aide"
 
@@ -87,6 +95,11 @@ code:
   global-limit: "<red>Ce code a atteint sa limite d'utilisation globale."
   verify-failed: "<red>Impossible de vérifier le code. Veuillez réessayer."
   redeemed: "<green>Code utilisé."
+
+# ---- Restrictions soulbound (affichées dans la barre d'action) ------------------
+soulbound:
+  no-drop: "<red>Ce bon vous est lié et ne peut pas être jeté."
+  no-container: "<red>Ce bon vous est lié et ne peut pas être rangé."
 
 # ---- Alertes du staff (joueurs avec provouchers.notify) -------------------------
 staff:

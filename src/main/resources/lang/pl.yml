@@ -15,6 +15,7 @@ command:
     success: "{prefix}<green>Przekazano <yellow>{amount}x</yellow> <gold>{voucher}</gold> graczowi <yellow>{target}</yellow>."  # {amount} {voucher} {target}
   giveall:
     none-online: "{prefix}<gray>Brak graczy online."
+    none-matched: "{prefix}<gray>Żaden gracz online nie ma tego uprawnienia."
     success: "{prefix}<green>Przekazano <yellow>{amount}x</yellow> <gold>{voucher}</gold> graczom: <yellow>{count}</yellow>."  # {amount} {voucher} {count}
   redeem:
     players-only: "{prefix}<red>Tylko gracze mogą realizować kody."
@@ -43,6 +44,12 @@ command:
     created: "{prefix}<green>Utworzono i wczytano <gold>{id}</gold> (<yellow>{file}</yellow>)."  # {id} {file}
     cancelled: "{prefix}<gray>Anulowano; niczego nie zapisano."
     failed: "{prefix}<red>Nie udało się przechwycić przedmiotu. Spróbuj ponownie."
+  import:
+    not-found: "{prefix}<red>Nie znaleziono folderu CrazyVouchers obok ProVouchers."
+    summary: "{prefix}<green>Zaimportowano vouchery: <yellow>{imported}</yellow>, pominięto: <yellow>{skipped}</yellow>."  # {imported} {skipped}
+    skipped-line: "<red>  - <gray>{line}"     # {line}
+    warning-line: "<yellow>  ! <gray>{line}"  # {line}
+    more: "<dark_gray>  ... i {count} więcej."  # {count}
   doctor:
     heading: "{prefix}<gold>Diagnostyka"
   help:
@@ -57,6 +64,7 @@ command:
       reload: "Przeładuj wszystko lub jeden plik po id"
       resetuses: "Zresetuj zapisane użycia vouchera lub kodu"
       fromhand: "Przechwyć trzymany przedmiot jako nowy voucher"
+      import: "Importuj vouchery z CrazyVouchers"
       doctor: "Pokaż raport diagnostyczny"
       help: "Pokaż to menu pomocy"
 
@@ -87,6 +95,11 @@ code:
   global-limit: "<red>Ten kod osiągnął globalny limit użyć."
   verify-failed: "<red>Nie udało się zweryfikować kodu. Spróbuj ponownie."
   redeemed: "<green>Kod zrealizowany."
+
+# ---- Ograniczenia soulbound (pokazywane na pasku akcji) ----------------------------
+soulbound:
+  no-drop: "<red>Ten voucher jest z tobą związany i nie można go wyrzucić."
+  no-container: "<red>Ten voucher jest z tobą związany i nie można go schować."
 
 # ---- Powiadomienia dla administracji (gracze z provouchers.notify) -----------------
 staff:
