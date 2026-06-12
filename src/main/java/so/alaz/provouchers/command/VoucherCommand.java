@@ -17,12 +17,15 @@ import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.config.ConfigManager;
 import so.alaz.provouchers.give.VoucherGiveService;
+import so.alaz.provouchers.gui.FromhandGui;
 import so.alaz.provouchers.gui.PreviewGui;
 import so.alaz.provouchers.locale.Messages;
+import so.alaz.provouchers.platform.ItemBuilder;
 import so.alaz.provouchers.platform.Text;
 import so.alaz.provouchers.platform.Scheduler;
 import so.alaz.provouchers.redeem.RedeemHandler;
@@ -37,6 +40,7 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 /**
  * The {@code /voucher} command tree, built directly on Paper's Brigadier command API.
@@ -59,6 +63,10 @@ public final class VoucherCommand {
     private static final String PERM_RELOAD = "provouchers.reload";
     private static final String PERM_DOCTOR = "provouchers.doctor";
     private static final String PERM_RESETUSES = "provouchers.resetuses";
+    private static final String PERM_FROMHAND = "provouchers.fromhand";
+
+    /** Valid voucher ids for files created in-game: file-name safe, lower-cased on use. */
+    private static final Pattern FILE_ID = Pattern.compile("[A-Za-z0-9_-]{1,64}");
 
     /** A single subcommand's help metadata; Brigadier nodes carry none of this, so it lives here. */
     private record Sub(String name, String usage, @Nullable String permission) {
@@ -74,6 +82,7 @@ public final class VoucherCommand {
         new Sub("list", "list", PERM_LIST),
         new Sub("reload", "reload [id]", PERM_RELOAD),
         new Sub("resetuses", "resetuses <id> [player]", PERM_RESETUSES),
+        new Sub("fromhand", "fromhand <id>", PERM_FROMHAND),
         new Sub("doctor", "doctor", PERM_DOCTOR),
         new Sub("help", "help", null));
 
@@ -87,6 +96,7 @@ public final class VoucherCommand {
     private final Diagnostics diagnostics;
     private final VoucherStorage storage;
     private final Scheduler scheduler;
+    private final FromhandGui fromhandGui;
 
     public VoucherCommand(
         VoucherRegistry registry,
@@ -98,7 +108,8 @@ public final class VoucherCommand {
         Messages messages,
         Diagnostics diagnostics,
         VoucherStorage storage,
-        Scheduler scheduler
+        Scheduler scheduler,
+        FromhandGui fromhandGui
     ) {
         this.registry = registry;
         this.giveService = giveService;
@@ -110,6 +121,7 @@ public final class VoucherCommand {
         this.diagnostics = diagnostics;
         this.storage = storage;
         this.scheduler = scheduler;
+        this.fromhandGui = fromhandGui;
     }
 
     /** Builds and registers the command for {@code plugin}. Call during {@code onEnable}. */
@@ -139,6 +151,9 @@ public final class VoucherCommand {
                     .executes(run(ctx -> resetUses(ctx, false)))
                     .then(Commands.argument("target", ArgumentTypes.player())
                         .executes(run(ctx -> resetUses(ctx, true))))))
+            .then(Commands.literal("fromhand").requires(perm(PERM_FROMHAND))
+                .then(Commands.argument("id", StringArgumentType.word())
+                    .executes(run(this::fromhand))))
             .then(Commands.literal("doctor").requires(perm(PERM_DOCTOR))
                 .executes(run(ctx -> doctor(ctx.getSource()))))
             .then(Commands.literal("help")
@@ -313,6 +328,40 @@ public final class VoucherCommand {
         for (String error : errors) {
             reply(source, messages.get(viewer, "command.reload.error-line", "error", error));
         }
+    }
+
+    /**
+     * Captures the held item as a new voucher file, behind a confirm GUI that renders the
+     * item from its serialized form, so the admin sees the exact round-trip result.
+     */
+    private void fromhand(CommandContext<CommandSourceStack> ctx) {
+        CommandSourceStack source = ctx.getSource();
+        Player admin = asPlayer(source);
+        if (admin == null) {
+            reply(source, messages.get(null, "command.fromhand.players-only"));
+            return;
+        }
+        String id = StringArgumentType.getString(ctx, "id").toLowerCase(Locale.ROOT);
+        if (!FILE_ID.matcher(id).matches()) {
+            reply(source, messages.get(admin, "command.fromhand.bad-id", "id", id));
+            return;
+        }
+        if (fromhandGui.fileExists(id) || registry.getVoucher(id).isPresent()) {
+            reply(source, messages.get(admin, "command.fromhand.exists", "id", id));
+            return;
+        }
+        ItemStack held = admin.getInventory().getItemInMainHand();
+        if (held.getType().isAir()) {
+            reply(source, messages.get(admin, "command.fromhand.empty-hand"));
+            return;
+        }
+        String serialized = ItemBuilder.serialize(held.asOne());
+        ItemStack preview = ItemBuilder.deserialize(serialized);
+        if (preview == null) {
+            reply(source, messages.get(admin, "command.fromhand.failed"));
+            return;
+        }
+        fromhandGui.open(admin, id, serialized, preview);
     }
 
     /**

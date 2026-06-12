@@ -30,6 +30,7 @@ import so.alaz.provouchers.hook.PermissionHook;
 import so.alaz.provouchers.hook.RegionHook;
 import so.alaz.provouchers.hook.VaultEconomyHook;
 import so.alaz.provouchers.hook.WorldGuardRegionHook;
+import so.alaz.provouchers.gui.FromhandGui;
 import so.alaz.provouchers.gui.PreviewGui;
 import so.alaz.provouchers.gui.RewardPreviewGui;
 import so.alaz.provouchers.gui.VoucherAdminMenu;
@@ -158,8 +159,9 @@ public final class ProVouchersPlugin extends JavaPlugin {
         getServer().getOnlinePlayers().forEach(player -> cooldowns.hydrate(player.getUniqueId()));
         Diagnostics diagnostics = new Diagnostics(this, storage, registry, hooks, messages,
             () -> backend.name().toLowerCase(Locale.ROOT));
+        FromhandGui fromhandGui = new FromhandGui(guiManager, configManager, messages, text, getDataFolder());
         new VoucherCommand(registry, giveService, redeemHandler, configManager, previewGui, text,
-            messages, diagnostics, storage, scheduler).register(this);
+            messages, diagnostics, storage, scheduler, fromhandGui).register(this);
 
         getServer().getServicesManager().register(VoucherService.class,
             new VoucherServiceImpl(registry, giveService), this,

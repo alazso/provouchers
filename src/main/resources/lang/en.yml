@@ -43,6 +43,14 @@ command:
     success: "{prefix}<green>Reset all recorded uses of <gold>{id}</gold>."        # {id}
     success-player: "{prefix}<green>Reset <yellow>{target}</yellow>'s recorded uses of <gold>{id}</gold>."  # {id} {target}
     failed: "{prefix}<red>Could not reset uses; storage is unavailable."
+  fromhand:
+    players-only: "{prefix}<red>Only players can capture a held item."
+    empty-hand: "{prefix}<red>Hold the item you want to capture."
+    bad-id: "{prefix}<red><gold>{id}</gold> is not a valid file name (letters, numbers, - and _)."  # {id}
+    exists: "{prefix}<red>A voucher named <gold>{id}</gold> already exists."     # {id}
+    created: "{prefix}<green>Created and loaded <gold>{id}</gold> (<yellow>{file}</yellow>)."  # {id} {file}
+    cancelled: "{prefix}<gray>Cancelled; nothing was written."
+    failed: "{prefix}<red>Could not capture that item. Please try again."
   doctor:
     heading: "{prefix}<gold>Doctor"
   help:
@@ -56,6 +64,7 @@ command:
       list: "List loaded vouchers and codes"
       reload: "Reload all, or one file by id, from disk"
       resetuses: "Reset recorded uses for a voucher or code"
+      fromhand: "Capture the held item as a new voucher"
       doctor: "Show a diagnostic health report"
       help: "Show this help menu"
 
