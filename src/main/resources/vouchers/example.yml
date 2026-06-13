@@ -57,6 +57,7 @@ item:
 cooldown: 0                       # seconds between redeems per player (0 = none)
 stackable: true                   # false = anti-dupe: each copy tracked, never stacks
 # batch-open: false               # shift-right-click opens a whole stack (needs stackable, no cooldown)
+# enabled: true                   # set false to keep the voucher loaded but not redeemable
 # unredeemable: false             # display only, cannot be redeemed
 # owner-only: false               # only the player it was given to may redeem
 # has-argument: false             # fills %arg% from /voucher redeem <code> <arg>

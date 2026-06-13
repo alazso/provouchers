@@ -233,6 +233,9 @@ public final class CrazyVouchersMigrator implements Migrator {
         if (c.isBoolean("options.case-sensitive")) {
             out.put("case-sensitive", c.getBoolean("options.case-sensitive"));
         }
+        if (c.isBoolean("options.enabled") && !c.getBoolean("options.enabled")) {
+            out.put("enabled", false);
+        }
 
         List<String> rewards = convertRewards(c, warnings, id);
         List<Map<String, Object>> random = convertRandomRewards(c, rewards, warnings, id);
@@ -243,13 +246,10 @@ public final class CrazyVouchersMigrator implements Migrator {
             out.put("random-rewards", random);
         }
         applyLimiter(c, out);
+        convertEffects(c, out, warnings, id);
         List<Map<String, Object>> conditions = buildConditions(c, warnings, id);
         if (!conditions.isEmpty()) {
             out.put("conditions", conditions);
-        }
-        // Codes have no item, so effects (sound/firework) and any appearance do not apply.
-        if (c.getBoolean("options.sound.toggle", false) || c.getBoolean("options.firework.toggle", false)) {
-            warnings.add("code " + id + ": sound/firework effects are voucher-only, not imported");
         }
 
         reportUnmapped(c, warnings, id, CODE_HANDLED);
@@ -569,7 +569,7 @@ public final class CrazyVouchersMigrator implements Migrator {
     /** Code keys this importer converts. */
     private static final List<String> CODE_HANDLED = List.of(
         "code", "commands", "random-commands", "chance-commands",
-        "options.message", "options.case-sensitive", "options.limiter", "options.sound",
+        "options.message", "options.case-sensitive", "options.enabled", "options.limiter", "options.sound",
         "options.firework", "options.fireworks", "options.whitelist-worlds",
         "options.required-placeholders", "options.required-placeholders-message",
         "options.permission.whitelist-permission", "options.permission.blacklist-permission");

@@ -72,6 +72,7 @@ command:
 redeem:
   not-configured: "<red>Ce bon n'est plus configuré."
   unredeemable: "<red>Ce bon ne peut pas être utilisé."
+  disabled: "<red>Ce bon est actuellement désactivé."
   not-owner: "<red>Ce bon appartient à quelqu'un d'autre."
   expired: "<red>Ce bon a expiré."
   not-yet-active: "<red>Ce bon n'est pas encore actif."
@@ -88,6 +89,7 @@ redeem:
 # ---- Utilisation d'un code ------------------------------------------------------
 code:
   unknown: "<red>Code inconnu."
+  disabled: "<red>Ce code est actuellement désactivé."
   expired: "<red>Ce code a expiré."
   not-yet-active: "<red>Ce code n'est pas encore actif."
   wrong-gamemode: "<red>Vous ne pouvez pas utiliser de codes dans ce mode de jeu."

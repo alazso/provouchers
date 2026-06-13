@@ -24,6 +24,8 @@ import java.util.Map;
  * @param randomRewards weighted reward sets
  * @param definedItems  decorated items from the {@code items:} map, granted via {@code item: @name}
  * @param hasArgument   whether a free-form argument is accepted
+ * @param enabled       if {@code false} the code loads but cannot be redeemed (an admin toggle)
+ * @param effects       optional sound and firework played on a successful redeem, or {@code null}
  */
 public record VoucherCode(
     String code,
@@ -36,7 +38,9 @@ public record VoucherCode(
     List<RewardLine> rewards,
     List<RewardSet> randomRewards,
     Map<String, DefinedItem> definedItems,
-    boolean hasArgument
+    boolean hasArgument,
+    boolean enabled,
+    @Nullable VoucherEffects effects
 ) implements so.alaz.provouchers.api.VoucherCode {
 
     public VoucherCode {

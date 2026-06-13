@@ -12,6 +12,11 @@
 # ---- Identity ---------------------------------------------------------------
 code: WELCOME2026                 # optional; defaults to the file name
 case-sensitive: false             # true = "WELCOME2026" and "welcome2026" are different
+# enabled: true                   # set false to keep the code loaded but not redeemable
+
+# ---- Effects: a sound and/or firework played to the redeemer on success -----
+# effects:
+#   sound: "minecraft:entity.player.levelup 1 1"   # key [volume] [pitch]
 
 # ---- Limits -----------------------------------------------------------------
 max-uses: 100                     # global cap across all players; -1 = unlimited

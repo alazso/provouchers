@@ -72,6 +72,7 @@ command:
 redeem:
   not-configured: "<red>Este vale ya no está configurado."
   unredeemable: "<red>Este vale no se puede canjear."
+  disabled: "<red>Este vale está deshabilitado actualmente."
   not-owner: "<red>Este vale pertenece a otra persona."
   expired: "<red>Este vale ha caducado."
   not-yet-active: "<red>Este vale aún no está activo."
@@ -88,6 +89,7 @@ redeem:
 # ---- Canjear un código -----------------------------------------------------------
 code:
   unknown: "<red>Código desconocido."
+  disabled: "<red>Este código está deshabilitado actualmente."
   expired: "<red>Este código ha caducado."
   not-yet-active: "<red>Este código aún no está activo."
   wrong-gamemode: "<red>No puedes canjear códigos en este modo de juego."

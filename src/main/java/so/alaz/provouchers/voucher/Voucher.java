@@ -39,6 +39,7 @@ import java.util.Map;
  * @param confirmMessage the per-voucher confirmation prompt, or {@code null} to use the locale default
  * @param effects       optional sound and particle played to the redeemer, or {@code null} for none
  * @param soulbound     transfer restrictions binding the item to its player, or {@code null}
+ * @param enabled       if {@code false} the voucher loads but cannot be redeemed (an admin toggle)
  */
 public record Voucher(
     String id,
@@ -62,7 +63,8 @@ public record Voucher(
     boolean twoStep,
     @Nullable String confirmMessage,
     @Nullable VoucherEffects effects,
-    @Nullable SoulboundSpec soulbound
+    @Nullable SoulboundSpec soulbound,
+    boolean enabled
 ) implements so.alaz.provouchers.api.Voucher {
 
     public Voucher {

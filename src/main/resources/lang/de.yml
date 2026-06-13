@@ -72,6 +72,7 @@ command:
 redeem:
   not-configured: "<red>Dieser Gutschein ist nicht mehr konfiguriert."
   unredeemable: "<red>Dieser Gutschein kann nicht eingelöst werden."
+  disabled: "<red>Dieser Gutschein ist derzeit deaktiviert."
   not-owner: "<red>Dieser Gutschein gehört jemand anderem."
   expired: "<red>Dieser Gutschein ist abgelaufen."
   not-yet-active: "<red>Dieser Gutschein ist noch nicht aktiv."
@@ -88,6 +89,7 @@ redeem:
 # ---- Einlösen eines Codes -----------------------------------------------------
 code:
   unknown: "<red>Unbekannter Code."
+  disabled: "<red>Dieser Code ist derzeit deaktiviert."
   expired: "<red>Dieser Code ist abgelaufen."
   not-yet-active: "<red>Dieser Code ist noch nicht aktiv."
   wrong-gamemode: "<red>In diesem Spielmodus kannst du keine Codes einlösen."

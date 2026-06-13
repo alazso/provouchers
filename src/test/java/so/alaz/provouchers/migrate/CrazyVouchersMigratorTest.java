@@ -241,8 +241,10 @@ class CrazyVouchersMigratorTest {
         assertThat(code.code()).isEqualTo("startermoney");
         assertThat(code.maxUses()).isEqualTo(5);
         assertThat(code.rewards().get(0).payload()).isEqualTo("eco give %player% 10000");
-        // A code has no item, so sound is reported as voucher-only.
-        assertThat(result.warnings()).anyMatch(w -> w.contains("sound/firework"));
+        // Codes now carry redeem effects, so the sound maps instead of warning.
+        assertThat(code.effects()).isNotNull();
+        assertThat(code.effects().sound()).startsWith("block.note_block.pling");
+        assertThat(result.warnings()).noneMatch(w -> w.contains("sound/firework"));
     }
 
     @Test

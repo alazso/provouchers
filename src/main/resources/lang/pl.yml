@@ -72,6 +72,7 @@ command:
 redeem:
   not-configured: "<red>Ten voucher nie jest już skonfigurowany."
   unredeemable: "<red>Tego vouchera nie da się zrealizować."
+  disabled: "<red>Ten voucher jest obecnie wyłączony."
   not-owner: "<red>Ten voucher należy do kogoś innego."
   expired: "<red>Ten voucher wygasł."
   not-yet-active: "<red>Ten voucher nie jest jeszcze aktywny."
@@ -88,6 +89,7 @@ redeem:
 # ---- Realizacja kodu --------------------------------------------------------------
 code:
   unknown: "<red>Nieznany kod."
+  disabled: "<red>Ten kod jest obecnie wyłączony."
   expired: "<red>Ten kod wygasł."
   not-yet-active: "<red>Ten kod nie jest jeszcze aktywny."
   wrong-gamemode: "<red>Nie możesz realizować kodów w tym trybie gry."

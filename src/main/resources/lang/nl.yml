@@ -72,6 +72,7 @@ command:
 redeem:
   not-configured: "<red>Deze voucher is niet meer geconfigureerd."
   unredeemable: "<red>Deze voucher kan niet worden ingewisseld."
+  disabled: "<red>Deze voucher is momenteel uitgeschakeld."
   not-owner: "<red>Deze voucher is van iemand anders."
   expired: "<red>Deze voucher is verlopen."
   not-yet-active: "<red>Deze voucher is nog niet actief."
@@ -88,6 +89,7 @@ redeem:
 # ---- Een code inwisselen ------------------------------------------------------------
 code:
   unknown: "<red>Onbekende code."
+  disabled: "<red>Deze code is momenteel uitgeschakeld."
   expired: "<red>Deze code is verlopen."
   not-yet-active: "<red>Deze code is nog niet actief."
   wrong-gamemode: "<red>Je kunt geen codes inwisselen in deze spelmodus."

@@ -98,7 +98,8 @@ public final class VoucherParser {
             section.getBoolean("two-step-authentication", false),
             emptyToNull(section.getString("two-step-authentication-message", "")),
             parseEffects(section, voucherId),
-            parseSoulbound(section)
+            parseSoulbound(section),
+            section.getBoolean("enabled", true)
         );
     }
 
@@ -170,7 +171,9 @@ public final class VoucherParser {
             rewards,
             randomRewards,
             definedItems,
-            section.getBoolean("has-argument", false)
+            section.getBoolean("has-argument", false),
+            section.getBoolean("enabled", true),
+            parseEffects(section, code)
         );
     }
 

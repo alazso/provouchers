@@ -147,6 +147,10 @@ public final class RedeemHandler {
             send(player, messages.get(player, "redeem.unredeemable"));
             return;
         }
+        if (!voucher.enabled()) {
+            send(player, messages.get(player, "redeem.disabled"));
+            return;
+        }
         if (voucher.ownerOnly() && !ownsVoucher(player, meta)) {
             send(player, messages.get(player, "redeem.not-owner"));
             return;
@@ -409,6 +413,10 @@ public final class RedeemHandler {
             send(player, messages.get(player, "code.unknown"));
             return;
         }
+        if (!code.enabled()) {
+            send(player, messages.get(player, "code.disabled"));
+            return;
+        }
         Instant now = Instant.now();
         if (Expiry.isExpired(Expiry.resolve(code.expiry(), now), now)) {
             send(player, messages.get(player, "code.expired"));
@@ -460,6 +468,7 @@ public final class RedeemHandler {
                 }
                 grant(player, "code '" + code.code() + "'", code.rewards(), code.randomRewards(),
                     argument, false, code.definedItems());
+                playEffects(player, code.effects());
                 counters.recordCodeRedemption();
                 new VoucherCodeRedeemEvent(player, code, argument).callEvent();
                 send(player, messages.get(player, "code.redeemed"));

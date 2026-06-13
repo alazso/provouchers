@@ -72,6 +72,7 @@ command:
 redeem:
   not-configured: "<red>Denne voucher er ikke længere konfigureret."
   unredeemable: "<red>Denne voucher kan ikke indløses."
+  disabled: "<red>Denne voucher er deaktiveret i øjeblikket."
   not-owner: "<red>Denne voucher tilhører en anden."
   expired: "<red>Denne voucher er udløbet."
   not-yet-active: "<red>Denne voucher er ikke aktiv endnu."
@@ -88,6 +89,7 @@ redeem:
 # ---- Indløsning af en kode ---------------------------------------------------------
 code:
   unknown: "<red>Ukendt kode."
+  disabled: "<red>Denne kode er deaktiveret i øjeblikket."
   expired: "<red>Denne kode er udløbet."
   not-yet-active: "<red>Denne kode er ikke aktiv endnu."
   wrong-gamemode: "<red>Du kan ikke indløse koder i denne spiltilstand."

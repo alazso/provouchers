@@ -80,6 +80,7 @@ command:
 redeem:
   not-configured: "<red>This voucher is no longer configured."
   unredeemable: "<red>This voucher cannot be redeemed."
+  disabled: "<red>This voucher is currently disabled."
   not-owner: "<red>This voucher belongs to someone else."
   expired: "<red>This voucher has expired."
   not-yet-active: "<red>This voucher is not active yet."
@@ -96,6 +97,7 @@ redeem:
 # ---- Redeeming a code -------------------------------------------------------
 code:
   unknown: "<red>Unknown code."
+  disabled: "<red>This code is currently disabled."
   expired: "<red>This code has expired."
   not-yet-active: "<red>This code is not active yet."
   wrong-gamemode: "<red>You cannot redeem codes in this game mode."
