@@ -33,6 +33,9 @@ item:
   material: PAPER                 # any Bukkit material
   glow: true                      # enchant glint, enchantment hidden
   # custom-model-data: 1001       # only visible with a matching resource pack
+  # enchantments:                 # real enchantments (key: level); these glint on their own
+  #   sharpness: 5
+  #   unbreaking: 3
 
   # custom: "itemsadder:pack:id"  # provider item (ItemsAdder / Oraxen / Nexo)
   # custom: "hdb:124791"          # Head Database head (hdb: or headdatabase:)

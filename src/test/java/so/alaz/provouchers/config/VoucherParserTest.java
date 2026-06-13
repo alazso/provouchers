@@ -141,6 +141,22 @@ class VoucherParserTest {
     }
 
     @Test
+    void parsesEnchantments() throws Exception {
+        YamlConfiguration config = yaml("item:\n  material: DIAMOND_SWORD\n  enchantments:\n"
+            + "    sharpness: 5\n    Unbreaking: 3\n");
+        Voucher voucher = VoucherParser.parseVoucher(config, "ench");
+        assertThat(voucher.item().enchantments())
+            .containsEntry("sharpness", 5).containsEntry("unbreaking", 3);
+    }
+
+    @Test
+    void rejectsNonPositiveEnchantmentLevel() throws Exception {
+        YamlConfiguration config = yaml("item:\n  material: PAPER\n  enchantments:\n    sharpness: 0\n");
+        assertThatThrownBy(() -> VoucherParser.parseVoucher(config, "bad"))
+            .isInstanceOf(VoucherParseException.class).hasMessageContaining("level");
+    }
+
+    @Test
     void parsesUseLimits() throws Exception {
         YamlConfiguration config = yaml("item:\n  material: PAPER\nmax-uses: 100\nuses-per-player: 2\n");
         Voucher voucher = VoucherParser.parseVoucher(config, "limited");

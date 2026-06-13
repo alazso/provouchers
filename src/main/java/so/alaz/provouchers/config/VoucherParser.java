@@ -266,7 +266,29 @@ public final class VoucherParser {
         }
         Integer cmd = item.contains("custom-model-data") ? item.getInt("custom-model-data") : null;
         SkullSpec skull = parseSkull(item.getConfigurationSection("skull"), id);
-        return new VoucherItem(material, custom, cmd, item.getBoolean("glow", false), skull);
+        return new VoucherItem(material, custom, cmd, item.getBoolean("glow", false), skull,
+            parseEnchantments(item.getConfigurationSection("enchantments"), id));
+    }
+
+    /**
+     * The optional {@code enchantments} map (key to level). The enchantment key itself is not
+     * resolved here (the registry is not available headless); the level is validated and unknown
+     * keys are skipped with a warning when the item is built.
+     */
+    private static Map<String, Integer> parseEnchantments(@Nullable ConfigurationSection section, String id) {
+        if (section == null) {
+            return Map.of();
+        }
+        Map<String, Integer> enchantments = new LinkedHashMap<>();
+        for (String key : section.getKeys(false)) {
+            int level = section.getInt(key, 0);
+            if (level < 1) {
+                throw new VoucherParseException(
+                    "voucher '" + id + "': enchantment '" + key + "' level must be at least 1");
+            }
+            enchantments.put(key.toLowerCase(Locale.ROOT), level);
+        }
+        return enchantments;
     }
 
     @Nullable

@@ -2,6 +2,9 @@ package so.alaz.provouchers.voucher;
 
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -159,9 +162,7 @@ public final class VoucherItemFactory {
         String viewerName = viewerName(viewer);
         String expiry = Expiry.describe(expiryRaw);
         String name = displayName != null ? displayName : fallbackName;
-        ItemBuilder builder = new ItemBuilder(material)
-            .amount(1)
-            .glow(spec.glow());
+        ItemBuilder builder = new ItemBuilder(material).amount(1);
         if (name != null) {
             builder.name(text.render(
                 Placeholders.apply(Placeholders.applyExpiry(name, expiry), viewerName, null), viewer));
@@ -171,11 +172,34 @@ public final class VoucherItemFactory {
                 Placeholders.applyAll(Placeholders.applyExpiryAll(lore, expiry), viewerName, null), viewer));
         }
         ItemStack item = builder.build();
-        Integer customModelData = spec.customModelData();
-        if (customModelData != null) {
-            item.editMeta(meta -> meta.setCustomModelData(customModelData));
-        }
+        item.editMeta(meta -> applyExtras(meta, spec, true));
         return item;
+    }
+
+    /**
+     * Applies the appearance extras shared by every build path: custom model data (when
+     * {@code applyModelData}), enchantments, and the glow glint. Real enchantments already
+     * glint, so the hidden glow is only added when there are none.
+     */
+    private static void applyExtras(ItemMeta meta, VoucherItem spec, boolean applyModelData) {
+        if (applyModelData && spec.customModelData() != null) {
+            meta.setCustomModelData(spec.customModelData());
+        }
+        spec.enchantments().forEach((key, level) -> {
+            Enchantment enchant = resolveEnchant(key);
+            if (enchant != null) {
+                meta.addEnchant(enchant, level, true);
+            }
+        });
+        if (spec.glow() && spec.enchantments().isEmpty() && !meta.hasEnchants()) {
+            ItemBuilder.applyGlow(meta);
+        }
+    }
+
+    @Nullable
+    private static Enchantment resolveEnchant(String key) {
+        NamespacedKey namespaced = NamespacedKey.fromString(key);
+        return namespaced == null ? null : Registry.ENCHANTMENT.get(namespaced);
     }
 
     private CompletableFuture<ItemStack> buildSkull(SkullSpec skull, int amount) {
@@ -213,13 +237,7 @@ public final class VoucherItemFactory {
                     .map(line -> line.decoration(TextDecoration.ITALIC, false))
                     .toList());
             }
-            if (spec.glow() && !meta.hasEnchants()) {
-                ItemBuilder.applyGlow(meta);
-            }
-            Integer customModelData = spec.customModelData();
-            if (applyModelData && customModelData != null) {
-                meta.setCustomModelData(customModelData);
-            }
+            applyExtras(meta, spec, applyModelData);
         });
     }
 }
