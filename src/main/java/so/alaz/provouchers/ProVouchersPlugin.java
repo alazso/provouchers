@@ -88,8 +88,8 @@ public final class ProVouchersPlugin extends JavaPlugin {
             return;
         }
         saveDefaultConfig();
-        saveExample("vouchers/example.yml");
-        saveExample("codes/example.yml");
+        saveResourceIfMissing("vouchers/example.yml");
+        saveResourceIfMissing("codes/example.yml");
 
         Backend backend = parseBackend(getConfig().getString("storage.backend", "sqlite"));
         storage = new VoucherStorage(new StorageProvider(buildStorageConfig(backend)));
@@ -103,7 +103,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
         VoucherRegistry registry = new VoucherRegistry();
         Text text = new Text();
         for (String lang : new String[] {"en", "de", "fr", "es", "pl", "da", "nl"}) {
-            saveResource("lang/" + lang + ".yml", false);
+            saveResourceIfMissing("lang/" + lang + ".yml");
         }
         Messages messages = new Messages(getDataFolder(),
             getConfig().getString("locale.default", "en"),
@@ -269,7 +269,12 @@ public final class ProVouchersPlugin extends JavaPlugin {
         return backend == Backend.POSTGRES ? 5432 : 3306;
     }
 
-    private void saveExample(String resourcePath) {
+    /**
+     * Writes a bundled resource to the data folder only when it is missing. Avoids Bukkit's
+     * {@code saveResource} warning that fires on every start once the file exists, which for a
+     * non-overwriting save is the expected case, not a failure.
+     */
+    private void saveResourceIfMissing(String resourcePath) {
         if (!new File(getDataFolder(), resourcePath).exists()) {
             saveResource(resourcePath, false);
         }
