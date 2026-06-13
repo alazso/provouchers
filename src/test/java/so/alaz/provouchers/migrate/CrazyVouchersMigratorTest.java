@@ -135,7 +135,7 @@ class CrazyVouchersMigratorTest {
     }
 
     @Test
-    void reportsItemDslDamageTrimAndEnchantments() throws Exception {
+    void mapsItemDslDamageTrimAndEnchantments() throws Exception {
         Path cv = plugins.resolve("CrazyVouchers/vouchers");
         Files.createDirectories(cv);
         Files.writeString(cv.resolve("Trim.yml"), """
@@ -146,12 +146,45 @@ class CrazyVouchersMigratorTest {
             """);
         MigrationReport result = importer(new VoucherRegistry()).migrate();
 
-        Voucher voucher = importedVoucher("trim");
-        assertThat(voucher.definedItems().get("imported_1").item().material()).isEqualTo("DIAMOND_HELMET");
-        assertThat(result.warnings())
-            .anyMatch(w -> w.contains("Damage:50"))
-            .anyMatch(w -> w.contains("Trim:sentry!quartz"))
-            .anyMatch(w -> w.contains("protection:4"));
+        var defined = importedVoucher("trim").definedItems().get("imported_1").item();
+        assertThat(defined.material()).isEqualTo("DIAMOND_HELMET");
+        assertThat(defined.damage()).isEqualTo(50);
+        assertThat(defined.trim()).isEqualTo(new so.alaz.provouchers.voucher.ItemTrim("quartz", "sentry"));
+        assertThat(defined.enchantments()).containsEntry("protection", 4).containsEntry("unbreaking", 3);
+        // Everything mapped: no item-option warnings remain.
+        assertThat(result.warnings()).noneMatch(w -> w.contains("item option"));
+    }
+
+    @Test
+    void mapsCooldownPlaceholdersAndItemModel() throws Exception {
+        Path cv = plugins.resolve("CrazyVouchers/vouchers");
+        Files.createDirectories(cv);
+        Files.writeString(cv.resolve("Full.yml"), """
+            voucher:
+              item: 'paper'
+              cooldown:
+                toggle: true
+                interval: 3600
+              components:
+                item-model:
+                  namespace: 'minecraft'
+                  key: 'emerald'
+                hide-tooltip: true
+              options:
+                required-placeholders-message: '{prefix}Not eligible.'
+                required-placeholders:
+                  one:
+                    placeholder: '%player_level%'
+                    value: '30'
+            """);
+        importer(new VoucherRegistry()).migrate();
+
+        Voucher voucher = importedVoucher("full");
+        assertThat(voucher.cooldownSeconds()).isEqualTo(3600);
+        assertThat(voucher.item().itemModel()).isEqualTo("minecraft:emerald");
+        assertThat(voucher.item().hideTooltip()).isTrue();
+        assertThat(voucher.conditionMaps()).anyMatch(c -> "papi".equals(c.get("type"))
+            && "%player_level%".equals(c.get("placeholder")) && "30".equals(c.get("value")));
     }
 
     @Test

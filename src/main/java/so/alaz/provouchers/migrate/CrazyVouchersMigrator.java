@@ -143,6 +143,9 @@ public final class CrazyVouchersMigrator implements Migrator {
             out.put("random-rewards", random);
         }
 
+        if (v.getBoolean("cooldown.toggle", false)) {
+            out.put("cooldown", v.getInt("cooldown.interval", 5));
+        }
         convertEffects(v, out, warnings, id);
         applyLimiter(v, out);
         List<Map<String, Object>> conditions = buildConditions(v, warnings, id);
@@ -154,7 +157,7 @@ public final class CrazyVouchersMigrator implements Migrator {
         return out;
     }
 
-    /** Name, lore, material, glow, custom model data, and a player-head texture. */
+    /** Name, lore, and every item-appearance key, including the alternate {@code settings.} block. */
     private void convertAppearance(ConfigurationSection v, Map<String, Object> out) {
         String name = v.getString("name");
         if (name != null) {
@@ -166,21 +169,40 @@ public final class CrazyVouchersMigrator implements Migrator {
         }
         out.put("item.material", v.getString("item", "PAPER").toUpperCase(Locale.ROOT));
         // CrazyVouchers glowing is an enum string (add_glow / remove_glow / none), not a boolean.
-        if ("add_glow".equalsIgnoreCase(v.getString("glowing", "none"))) {
+        // It can also live under settings.glowing on a head voucher.
+        if ("add_glow".equalsIgnoreCase(v.getString("glowing", v.getString("settings.glowing", "none")))) {
             out.put("item.glow", true);
         }
         // -1 is the CrazyVouchers "no model data" sentinel; a real value is positive.
         if (v.getInt("custom-model-data", -1) > 0) {
             out.put("item.custom-model-data", v.getInt("custom-model-data"));
         }
-        String texture = v.getString("player");
-        if (texture != null && !texture.isBlank()) {
+        String texture = firstNonBlank(v, "player", "settings.player");
+        if (texture != null) {
             out.put("item.skull.source", "url");
             out.put("item.skull.value", textureUrl(texture));
         }
-        String hdb = v.getString("skull");
-        if (hdb != null && !hdb.isBlank()) {
+        String hdb = firstNonBlank(v, "skull", "settings.skull");
+        if (hdb != null) {
             out.put("item.custom", "hdb:" + hdb);
+        }
+        if (v.contains("settings.damage")) {
+            out.put("item.damage", v.getInt("settings.damage"));
+        }
+        String trimMaterial = v.getString("settings.trim.material");
+        String trimPattern = v.getString("settings.trim.pattern");
+        if (trimMaterial != null && !trimMaterial.isBlank() && trimPattern != null && !trimPattern.isBlank()) {
+            out.put("item.trim.material", trimMaterial);
+            out.put("item.trim.pattern", trimPattern);
+        }
+        // The modern item model (1.21.4+), a namespace + key pair.
+        String namespace = v.getString("components.item-model.namespace", "");
+        String key = v.getString("components.item-model.key", "");
+        if (!namespace.isBlank() && !key.isBlank()) {
+            out.put("item.item-model", namespace + ":" + key);
+        }
+        if (v.getBoolean("components.hide-tooltip", false)) {
+            out.put("item.hide-tooltip", true);
         }
     }
 
@@ -251,11 +273,22 @@ public final class CrazyVouchersMigrator implements Migrator {
      */
     private List<Map<String, Object>> convertRandomRewards(ConfigurationSection v, List<String> warnings,
                                                            String id) {
+        List<Map<String, Object>> sets = new ArrayList<>();
+        // The legacy list form: each line is "<chance> <command>".
+        for (String line : v.getStringList("chance-commands")) {
+            String[] parts = line.trim().split("\\s+", 2);
+            if (parts.length == 2) {
+                tryInt(parts[0]).ifPresentOrElse(
+                    weight -> sets.add(rewardSet(weight, parts[1])),
+                    () -> sets.add(rewardSet(1.0, line)));
+            } else if (!line.isBlank()) {
+                sets.add(rewardSet(1.0, line));
+            }
+        }
         ConfigurationSection rc = v.getConfigurationSection("random-commands");
         if (rc == null) {
-            return List.of();
+            return sets;
         }
-        List<Map<String, Object>> sets = new ArrayList<>();
         boolean weighted = false;
         boolean unweighted = false;
         for (String key : rc.getKeys(false)) {
@@ -299,7 +332,8 @@ public final class CrazyVouchersMigrator implements Migrator {
             }
         }
         if (v.getBoolean("options.firework.toggle", false)) {
-            String colors = v.getString("options.firework.colors", "");
+            // "firework" is the current key; some configs carry the "fireworks" typo.
+            String colors = v.getString("options.firework.colors", v.getString("options.fireworks.colors", ""));
             if (!colors.isBlank()) {
                 out.put("effects.firework.colors",
                     List.of(colors.toUpperCase(Locale.ROOT).split("\\s*,\\s*")));
@@ -310,7 +344,8 @@ public final class CrazyVouchersMigrator implements Migrator {
     /** A CrazyVouchers limiter caps total redemptions, which maps to {@code max-uses}. */
     private void applyLimiter(ConfigurationSection v, Map<String, Object> out) {
         if (v.getBoolean("options.limiter.toggle", false)) {
-            out.put("max-uses", v.getInt("options.limiter.amount", -1));
+            // "limit" is the v4 key; older configs used "amount".
+            out.put("max-uses", v.getInt("options.limiter.limit", v.getInt("options.limiter.amount", -1)));
         }
     }
 
@@ -333,9 +368,34 @@ public final class CrazyVouchersMigrator implements Migrator {
             for (String node : v.getStringList("options.permission.whitelist-permission.permissions")) {
                 conditions.add(condition("permission", "permission", node, message));
             }
+            // Some configs use a single "node" instead of the permissions list.
+            String single = v.getString("options.permission.whitelist-permission.node");
+            if (single != null && !single.isBlank()) {
+                conditions.add(condition("permission", "permission", single, message));
+            }
         }
         if (v.getBoolean("options.permission.blacklist-permission.toggle", false)) {
             warnings.add(id + ": blacklist-permission (deny if held) has no equivalent, not imported");
+        }
+        // Required placeholders become equality papi conditions.
+        ConfigurationSection required = v.getConfigurationSection("options.required-placeholders");
+        if (required != null) {
+            String message = v.getString("options.required-placeholders-message");
+            for (String key : required.getKeys(false)) {
+                ConfigurationSection entry = required.getConfigurationSection(key);
+                if (entry == null) {
+                    continue;
+                }
+                String placeholder = entry.getString("placeholder", "");
+                String value = entry.getString("value", "");
+                if (placeholder.isBlank() || value.isBlank()) {
+                    continue;
+                }
+                Map<String, Object> condition = condition("papi", "placeholder", placeholder, message);
+                condition.put("operator", "equals");
+                condition.put("value", value);
+                conditions.add(condition);
+            }
         }
         return conditions;
     }
@@ -368,13 +428,15 @@ public final class CrazyVouchersMigrator implements Migrator {
     }
 
     /**
-     * Parses one entry of the give-items DSL ({@code 'Item:x, Name:y, Lore:a,b, Amount:3'}).
-     * Values may contain commas (lore, names), so a token with no recognised key merges into
-     * the previous value. Damage, trim, and enchantment tokens have no equivalent on a reward
-     * item and are reported rather than applied.
+     * Parses one entry of the give-items DSL
+     * ({@code 'Item:x, Name:y, Lore:a,b, Amount:3, Damage:50, Trim:pattern!material, sharpness:5'}).
+     * Recognised keys map directly; {@code damage} and {@code trim} map to the item appearance;
+     * any other {@code name:level} token is treated as an enchantment. Values may contain commas
+     * (lore, names), so a token with no key merges into the previous value.
      */
     private Map<String, Object> convertItemDsl(String dsl, List<String> warnings, String id) {
         Map<String, String> pairs = new LinkedHashMap<>();
+        Map<String, Integer> enchantments = new LinkedHashMap<>();
         String currentKey = null;
         for (String token : dsl.split(",")) {
             String trimmed = token.trim();
@@ -383,13 +445,18 @@ public final class CrazyVouchersMigrator implements Migrator {
             }
             int colon = trimmed.indexOf(':');
             String maybeKey = colon > 0 ? trimmed.substring(0, colon).toLowerCase(Locale.ROOT) : "";
+            String value = colon > 0 ? trimmed.substring(colon + 1).trim() : "";
             if (isDslKey(maybeKey)) {
                 currentKey = maybeKey;
-                pairs.put(currentKey, trimmed.substring(colon + 1).trim());
+                pairs.put(currentKey, value);
             } else if (colon > 0 && !maybeKey.isEmpty()) {
-                // damage, trim, or an enchantment (name:level): no reward-item equivalent.
-                warnings.add(id + ": item option '" + trimmed + "' has no equivalent, not imported");
+                // An unrecognised key:value: an enchantment when the value is a level number.
                 currentKey = null;
+                try {
+                    enchantments.put(maybeKey, Integer.parseInt(value));
+                } catch (NumberFormatException ex) {
+                    warnings.add(id + ": item option '" + trimmed + "' has no equivalent, not imported");
+                }
             } else if (currentKey != null) {
                 pairs.merge(currentKey, ", " + trimmed, String::concat);
             }
@@ -412,6 +479,19 @@ public final class CrazyVouchersMigrator implements Migrator {
         if (pairs.containsKey("skull")) {
             out.put("custom", "hdb:" + pairs.get("skull"));
         }
+        if (pairs.containsKey("damage")) {
+            tryInt(pairs.get("damage")).ifPresent(damage -> out.put("damage", damage));
+        }
+        // Trim is written pattern!material in the DSL.
+        if (pairs.containsKey("trim")) {
+            String[] parts = pairs.get("trim").split("!", 2);
+            if (parts.length == 2) {
+                out.put("trim", Map.of("pattern", parts[0].trim(), "material", parts[1].trim()));
+            }
+        }
+        if (!enchantments.isEmpty()) {
+            out.put("enchantments", enchantments);
+        }
         if (pairs.containsKey("amount")) {
             out.put("__amount", pairs.get("amount"));
         }
@@ -420,9 +500,37 @@ public final class CrazyVouchersMigrator implements Migrator {
 
     private static boolean isDslKey(String key) {
         return switch (key) {
-            case "item", "amount", "name", "lore", "player", "skull", "glowing" -> true;
+            case "item", "amount", "name", "lore", "player", "skull", "glowing", "damage", "trim" -> true;
             default -> false;
         };
+    }
+
+    private static java.util.OptionalInt tryInt(String value) {
+        try {
+            return java.util.OptionalInt.of(Integer.parseInt(value.trim()));
+        } catch (NumberFormatException ex) {
+            return java.util.OptionalInt.empty();
+        }
+    }
+
+    /** A single-command weighted reward set. */
+    private static Map<String, Object> rewardSet(double weight, String command) {
+        Map<String, Object> set = new LinkedHashMap<>();
+        set.put("weight", weight);
+        set.put("rewards", List.of("command: " + LegacyText.toMiniMessage(command.trim())));
+        return set;
+    }
+
+    /** The first of {@code paths} with a non-blank value, or {@code null}. */
+    @Nullable
+    private static String firstNonBlank(ConfigurationSection section, String... paths) {
+        for (String path : paths) {
+            String value = section.getString(path);
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
     }
 
     // ---- Reporting ----------------------------------------------------------
@@ -430,16 +538,20 @@ public final class CrazyVouchersMigrator implements Migrator {
     /** Voucher keys this importer converts; every other leaf key is reported as unmapped. */
     private static final List<String> VOUCHER_HANDLED = List.of(
         "name", "lore", "item", "glowing", "custom-model-data", "player", "skull",
-        "has-argument", "commands", "random-commands", "items",
-        "options.message", "options.sound", "options.firework", "options.limiter",
+        "has-argument", "commands", "random-commands", "chance-commands", "items", "cooldown",
+        "settings.glowing", "settings.player", "settings.skull", "settings.damage", "settings.trim",
+        "components.item-model", "components.hide-tooltip",
+        "options.message", "options.sound", "options.firework", "options.fireworks", "options.limiter",
         "options.two-step-authentication", "options.whitelist-worlds",
+        "options.required-placeholders", "options.required-placeholders-message",
         "options.permission.whitelist-permission", "options.permission.blacklist-permission");
 
     /** Code keys this importer converts. */
     private static final List<String> CODE_HANDLED = List.of(
-        "code", "commands", "random-commands",
+        "code", "commands", "random-commands", "chance-commands",
         "options.message", "options.case-sensitive", "options.limiter", "options.sound",
-        "options.firework", "options.whitelist-worlds",
+        "options.firework", "options.fireworks", "options.whitelist-worlds",
+        "options.required-placeholders", "options.required-placeholders-message",
         "options.permission.whitelist-permission", "options.permission.blacklist-permission");
 
     private void reportUnmapped(ConfigurationSection v, List<String> warnings, String id, List<String> handled) {
