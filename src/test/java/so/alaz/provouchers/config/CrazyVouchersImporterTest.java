@@ -70,6 +70,52 @@ class CrazyVouchersImporterTest {
     }
 
     @Test
+    void mapsWorldLimiterAndPermissionGatesAndSkipsCosmetics() throws Exception {
+        Path cv = plugins.resolve("CrazyVouchers/vouchers");
+        Files.createDirectories(cv);
+        Files.writeString(cv.resolve("Gated.yml"), """
+            voucher:
+              item: 'paper'
+              override-anti-dupe: false
+              allow-vouchers-in-item-frames: false
+              display-damage: 50
+              display-trim:
+                material: 'quartz'
+                pattern: 'sentry'
+              options:
+                whitelist-worlds:
+                  toggle: true
+                  message: '{prefix}Wrong world.'
+                  worlds: [ 'world', 'world_nether' ]
+                limiter:
+                  toggle: true
+                  amount: 10
+                permission:
+                  whitelist-permission:
+                    toggle: true
+                    message: '{prefix}No permission.'
+                    permissions: [ 'vouchers.use.gated' ]
+                  blacklist-permission:
+                    toggle: true
+                    permissions: [ 'some.node' ]
+            """);
+        CrazyVouchersImporter.Result result = importer(new VoucherRegistry()).importAll();
+        assertThat(result.imported()).containsExactly("gated");
+
+        Voucher voucher = VoucherParser.parseVoucher(YamlConfiguration.loadConfiguration(
+            plugins.resolve("ProVouchers/vouchers/gated.yml").toFile()), "gated");
+        assertThat(voucher.maxUses()).isEqualTo(10);
+        assertThat(voucher.conditionMaps()).hasSize(2);
+        assertThat(voucher.conditionMaps().get(0)).containsEntry("type", "world")
+            .containsEntry("deny", "Wrong world.");
+        assertThat(voucher.conditionMaps().get(1)).containsEntry("type", "permission")
+            .containsEntry("permission", "vouchers.use.gated");
+        // Cosmetic/preview keys are skipped silently; only blacklist-permission warns.
+        assertThat(result.warnings()).hasSize(1);
+        assertThat(result.warnings().get(0)).contains("blacklist-permission");
+    }
+
+    @Test
     void importsLegacySectionsAndSkipsExistingIds() throws Exception {
         Path cv = plugins.resolve("CrazyVouchers");
         Files.createDirectories(cv);

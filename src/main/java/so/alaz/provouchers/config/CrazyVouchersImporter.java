@@ -198,15 +198,61 @@ public final class CrazyVouchersImporter {
                     List.of(colors.toUpperCase(Locale.ROOT).split("\\s*,\\s*")));
             }
         }
-        String permission = firstString(v,
-            "options.permission.permission", "options.permission.node",
-            "options.required-permission", "permission");
-        if (permission != null) {
-            out.put("conditions", List.of(Map.of("type", "permission", "permission", permission)));
+        // Global usage limit -> max-uses (a CrazyVouchers limiter caps total redemptions).
+        if (v.getBoolean("options.limiter.toggle", false)) {
+            out.put("max-uses", v.getInt("options.limiter.amount", -1));
+        }
+
+        List<Map<String, Object>> conditions = buildConditions(v, warnings, id);
+        if (!conditions.isEmpty()) {
+            out.put("conditions", conditions);
         }
 
         reportUnmapped(v, warnings, id);
         return out;
+    }
+
+    /**
+     * Builds ProVouchers conditions from CrazyVouchers gates: a world whitelist becomes a
+     * {@code world} condition, and a permission whitelist becomes a {@code permission}
+     * condition per node. A blacklist permission (deny if held) has no equivalent and warns.
+     */
+    private List<Map<String, Object>> buildConditions(ConfigurationSection v, List<String> warnings, String id) {
+        List<Map<String, Object>> conditions = new ArrayList<>();
+        if (v.getBoolean("options.whitelist-worlds.toggle", false)) {
+            List<String> worlds = v.getStringList("options.whitelist-worlds.worlds");
+            if (!worlds.isEmpty()) {
+                conditions.add(condition("world", "worlds", worlds,
+                    v.getString("options.whitelist-worlds.message")));
+            }
+        }
+        List<String> whitelist = v.getStringList("options.permission.whitelist-permission.permissions");
+        boolean wlOn = v.getBoolean("options.permission.whitelist-permission.toggle", false);
+        String wlMessage = v.getString("options.permission.whitelist-permission.message");
+        for (String node : wlOn ? whitelist : List.<String>of()) {
+            conditions.add(condition("permission", "permission", node, wlMessage));
+        }
+        // Legacy formats keep a flat permission key.
+        String legacy = firstString(v, "options.required-permission", "permission");
+        if (legacy != null && !wlOn) {
+            conditions.add(condition("permission", "permission", legacy, null));
+        }
+        if (v.getBoolean("options.permission.blacklist-permission.toggle", false)) {
+            warnings.add(id + ": blacklist-permission (deny if held) has no equivalent, not imported");
+        }
+        return conditions;
+    }
+
+    /** A condition map of {@code type}, its keyed value, and an optional converted deny message. */
+    private static Map<String, Object> condition(String type, String key, Object value, @Nullable String message) {
+        Map<String, Object> condition = new LinkedHashMap<>();
+        condition.put("type", type);
+        condition.put(key, value);
+        if (message != null && !message.isBlank()) {
+            // {prefix} is a locale-file token with no meaning in a per-condition message.
+            condition.put("deny", LegacyText.toMiniMessage(message.replace("{prefix}", "").trim()));
+        }
+        return condition;
     }
 
     /**
@@ -265,10 +311,14 @@ public final class CrazyVouchersImporter {
     private static final List<String> HANDLED_PREFIXES = List.of(
         "name", "lore", "item", "glowing", "player", "skull", "custom-model-data",
         "has-argument", "commands", "random-commands", "items", "permission",
-        "options.message", "options.sound", "options.firework", "options.permission",
-        "options.required-permission",
-        // Cosmetic-only sections with no behavioural equivalent.
-        "settings", "components");
+        "options.message", "options.sound", "options.firework", "options.required-permission",
+        "options.whitelist-worlds", "options.limiter", "options.permission.whitelist-permission",
+        // blacklist-permission gets one explicit "no equivalent" warning from buildConditions.
+        "options.permission.blacklist-permission",
+        // Preview-only visuals and CrazyVouchers-internal toggles with no behavioural equivalent
+        // in ProVouchers: skipped without a warning since they would change nothing on import.
+        "settings", "components", "override-anti-dupe", "allow-vouchers-in-item-frames",
+        "display-damage", "display-trim");
 
     private void reportUnmapped(ConfigurationSection v, List<String> warnings, String id) {
         for (String key : v.getKeys(true)) {
