@@ -22,6 +22,7 @@ import java.util.Map;
  * @param trim            an optional armor trim
  * @param itemModel       an optional {@code namespace:key} item model (the modern model-data successor)
  * @param hideTooltip     whether the item's tooltip is hidden entirely
+ * @param color           an optional dye color (leather armor, potions, maps), resolved at build time
  */
 public record VoucherItem(
     String material,
@@ -34,7 +35,8 @@ public record VoucherItem(
     boolean unbreakable,
     @Nullable ItemTrim trim,
     @Nullable String itemModel,
-    boolean hideTooltip
+    boolean hideTooltip,
+    @Nullable String color
 ) {
 
     public VoucherItem {

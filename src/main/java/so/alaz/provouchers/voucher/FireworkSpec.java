@@ -2,29 +2,18 @@ package so.alaz.provouchers.voucher;
 
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
+import so.alaz.provouchers.util.Colors;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 /**
  * A redeem firework: primary colors, optional fade colors, an effect shape, and a flight
  * power. Power {@code 0} (the default) detonates at the player. Colors are the 17 named
- * Bukkit colors or hex values such as {@code "#FF8800"}.
+ * Bukkit colors, hex values such as {@code "#FF8800"}, or {@code r,g,b} triples.
  */
 public record FireworkSpec(List<Color> colors, List<Color> fade, FireworkEffect.Type type, int power) {
-
-    private static final Map<String, Color> NAMED = Map.ofEntries(
-        Map.entry("AQUA", Color.AQUA), Map.entry("BLACK", Color.BLACK),
-        Map.entry("BLUE", Color.BLUE), Map.entry("FUCHSIA", Color.FUCHSIA),
-        Map.entry("GRAY", Color.GRAY), Map.entry("GREEN", Color.GREEN),
-        Map.entry("LIME", Color.LIME), Map.entry("MAROON", Color.MAROON),
-        Map.entry("NAVY", Color.NAVY), Map.entry("OLIVE", Color.OLIVE),
-        Map.entry("ORANGE", Color.ORANGE), Map.entry("PURPLE", Color.PURPLE),
-        Map.entry("RED", Color.RED), Map.entry("SILVER", Color.SILVER),
-        Map.entry("TEAL", Color.TEAL), Map.entry("WHITE", Color.WHITE),
-        Map.entry("YELLOW", Color.YELLOW));
 
     public FireworkSpec {
         if (colors == null || colors.isEmpty()) {
@@ -51,25 +40,8 @@ public record FireworkSpec(List<Color> colors, List<Color> fade, FireworkEffect.
     private static List<Color> parseColors(List<String> raw) {
         List<Color> out = new ArrayList<>(raw.size());
         for (String value : raw) {
-            out.add(parseColor(value));
+            out.add(Colors.parse(value));
         }
         return out;
-    }
-
-    /** A named Bukkit color or a {@code #RRGGBB} hex value. */
-    public static Color parseColor(String raw) {
-        String value = raw.trim();
-        Color named = NAMED.get(value.toUpperCase(Locale.ROOT));
-        if (named != null) {
-            return named;
-        }
-        if (value.startsWith("#") && value.length() == 7) {
-            try {
-                return Color.fromRGB(Integer.parseInt(value.substring(1), 16));
-            } catch (NumberFormatException ignored) {
-                // falls through to the shared error below
-            }
-        }
-        throw new IllegalArgumentException("firework color '" + raw + "' is not a named color or #RRGGBB hex");
     }
 }

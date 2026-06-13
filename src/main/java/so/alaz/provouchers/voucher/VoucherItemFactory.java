@@ -1,6 +1,7 @@
 package so.alaz.provouchers.voucher;
 
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
@@ -10,9 +11,13 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ArmorMeta;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.LeatherArmorMeta;
+import org.bukkit.inventory.meta.MapMeta;
+import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.inventory.meta.trim.ArmorTrim;
 import org.bukkit.inventory.meta.trim.TrimMaterial;
 import org.bukkit.inventory.meta.trim.TrimPattern;
+import so.alaz.provouchers.util.Colors;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.antidupe.VoucherStamp;
 import so.alaz.provouchers.platform.ItemBuilder;
@@ -217,6 +222,20 @@ public final class VoucherItemFactory {
         }
         if (spec.hideTooltip()) {
             meta.setHideTooltip(true);
+        }
+        if (spec.color() != null) {
+            applyColor(meta, Colors.parse(spec.color()));
+        }
+    }
+
+    /** Applies a dye color to whichever colorable item this is (leather armor, potion, or map). */
+    private static void applyColor(ItemMeta meta, Color color) {
+        if (meta instanceof LeatherArmorMeta leather) {
+            leather.setColor(color);
+        } else if (meta instanceof PotionMeta potion) {
+            potion.setColor(color);
+        } else if (meta instanceof MapMeta map) {
+            map.setColor(color);
         }
     }
 

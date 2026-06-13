@@ -43,6 +43,7 @@ item:
   #   pattern: sentry
   # item-model: "minecraft:diamond_sword"   # modern model selector (1.21.4+), replaces custom-model-data
   # hide-tooltip: false            # hide the item's entire tooltip
+  # color: "255,100,0"             # dye color for leather armor, potions, maps (name, #hex, or r,g,b)
 
   # custom: "itemsadder:pack:id"  # provider item (ItemsAdder / Oraxen / Nexo)
   # custom: "hdb:124791"          # Head Database head (hdb: or headdatabase:)

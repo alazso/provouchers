@@ -204,6 +204,11 @@ public final class CrazyVouchersMigrator implements Migrator {
         if (v.getBoolean("components.hide-tooltip", false)) {
             out.put("item.hide-tooltip", true);
         }
+        // Item dye: a named settings.color, or an r,g,b settings.rgb triple.
+        String color = firstNonBlank(v, "settings.color", "settings.rgb");
+        if (color != null) {
+            out.put("item.color", color);
+        }
     }
 
     // ---- Codes --------------------------------------------------------------
@@ -554,6 +559,7 @@ public final class CrazyVouchersMigrator implements Migrator {
         "name", "lore", "item", "glowing", "custom-model-data", "player", "skull",
         "has-argument", "commands", "random-commands", "chance-commands", "items", "cooldown",
         "settings.glowing", "settings.player", "settings.skull", "settings.damage", "settings.trim",
+        "settings.color", "settings.rgb",
         "components.item-model", "components.hide-tooltip",
         "options.message", "options.sound", "options.firework", "options.fireworks", "options.limiter",
         "options.two-step-authentication", "options.whitelist-worlds",

@@ -181,6 +181,18 @@ class VoucherParserTest {
     }
 
     @Test
+    void parsesAndValidatesItemColor() throws Exception {
+        assertThat(VoucherParser.parseVoucher(
+            yaml("item:\n  material: LEATHER_CHESTPLATE\n  color: \"255,100,0\"\n"), "c").item().color())
+            .isEqualTo("255,100,0");
+        assertThat(VoucherParser.parseVoucher(
+            yaml("item:\n  material: LEATHER_BOOTS\n  color: RED\n"), "c").item().color()).isEqualTo("RED");
+        assertThatThrownBy(() -> VoucherParser.parseVoucher(
+            yaml("item:\n  material: PAPER\n  color: \"notacolor\"\n"), "bad"))
+            .isInstanceOf(VoucherParseException.class).hasMessageContaining("color");
+    }
+
+    @Test
     void parsesItemModelAndHideTooltip() throws Exception {
         YamlConfiguration config = yaml("item:\n  material: PAPER\n"
             + "  item-model: \"minecraft:emerald\"\n  hide-tooltip: true\n");

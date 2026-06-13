@@ -7,6 +7,7 @@ import so.alaz.provouchers.reward.RewardLine;
 import so.alaz.provouchers.reward.RewardLineParser;
 import so.alaz.provouchers.reward.RewardSet;
 import so.alaz.provouchers.platform.ItemBuilder;
+import so.alaz.provouchers.util.Colors;
 import so.alaz.provouchers.util.Expiry;
 import so.alaz.provouchers.reward.RewardItemPayload;
 import so.alaz.provouchers.reward.RewardType;
@@ -275,10 +276,18 @@ public final class VoucherParser {
             throw new VoucherParseException(
                 "voucher '" + id + "': item.item-model '" + itemModel + "' is not a valid namespaced key");
         }
+        String color = emptyToNull(item.getString("color", ""));
+        if (color != null) {
+            try {
+                Colors.parse(color);
+            } catch (IllegalArgumentException ex) {
+                throw new VoucherParseException("voucher '" + id + "': item." + ex.getMessage(), ex);
+            }
+        }
         return new VoucherItem(material, custom, cmd, item.getBoolean("glow", false), skull,
             parseEnchantments(item.getConfigurationSection("enchantments"), id),
             damage, item.getBoolean("unbreakable", false), trim,
-            itemModel, item.getBoolean("hide-tooltip", false));
+            itemModel, item.getBoolean("hide-tooltip", false), color);
     }
 
     /** The optional {@code trim} block (material + pattern); validated for presence, resolved at build. */
