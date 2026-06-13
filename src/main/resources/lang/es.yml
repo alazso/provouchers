@@ -46,7 +46,7 @@ command:
     failed: "{prefix}<red>No se pudo capturar el objeto. Inténtalo de nuevo."
   import:
     not-found: "{prefix}<red>No se encontró ninguna carpeta de CrazyVouchers junto a ProVouchers."
-    summary: "{prefix}<green>Se importaron <yellow>{imported}</yellow> vale(s), se omitieron <yellow>{skipped}</yellow>."  # {imported} {skipped}
+    summary: "{prefix}<green>Se importaron <yellow>{imported}</yellow>, se omitieron <yellow>{skipped}</yellow>."  # {imported} {skipped}
     skipped-line: "<red>  - <gray>{line}"     # {line}
     warning-line: "<yellow>  ! <gray>{line}"  # {line}
     more: "<dark_gray>  ... y {count} más."  # {count}

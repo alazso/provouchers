@@ -46,7 +46,7 @@ command:
     failed: "{prefix}<red>Nie udało się przechwycić przedmiotu. Spróbuj ponownie."
   import:
     not-found: "{prefix}<red>Nie znaleziono folderu CrazyVouchers obok ProVouchers."
-    summary: "{prefix}<green>Zaimportowano vouchery: <yellow>{imported}</yellow>, pominięto: <yellow>{skipped}</yellow>."  # {imported} {skipped}
+    summary: "{prefix}<green>Zaimportowano: <yellow>{imported}</yellow>, pominięto: <yellow>{skipped}</yellow>."  # {imported} {skipped}
     skipped-line: "<red>  - <gray>{line}"     # {line}
     warning-line: "<yellow>  ! <gray>{line}"  # {line}
     more: "<dark_gray>  ... i {count} więcej."  # {count}

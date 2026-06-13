@@ -46,7 +46,7 @@ command:
     failed: "{prefix}<red>Das Item konnte nicht erfasst werden. Bitte versuche es erneut."
   import:
     not-found: "{prefix}<red>Es wurde kein CrazyVouchers-Ordner neben ProVouchers gefunden."
-    summary: "{prefix}<green><yellow>{imported}</yellow> Gutschein(e) importiert, <yellow>{skipped}</yellow> übersprungen."  # {imported} {skipped}
+    summary: "{prefix}<green><yellow>{imported}</yellow> importiert, <yellow>{skipped}</yellow> übersprungen."  # {imported} {skipped}
     skipped-line: "<red>  - <gray>{line}"     # {line}
     warning-line: "<yellow>  ! <gray>{line}"  # {line}
     more: "<dark_gray>  ... und {count} weitere."  # {count}

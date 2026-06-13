@@ -67,9 +67,6 @@ public final class VoucherCommand {
     private static final String PERM_FROMHAND = "provouchers.fromhand";
     private static final String PERM_IMPORT = "provouchers.import";
 
-    /** How many skipped/warning lines an import reports before truncating. */
-    private static final int IMPORT_REPORT_CAP = 10;
-
     /** Valid voucher ids for files created in-game: file-name safe, lower-cased on use. */
     private static final Pattern FILE_ID = Pattern.compile("[A-Za-z0-9_-]{1,64}");
 
@@ -438,14 +435,11 @@ public final class VoucherCommand {
         reportLines(source, viewer, "command.import.warning-line", result.warnings());
     }
 
+    /** Reports every line: a migration audit must be complete, so nothing is truncated. */
     private void reportLines(CommandSourceStack source, @Nullable Player viewer, String key,
                              List<String> lines) {
-        for (int i = 0; i < lines.size() && i < IMPORT_REPORT_CAP; i++) {
-            reply(source, messages.get(viewer, key, "line", lines.get(i)));
-        }
-        if (lines.size() > IMPORT_REPORT_CAP) {
-            reply(source, messages.get(viewer, "command.import.more",
-                "count", lines.size() - IMPORT_REPORT_CAP));
+        for (String line : lines) {
+            reply(source, messages.get(viewer, key, "line", line));
         }
     }
 

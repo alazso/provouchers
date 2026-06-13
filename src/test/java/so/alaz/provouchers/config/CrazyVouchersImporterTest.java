@@ -4,6 +4,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import so.alaz.provouchers.voucher.Voucher;
+import so.alaz.provouchers.voucher.VoucherCode;
 import so.alaz.provouchers.voucher.VoucherRegistry;
 
 import java.io.File;
@@ -23,6 +24,11 @@ class CrazyVouchersImporterTest {
         return new CrazyVouchersImporter(dataFolder.toFile(), registry);
     }
 
+    private Voucher importedVoucher(String id) {
+        return VoucherParser.parseVoucher(YamlConfiguration.loadConfiguration(
+            plugins.resolve("ProVouchers/vouchers/" + id + ".yml").toFile()), id);
+    }
+
     @Test
     void importsAModernPerFileVoucher() throws Exception {
         Path cv = plugins.resolve("CrazyVouchers/vouchers");
@@ -33,14 +39,25 @@ class CrazyVouchersImporterTest {
               name: '&bRank Up &e{arg}'
               lore:
                 - '&7Right click to redeem.'
-              glowing: true
+              glowing: 'add_glow'
+              custom-model-data: -1
               has-argument: true
               commands:
                 - 'lp user {player} parent set {arg}'
               items:
                 - 'Item:diamond_sword, Name:&cA fancy sword, Lore:&eline one,&7line two, Amount:2, Glowing:true'
+              random-commands:
+                "1":
+                  weight: 70.0
+                  commands:
+                    - '70 eco give {player} 100'
+                "2":
+                  weight: 30.0
+                  commands:
+                    - 'eco give {player} 1000'
               options:
                 message: '&aCongrats {player}!'
+                two-step-authentication: true
                 sound:
                   toggle: true
                   volume: 1.0
@@ -51,26 +68,27 @@ class CrazyVouchersImporterTest {
         CrazyVouchersImporter.Result result = importer(new VoucherRegistry()).importAll();
 
         assertThat(result.sourceFound()).isTrue();
-        assertThat(result.imported()).containsExactly("rank-up");
-        File out = plugins.resolve("ProVouchers/vouchers/rank-up.yml").toFile();
-        assertThat(out).exists();
+        assertThat(result.imported()).containsExactly("voucher rank-up");
 
-        // The written file must parse as a valid ProVouchers voucher with converted text.
-        Voucher voucher = VoucherParser.parseVoucher(YamlConfiguration.loadConfiguration(out), "rank-up");
+        Voucher voucher = importedVoucher("rank-up");
         assertThat(voucher.displayName()).isEqualTo("<aqua>Rank Up <yellow>%arg%");
         assertThat(voucher.hasArgument()).isTrue();
-        assertThat(voucher.item().glow()).isTrue();
-        assertThat(voucher.rewards()).hasSize(3);
+        assertThat(voucher.twoStep()).isTrue();
+        assertThat(voucher.item().glow()).as("glowing: add_glow").isTrue();
+        assertThat(voucher.item().customModelData()).as("-1 sentinel skipped").isNull();
         assertThat(voucher.rewards().get(0).payload()).isEqualTo("lp user %player% parent set %arg%");
-        assertThat(voucher.definedItems()).containsKey("imported_1");
         assertThat(voucher.definedItems().get("imported_1").displayName()).isEqualTo("<red>A fancy sword");
         assertThat(voucher.definedItems().get("imported_1").lore())
             .containsExactly("<yellow>line one", "<gray>line two");
+        // The weighted random-commands map becomes two reward sets; the legacy inline 70 is stripped.
+        assertThat(voucher.randomRewards()).hasSize(2);
+        assertThat(voucher.randomRewards().get(0).rewards().get(0).payload())
+            .isEqualTo("eco give %player% 100");
         assertThat(voucher.effects().sound()).startsWith("block.amethyst_block.step");
     }
 
     @Test
-    void mapsWorldLimiterAndPermissionGatesAndSkipsCosmetics() throws Exception {
+    void mapsGatesAndReportsEveryUnmappedKey() throws Exception {
         Path cv = plugins.resolve("CrazyVouchers/vouchers");
         Files.createDirectories(cv);
         Files.writeString(cv.resolve("Gated.yml"), """
@@ -79,9 +97,7 @@ class CrazyVouchersImporterTest {
               override-anti-dupe: false
               allow-vouchers-in-item-frames: false
               display-damage: 50
-              display-trim:
-                material: 'quartz'
-                pattern: 'sentry'
+              is-edible: false
               options:
                 whitelist-worlds:
                   toggle: true
@@ -100,19 +116,73 @@ class CrazyVouchersImporterTest {
                     permissions: [ 'some.node' ]
             """);
         CrazyVouchersImporter.Result result = importer(new VoucherRegistry()).importAll();
-        assertThat(result.imported()).containsExactly("gated");
+        assertThat(result.imported()).containsExactly("voucher gated");
 
-        Voucher voucher = VoucherParser.parseVoucher(YamlConfiguration.loadConfiguration(
-            plugins.resolve("ProVouchers/vouchers/gated.yml").toFile()), "gated");
+        Voucher voucher = importedVoucher("gated");
         assertThat(voucher.maxUses()).isEqualTo(10);
         assertThat(voucher.conditionMaps()).hasSize(2);
         assertThat(voucher.conditionMaps().get(0)).containsEntry("type", "world")
             .containsEntry("deny", "Wrong world.");
         assertThat(voucher.conditionMaps().get(1)).containsEntry("type", "permission")
             .containsEntry("permission", "vouchers.use.gated");
-        // Cosmetic/preview keys are skipped silently; only blacklist-permission warns.
-        assertThat(result.warnings()).hasSize(1);
-        assertThat(result.warnings().get(0)).contains("blacklist-permission");
+        // Every unmapped key is reported, not silently dropped.
+        assertThat(result.warnings()).anyMatch(w -> w.contains("override-anti-dupe"))
+            .anyMatch(w -> w.contains("allow-vouchers-in-item-frames"))
+            .anyMatch(w -> w.contains("display-damage"))
+            .anyMatch(w -> w.contains("is-edible"))
+            .anyMatch(w -> w.contains("blacklist-permission"));
+    }
+
+    @Test
+    void reportsItemDslDamageTrimAndEnchantments() throws Exception {
+        Path cv = plugins.resolve("CrazyVouchers/vouchers");
+        Files.createDirectories(cv);
+        Files.writeString(cv.resolve("Trim.yml"), """
+            voucher:
+              item: 'paper'
+              items:
+                - 'Item:diamond_helmet, Damage:50, Trim:sentry!quartz, Amount:1, protection:4, unbreaking:3'
+            """);
+        CrazyVouchersImporter.Result result = importer(new VoucherRegistry()).importAll();
+
+        Voucher voucher = importedVoucher("trim");
+        assertThat(voucher.definedItems().get("imported_1").item().material()).isEqualTo("DIAMOND_HELMET");
+        assertThat(result.warnings())
+            .anyMatch(w -> w.contains("Damage:50"))
+            .anyMatch(w -> w.contains("Trim:sentry!quartz"))
+            .anyMatch(w -> w.contains("protection:4"));
+    }
+
+    @Test
+    void importsCodes() throws Exception {
+        Path cv = plugins.resolve("CrazyVouchers/codes");
+        Files.createDirectories(cv);
+        Files.writeString(cv.resolve("Starter-Money.yml"), """
+            voucher-code:
+              code: 'startermoney'
+              commands:
+                - 'eco give {player} 10000'
+              options:
+                case-sensitive: false
+                message: '{prefix}<gray>You got $10,000.'
+                limiter:
+                  toggle: true
+                  amount: 5
+                sound:
+                  toggle: true
+                  sounds: [ 'block.note_block.pling' ]
+            """);
+        CrazyVouchersImporter.Result result = importer(new VoucherRegistry()).importAll();
+        // The file id comes from the file name; the code value stays as configured.
+        assertThat(result.imported()).containsExactly("code starter-money");
+
+        VoucherCode code = VoucherParser.parseCode(YamlConfiguration.loadConfiguration(
+            plugins.resolve("ProVouchers/codes/starter-money.yml").toFile()), "starter-money");
+        assertThat(code.code()).isEqualTo("startermoney");
+        assertThat(code.maxUses()).isEqualTo(5);
+        assertThat(code.rewards().get(0).payload()).isEqualTo("eco give %player% 10000");
+        // A code has no item, so sound is reported as voucher-only.
+        assertThat(result.warnings()).anyMatch(w -> w.contains("sound/firework"));
     }
 
     @Test
@@ -133,7 +203,7 @@ class CrazyVouchersImporterTest {
         registry.register(VoucherParser.parseVoucher(yaml("item:\n  material: PAPER\n"), "taken"));
 
         CrazyVouchersImporter.Result result = importer(registry).importAll();
-        assertThat(result.imported()).containsExactly("starter_kit");
+        assertThat(result.imported()).containsExactly("voucher starter_kit");
         assertThat(result.skipped()).hasSize(1);
         assertThat(result.skipped().get(0)).contains("taken");
     }

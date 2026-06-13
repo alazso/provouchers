@@ -54,7 +54,7 @@ command:
     failed: "{prefix}<red>Could not capture that item. Please try again."
   import:
     not-found: "{prefix}<red>No CrazyVouchers folder was found next to ProVouchers."
-    summary: "{prefix}<green>Imported <yellow>{imported}</yellow> voucher(s), skipped <yellow>{skipped}</yellow>."  # {imported} {skipped}
+    summary: "{prefix}<green>Imported <yellow>{imported}</yellow>, skipped <yellow>{skipped}</yellow>."  # {imported} {skipped}
     skipped-line: "<red>  - <gray>{line}"     # {line}
     warning-line: "<yellow>  ! <gray>{line}"  # {line}
     more: "<dark_gray>  ... and {count} more."  # {count}

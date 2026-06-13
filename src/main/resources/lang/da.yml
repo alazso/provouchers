@@ -46,7 +46,7 @@ command:
     failed: "{prefix}<red>Kunne ikke indfange genstanden. Prøv igen."
   import:
     not-found: "{prefix}<red>Der blev ikke fundet en CrazyVouchers-mappe ved siden af ProVouchers."
-    summary: "{prefix}<green>Importerede <yellow>{imported}</yellow> voucher(e), sprang <yellow>{skipped}</yellow> over."  # {imported} {skipped}
+    summary: "{prefix}<green>Importerede <yellow>{imported}</yellow>, sprang <yellow>{skipped}</yellow> over."  # {imported} {skipped}
     skipped-line: "<red>  - <gray>{line}"     # {line}
     warning-line: "<yellow>  ! <gray>{line}"  # {line}
     more: "<dark_gray>  ... og {count} mere."  # {count}

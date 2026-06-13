@@ -46,7 +46,7 @@ command:
     failed: "{prefix}<red>Kon dat item niet vastleggen. Probeer het opnieuw."
   import:
     not-found: "{prefix}<red>Er is geen CrazyVouchers-map naast ProVouchers gevonden."
-    summary: "{prefix}<green><yellow>{imported}</yellow> voucher(s) geïmporteerd, <yellow>{skipped}</yellow> overgeslagen."  # {imported} {skipped}
+    summary: "{prefix}<green><yellow>{imported}</yellow> geïmporteerd, <yellow>{skipped}</yellow> overgeslagen."  # {imported} {skipped}
     skipped-line: "<red>  - <gray>{line}"     # {line}
     warning-line: "<yellow>  ! <gray>{line}"  # {line}
     more: "<dark_gray>  ... en {count} meer."  # {count}
