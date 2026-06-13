@@ -7,7 +7,12 @@ import org.bukkit.Registry;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ArmorMeta;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.trim.ArmorTrim;
+import org.bukkit.inventory.meta.trim.TrimMaterial;
+import org.bukkit.inventory.meta.trim.TrimPattern;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.antidupe.VoucherStamp;
 import so.alaz.provouchers.platform.ItemBuilder;
@@ -194,12 +199,31 @@ public final class VoucherItemFactory {
         if (spec.glow() && spec.enchantments().isEmpty() && !meta.hasEnchants()) {
             ItemBuilder.applyGlow(meta);
         }
+        if (spec.unbreakable()) {
+            meta.setUnbreakable(true);
+        }
+        if (spec.damage() != null && meta instanceof Damageable damageable) {
+            damageable.setDamage(spec.damage());
+        }
+        if (spec.trim() != null && meta instanceof ArmorMeta armor) {
+            TrimMaterial trimMaterial = resolve(Registry.TRIM_MATERIAL, spec.trim().material());
+            TrimPattern trimPattern = resolve(Registry.TRIM_PATTERN, spec.trim().pattern());
+            if (trimMaterial != null && trimPattern != null) {
+                armor.setTrim(new ArmorTrim(trimMaterial, trimPattern));
+            }
+        }
     }
 
     @Nullable
     private static Enchantment resolveEnchant(String key) {
+        return resolve(Registry.ENCHANTMENT, key);
+    }
+
+    /** Looks a value up in a registry by its (namespaced) key, or {@code null} when unknown. */
+    @Nullable
+    private static <T extends org.bukkit.Keyed> T resolve(Registry<T> registry, String key) {
         NamespacedKey namespaced = NamespacedKey.fromString(key);
-        return namespaced == null ? null : Registry.ENCHANTMENT.get(namespaced);
+        return namespaced == null ? null : registry.get(namespaced);
     }
 
     private CompletableFuture<ItemStack> buildSkull(SkullSpec skull, int amount) {

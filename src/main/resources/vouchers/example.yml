@@ -36,6 +36,11 @@ item:
   # enchantments:                 # real enchantments (key: level); these glint on their own
   #   sharpness: 5
   #   unbreaking: 3
+  # damage: 0                      # durability damage on the item
+  # unbreakable: false             # item never loses durability
+  # trim:                          # armor trim (armor materials only)
+  #   material: quartz
+  #   pattern: sentry
 
   # custom: "itemsadder:pack:id"  # provider item (ItemsAdder / Oraxen / Nexo)
   # custom: "hdb:124791"          # Head Database head (hdb: or headdatabase:)

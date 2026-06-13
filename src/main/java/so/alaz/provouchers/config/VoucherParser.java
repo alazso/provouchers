@@ -12,6 +12,7 @@ import so.alaz.provouchers.reward.RewardType;
 import so.alaz.provouchers.voucher.CustomItemRef;
 import so.alaz.provouchers.voucher.DefinedItem;
 import so.alaz.provouchers.voucher.FireworkSpec;
+import so.alaz.provouchers.voucher.ItemTrim;
 import so.alaz.provouchers.voucher.Materials;
 import so.alaz.provouchers.voucher.SkullSpec;
 import so.alaz.provouchers.voucher.SoulboundSpec;
@@ -266,8 +267,25 @@ public final class VoucherParser {
         }
         Integer cmd = item.contains("custom-model-data") ? item.getInt("custom-model-data") : null;
         SkullSpec skull = parseSkull(item.getConfigurationSection("skull"), id);
+        Integer damage = item.contains("damage") ? item.getInt("damage") : null;
+        ItemTrim trim = parseTrim(item.getConfigurationSection("trim"), id);
         return new VoucherItem(material, custom, cmd, item.getBoolean("glow", false), skull,
-            parseEnchantments(item.getConfigurationSection("enchantments"), id));
+            parseEnchantments(item.getConfigurationSection("enchantments"), id),
+            damage, item.getBoolean("unbreakable", false), trim);
+    }
+
+    /** The optional {@code trim} block (material + pattern); validated for presence, resolved at build. */
+    @Nullable
+    private static ItemTrim parseTrim(@Nullable ConfigurationSection section, String id) {
+        if (section == null) {
+            return null;
+        }
+        String material = emptyToNull(section.getString("material", ""));
+        String pattern = emptyToNull(section.getString("pattern", ""));
+        if (material == null || pattern == null) {
+            throw new VoucherParseException("voucher '" + id + "': item.trim needs a material and a pattern");
+        }
+        return new ItemTrim(material.toLowerCase(Locale.ROOT), pattern.toLowerCase(Locale.ROOT));
     }
 
     /**

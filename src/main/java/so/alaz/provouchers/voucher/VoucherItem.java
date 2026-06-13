@@ -17,6 +17,9 @@ import java.util.Map;
  * @param skull           an optional player-head specification; when set the item is
  *                        a custom head, built through the skull builder
  * @param enchantments    enchantment key to level, resolved against the registry at build time
+ * @param damage          durability damage to apply, or {@code null} for a pristine item
+ * @param unbreakable     whether the item is unbreakable
+ * @param trim            an optional armor trim
  */
 public record VoucherItem(
     String material,
@@ -24,7 +27,10 @@ public record VoucherItem(
     @Nullable Integer customModelData,
     boolean glow,
     @Nullable SkullSpec skull,
-    Map<String, Integer> enchantments
+    Map<String, Integer> enchantments,
+    @Nullable Integer damage,
+    boolean unbreakable,
+    @Nullable ItemTrim trim
 ) {
 
     public VoucherItem {

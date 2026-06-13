@@ -157,6 +157,30 @@ class VoucherParserTest {
     }
 
     @Test
+    void parsesDamageUnbreakableAndTrim() throws Exception {
+        YamlConfiguration config = yaml("""
+            item:
+              material: DIAMOND_CHESTPLATE
+              damage: 50
+              unbreakable: true
+              trim:
+                material: Quartz
+                pattern: Sentry
+            """);
+        Voucher voucher = VoucherParser.parseVoucher(config, "armor");
+        assertThat(voucher.item().damage()).isEqualTo(50);
+        assertThat(voucher.item().unbreakable()).isTrue();
+        assertThat(voucher.item().trim()).isEqualTo(new so.alaz.provouchers.voucher.ItemTrim("quartz", "sentry"));
+    }
+
+    @Test
+    void incompleteTrimIsRejected() throws Exception {
+        YamlConfiguration config = yaml("item:\n  material: DIAMOND_HELMET\n  trim:\n    material: quartz\n");
+        assertThatThrownBy(() -> VoucherParser.parseVoucher(config, "bad"))
+            .isInstanceOf(VoucherParseException.class).hasMessageContaining("trim");
+    }
+
+    @Test
     void parsesUseLimits() throws Exception {
         YamlConfiguration config = yaml("item:\n  material: PAPER\nmax-uses: 100\nuses-per-player: 2\n");
         Voucher voucher = VoucherParser.parseVoucher(config, "limited");
