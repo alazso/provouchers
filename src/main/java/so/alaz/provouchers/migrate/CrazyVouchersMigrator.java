@@ -132,13 +132,13 @@ public final class CrazyVouchersMigrator implements Migrator {
 
         List<String> rewards = convertRewards(v, warnings, id);
         Map<String, Object> definedItems = convertDefinedItems(v, warnings, id, rewards);
+        List<Map<String, Object>> random = convertRandomRewards(v, rewards, warnings, id);
         if (!definedItems.isEmpty()) {
             out.put("items", definedItems);
         }
         if (!rewards.isEmpty()) {
             out.put("rewards", rewards);
         }
-        List<Map<String, Object>> random = convertRandomRewards(v, warnings, id);
         if (!random.isEmpty()) {
             out.put("random-rewards", random);
         }
@@ -230,10 +230,10 @@ public final class CrazyVouchersMigrator implements Migrator {
         }
 
         List<String> rewards = convertRewards(c, warnings, id);
+        List<Map<String, Object>> random = convertRandomRewards(c, rewards, warnings, id);
         if (!rewards.isEmpty()) {
             out.put("rewards", rewards);
         }
-        List<Map<String, Object>> random = convertRandomRewards(c, warnings, id);
         if (!random.isEmpty()) {
             out.put("random-rewards", random);
         }
@@ -267,20 +267,20 @@ public final class CrazyVouchersMigrator implements Migrator {
     }
 
     /**
-     * The {@code random-commands} map. Each entry becomes a weighted reward set; an entry
-     * without a weight defaults to weight 1. A stray legacy inline weight prefix on a
-     * command (such as {@code "45 eco give ..."}) is dropped when an explicit weight exists.
+     * Weighted reward sets from {@code chance-commands} and {@code random-commands}. CrazyVouchers
+     * runs its weighted and unweighted entries as two independent picks: weighted entries become
+     * {@code random-rewards}; a single unweighted entry always runs, so it is appended to the
+     * guaranteed {@code rewards}; several unweighted entries are a one-of pick, which only collides
+     * with the weighted pool (ProVouchers rolls one set per redeem), and that case is reported.
      */
-    private List<Map<String, Object>> convertRandomRewards(ConfigurationSection v, List<String> warnings,
-                                                           String id) {
+    private List<Map<String, Object>> convertRandomRewards(ConfigurationSection v, List<String> rewards,
+                                                           List<String> warnings, String id) {
         List<Map<String, Object>> sets = new ArrayList<>();
         // The legacy list form: each line is "<chance> <command>".
         for (String line : v.getStringList("chance-commands")) {
             String[] parts = line.trim().split("\\s+", 2);
-            if (parts.length == 2) {
-                tryInt(parts[0]).ifPresentOrElse(
-                    weight -> sets.add(rewardSet(weight, parts[1])),
-                    () -> sets.add(rewardSet(1.0, line)));
+            if (parts.length == 2 && tryInt(parts[0]).isPresent()) {
+                sets.add(rewardSet(tryInt(parts[0]).getAsInt(), parts[1]));
             } else if (!line.isBlank()) {
                 sets.add(rewardSet(1.0, line));
             }
@@ -289,34 +289,48 @@ public final class CrazyVouchersMigrator implements Migrator {
         if (rc == null) {
             return sets;
         }
+        List<List<String>> unweighted = new ArrayList<>();
         boolean weighted = false;
-        boolean unweighted = false;
         for (String key : rc.getKeys(false)) {
             ConfigurationSection entry = rc.getConfigurationSection(key);
-            if (entry == null) {
+            if (entry == null || entry.getStringList("commands").isEmpty()) {
                 continue;
             }
             List<String> commands = entry.getStringList("commands");
-            if (commands.isEmpty()) {
-                continue;
+            if (entry.isSet("weight")) {
+                weighted = true;
+                Map<String, Object> set = new LinkedHashMap<>();
+                set.put("weight", entry.getDouble("weight"));
+                set.put("rewards", commandRewards(commands, true));
+                sets.add(set);
+            } else {
+                unweighted.add(commands);
             }
-            boolean hasWeight = entry.isSet("weight");
-            weighted |= hasWeight;
-            unweighted |= !hasWeight;
-            List<String> rewards = new ArrayList<>();
-            for (String command : commands) {
-                rewards.add("command: " + LegacyText.toMiniMessage(stripLegacyWeight(command, hasWeight)));
-            }
-            Map<String, Object> set = new LinkedHashMap<>();
-            set.put("weight", hasWeight ? entry.getDouble("weight") : 1.0);
-            set.put("rewards", rewards);
-            sets.add(set);
         }
-        if (weighted && unweighted) {
-            warnings.add(id + ": random-commands mixed weighted and unweighted entries; merged into one "
-                + "weighted pool (ProVouchers rolls one set per redeem)");
+        if (unweighted.size() == 1) {
+            // A single unweighted entry always runs in CrazyVouchers: it is a guaranteed reward.
+            rewards.addAll(commandRewards(unweighted.get(0), false));
+        } else {
+            for (List<String> commands : unweighted) {
+                Map<String, Object> set = new LinkedHashMap<>();
+                set.put("weight", 1.0);
+                set.put("rewards", commandRewards(commands, false));
+                sets.add(set);
+            }
+            if (!unweighted.isEmpty() && weighted) {
+                warnings.add(id + ": random-commands has a weighted pool and an unweighted one; "
+                    + "ProVouchers rolls a single set per redeem, so they were merged");
+            }
         }
         return sets;
+    }
+
+    private static List<String> commandRewards(List<String> commands, boolean stripWeight) {
+        List<String> rewards = new ArrayList<>(commands.size());
+        for (String command : commands) {
+            rewards.add("command: " + LegacyText.toMiniMessage(stripLegacyWeight(command, stripWeight)));
+        }
+        return rewards;
     }
 
     private void convertEffects(ConfigurationSection v, Map<String, Object> out, List<String> warnings, String id) {

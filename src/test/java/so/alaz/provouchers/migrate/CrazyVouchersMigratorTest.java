@@ -188,6 +188,32 @@ class CrazyVouchersMigratorTest {
     }
 
     @Test
+    void singleUnweightedRandomCommandBecomesGuaranteed() throws Exception {
+        Path cv = plugins.resolve("CrazyVouchers/vouchers");
+        Files.createDirectories(cv);
+        Files.writeString(cv.resolve("Loot.yml"), """
+            voucher:
+              item: 'paper'
+              random-commands:
+                "1":
+                  weight: 70.0
+                  commands: [ 'eco give {player} 100' ]
+                "2":
+                  weight: 30.0
+                  commands: [ 'eco give {player} 1000' ]
+                "3":
+                  commands: [ 'give {player} diamond 5' ]
+            """);
+        MigrationReport result = importer(new VoucherRegistry()).migrate();
+
+        Voucher voucher = importedVoucher("loot");
+        // The two weighted entries are a random pool; the always-run entry is a guaranteed reward.
+        assertThat(voucher.randomRewards()).hasSize(2);
+        assertThat(voucher.rewards()).anyMatch(r -> r.payload().equals("give %player% diamond 5"));
+        assertThat(result.warnings()).noneMatch(w -> w.contains("random-commands"));
+    }
+
+    @Test
     void importsCodes() throws Exception {
         Path cv = plugins.resolve("CrazyVouchers/codes");
         Files.createDirectories(cv);
