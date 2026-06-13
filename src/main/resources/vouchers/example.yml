@@ -111,6 +111,8 @@ rewards:
   # - "item: DIAMOND_SWORD 1"                          # vanilla or provider:id, optional amount
   # - "item: @vip_sword 1"                              # a decorated item from the items map above
   # - "currency: give 250"                             # Vault; give|take, amount may be {random:..}
+  # - "currency: give %random:50-200:coins%"           # a named roll ...
+  # - "broadcast: <gold>%player% <yellow>won %random:50-200:coins% coins!"  # ... reused = same number
   # - "xp: 30 levels"                                   # experience; amount [levels|points]
   # - "group: add vip 7d"                              # LuckPerms; add|remove, optional duration
   # - "permission: add essentials.fly"                 # LuckPerms; add|deny|remove|set <node> [true|false]
