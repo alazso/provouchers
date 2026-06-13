@@ -181,6 +181,22 @@ class VoucherParserTest {
     }
 
     @Test
+    void parsesItemModelAndHideTooltip() throws Exception {
+        YamlConfiguration config = yaml("item:\n  material: PAPER\n"
+            + "  item-model: \"minecraft:emerald\"\n  hide-tooltip: true\n");
+        Voucher voucher = VoucherParser.parseVoucher(config, "model");
+        assertThat(voucher.item().itemModel()).isEqualTo("minecraft:emerald");
+        assertThat(voucher.item().hideTooltip()).isTrue();
+    }
+
+    @Test
+    void rejectsMalformedItemModelKey() throws Exception {
+        YamlConfiguration config = yaml("item:\n  material: PAPER\n  item-model: \"NOT A KEY!\"\n");
+        assertThatThrownBy(() -> VoucherParser.parseVoucher(config, "bad"))
+            .isInstanceOf(VoucherParseException.class).hasMessageContaining("item-model");
+    }
+
+    @Test
     void parsesUseLimits() throws Exception {
         YamlConfiguration config = yaml("item:\n  material: PAPER\nmax-uses: 100\nuses-per-player: 2\n");
         Voucher voucher = VoucherParser.parseVoucher(config, "limited");

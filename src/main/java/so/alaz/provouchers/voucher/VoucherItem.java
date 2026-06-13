@@ -20,6 +20,8 @@ import java.util.Map;
  * @param damage          durability damage to apply, or {@code null} for a pristine item
  * @param unbreakable     whether the item is unbreakable
  * @param trim            an optional armor trim
+ * @param itemModel       an optional {@code namespace:key} item model (the modern model-data successor)
+ * @param hideTooltip     whether the item's tooltip is hidden entirely
  */
 public record VoucherItem(
     String material,
@@ -30,7 +32,9 @@ public record VoucherItem(
     Map<String, Integer> enchantments,
     @Nullable Integer damage,
     boolean unbreakable,
-    @Nullable ItemTrim trim
+    @Nullable ItemTrim trim,
+    @Nullable String itemModel,
+    boolean hideTooltip
 ) {
 
     public VoucherItem {

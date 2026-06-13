@@ -1,5 +1,6 @@
 package so.alaz.provouchers.config;
 
+import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.reward.RewardLine;
@@ -269,9 +270,15 @@ public final class VoucherParser {
         SkullSpec skull = parseSkull(item.getConfigurationSection("skull"), id);
         Integer damage = item.contains("damage") ? item.getInt("damage") : null;
         ItemTrim trim = parseTrim(item.getConfigurationSection("trim"), id);
+        String itemModel = emptyToNull(item.getString("item-model", ""));
+        if (itemModel != null && NamespacedKey.fromString(itemModel) == null) {
+            throw new VoucherParseException(
+                "voucher '" + id + "': item.item-model '" + itemModel + "' is not a valid namespaced key");
+        }
         return new VoucherItem(material, custom, cmd, item.getBoolean("glow", false), skull,
             parseEnchantments(item.getConfigurationSection("enchantments"), id),
-            damage, item.getBoolean("unbreakable", false), trim);
+            damage, item.getBoolean("unbreakable", false), trim,
+            itemModel, item.getBoolean("hide-tooltip", false));
     }
 
     /** The optional {@code trim} block (material + pattern); validated for presence, resolved at build. */

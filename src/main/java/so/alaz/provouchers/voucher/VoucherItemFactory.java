@@ -212,6 +212,12 @@ public final class VoucherItemFactory {
                 armor.setTrim(new ArmorTrim(trimMaterial, trimPattern));
             }
         }
+        if (spec.itemModel() != null) {
+            meta.setItemModel(NamespacedKey.fromString(spec.itemModel()));
+        }
+        if (spec.hideTooltip()) {
+            meta.setHideTooltip(true);
+        }
     }
 
     @Nullable

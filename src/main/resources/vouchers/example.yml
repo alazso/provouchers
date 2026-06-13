@@ -41,6 +41,8 @@ item:
   # trim:                          # armor trim (armor materials only)
   #   material: quartz
   #   pattern: sentry
+  # item-model: "minecraft:diamond_sword"   # modern model selector (1.21.4+), replaces custom-model-data
+  # hide-tooltip: false            # hide the item's entire tooltip
 
   # custom: "itemsadder:pack:id"  # provider item (ItemsAdder / Oraxen / Nexo)
   # custom: "hdb:124791"          # Head Database head (hdb: or headdatabase:)
