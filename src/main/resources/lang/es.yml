@@ -45,7 +45,7 @@ command:
     cancelled: "{prefix}<gray>Cancelado; no se escribió nada."
     failed: "{prefix}<red>No se pudo capturar el objeto. Inténtalo de nuevo."
   import:
-    not-found: "{prefix}<red>No se encontró ninguna carpeta de CrazyVouchers junto a ProVouchers."
+    not-found: "{prefix}<red>Fuente de importación desconocida, o no se encontró su carpeta de datos."
     summary: "{prefix}<green>Se importaron <yellow>{imported}</yellow>, se omitieron <yellow>{skipped}</yellow>."  # {imported} {skipped}
     skipped-line: "<red>  - <gray>{line}"     # {line}
     warning-line: "<yellow>  ! <gray>{line}"  # {line}

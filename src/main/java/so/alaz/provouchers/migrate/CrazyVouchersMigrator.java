@@ -1,4 +1,4 @@
-package so.alaz.provouchers.config;
+package so.alaz.provouchers.migrate;
 
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -23,41 +23,49 @@ import java.util.Map;
  * and curly tokens; every key with no ProVouchers equivalent is reported, never silently
  * dropped, so an admin can audit a migration completely.
  */
-public final class CrazyVouchersImporter {
+public final class CrazyVouchersMigrator implements Migrator {
 
-    /** The outcome of one import run. */
-    public record Result(List<String> imported, List<String> skipped, List<String> warnings,
-                         boolean sourceFound) {
-    }
-
-    private final File pluginsDir;
+    private final File sourceDir;
     private final File vouchersDir;
     private final File codesDir;
     private final VoucherRegistry registry;
 
-    public CrazyVouchersImporter(File dataFolder, VoucherRegistry registry) {
-        this.pluginsDir = dataFolder.getParentFile();
+    public CrazyVouchersMigrator(File dataFolder, VoucherRegistry registry) {
+        this.sourceDir = new File(dataFolder.getParentFile(), "CrazyVouchers");
         this.vouchersDir = new File(dataFolder, "vouchers");
         this.codesDir = new File(dataFolder, "codes");
         this.registry = registry;
     }
 
-    /** Runs the import. The caller reloads the registry afterwards when anything imported. */
-    public Result importAll() {
-        File source = new File(pluginsDir, "CrazyVouchers");
-        if (!source.isDirectory()) {
-            return new Result(List.of(), List.of(), List.of(), false);
-        }
+    @Override
+    public String id() {
+        return "crazyvouchers";
+    }
+
+    @Override
+    public String displayName() {
+        return "CrazyVouchers";
+    }
+
+    @Override
+    public boolean isPresent() {
+        return sourceDir.isDirectory();
+    }
+
+    @Override
+    public MigrationReport migrate() {
         List<String> imported = new ArrayList<>();
         List<String> skipped = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
 
-        forEachSection(new File(source, "vouchers"), "voucher", new File(source, "vouchers.yml"), "vouchers",
+        forEachSection(new File(sourceDir, "vouchers"), "voucher",
+            new File(sourceDir, "vouchers.yml"), "vouchers",
             (name, section) -> importVoucher(name, section, imported, skipped, warnings));
-        forEachSection(new File(source, "codes"), "voucher-code", new File(source, "codes.yml"), "voucher-codes",
+        forEachSection(new File(sourceDir, "codes"), "voucher-code",
+            new File(sourceDir, "codes.yml"), "voucher-codes",
             (name, section) -> importCode(name, section, imported, skipped, warnings));
 
-        return new Result(imported, skipped, warnings, true);
+        return new MigrationReport(imported, skipped, warnings);
     }
 
     @FunctionalInterface

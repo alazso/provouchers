@@ -45,7 +45,7 @@ command:
     cancelled: "{prefix}<gray>Annulleret; intet blev gemt."
     failed: "{prefix}<red>Kunne ikke indfange genstanden. Prøv igen."
   import:
-    not-found: "{prefix}<red>Der blev ikke fundet en CrazyVouchers-mappe ved siden af ProVouchers."
+    not-found: "{prefix}<red>Ukendt importkilde, eller dens datamappe blev ikke fundet."
     summary: "{prefix}<green>Importerede <yellow>{imported}</yellow>, sprang <yellow>{skipped}</yellow> over."  # {imported} {skipped}
     skipped-line: "<red>  - <gray>{line}"     # {line}
     warning-line: "<yellow>  ! <gray>{line}"  # {line}

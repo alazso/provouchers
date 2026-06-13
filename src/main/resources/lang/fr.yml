@@ -45,7 +45,7 @@ command:
     cancelled: "{prefix}<gray>Annulé, rien n'a été écrit."
     failed: "{prefix}<red>Impossible de capturer cet objet. Veuillez réessayer."
   import:
-    not-found: "{prefix}<red>Aucun dossier CrazyVouchers n'a été trouvé à côté de ProVouchers."
+    not-found: "{prefix}<red>Source d'import inconnue, ou son dossier de données est introuvable."
     summary: "{prefix}<green><yellow>{imported}</yellow> importé(s), <yellow>{skipped}</yellow> ignoré(s)."  # {imported} {skipped}
     skipped-line: "<red>  - <gray>{line}"     # {line}
     warning-line: "<yellow>  ! <gray>{line}"  # {line}

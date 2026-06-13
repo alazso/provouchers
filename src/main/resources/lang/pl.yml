@@ -45,7 +45,7 @@ command:
     cancelled: "{prefix}<gray>Anulowano; niczego nie zapisano."
     failed: "{prefix}<red>Nie udało się przechwycić przedmiotu. Spróbuj ponownie."
   import:
-    not-found: "{prefix}<red>Nie znaleziono folderu CrazyVouchers obok ProVouchers."
+    not-found: "{prefix}<red>Nieznane źródło importu lub nie znaleziono jego folderu danych."
     summary: "{prefix}<green>Zaimportowano: <yellow>{imported}</yellow>, pominięto: <yellow>{skipped}</yellow>."  # {imported} {skipped}
     skipped-line: "<red>  - <gray>{line}"     # {line}
     warning-line: "<yellow>  ! <gray>{line}"  # {line}

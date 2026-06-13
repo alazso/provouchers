@@ -45,7 +45,7 @@ command:
     cancelled: "{prefix}<gray>Abgebrochen; nichts wurde gespeichert."
     failed: "{prefix}<red>Das Item konnte nicht erfasst werden. Bitte versuche es erneut."
   import:
-    not-found: "{prefix}<red>Es wurde kein CrazyVouchers-Ordner neben ProVouchers gefunden."
+    not-found: "{prefix}<red>Unbekannte Importquelle oder deren Datenordner wurde nicht gefunden."
     summary: "{prefix}<green><yellow>{imported}</yellow> importiert, <yellow>{skipped}</yellow> übersprungen."  # {imported} {skipped}
     skipped-line: "<red>  - <gray>{line}"     # {line}
     warning-line: "<yellow>  ! <gray>{line}"  # {line}

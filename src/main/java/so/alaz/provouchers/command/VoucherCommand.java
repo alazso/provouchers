@@ -21,7 +21,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.config.ConfigManager;
-import so.alaz.provouchers.config.CrazyVouchersImporter;
+import so.alaz.provouchers.migrate.MigrationReport;
+import so.alaz.provouchers.migrate.MigrationService;
+import so.alaz.provouchers.migrate.Migrator;
 import so.alaz.provouchers.give.VoucherGiveService;
 import so.alaz.provouchers.gui.FromhandGui;
 import so.alaz.provouchers.gui.PreviewGui;
@@ -85,7 +87,7 @@ public final class VoucherCommand {
         new Sub("reload", "reload [id]", PERM_RELOAD),
         new Sub("resetuses", "resetuses <id> [player]", PERM_RESETUSES),
         new Sub("fromhand", "fromhand <id>", PERM_FROMHAND),
-        new Sub("import", "import crazyvouchers", PERM_IMPORT),
+        new Sub("import", "import <source>", PERM_IMPORT),
         new Sub("doctor", "doctor", PERM_DOCTOR),
         new Sub("help", "help", null));
 
@@ -100,7 +102,7 @@ public final class VoucherCommand {
     private final VoucherStorage storage;
     private final Scheduler scheduler;
     private final FromhandGui fromhandGui;
-    private final CrazyVouchersImporter importer;
+    private final MigrationService migrationService;
 
     public VoucherCommand(
         VoucherRegistry registry,
@@ -114,7 +116,7 @@ public final class VoucherCommand {
         VoucherStorage storage,
         Scheduler scheduler,
         FromhandGui fromhandGui,
-        CrazyVouchersImporter importer
+        MigrationService migrationService
     ) {
         this.registry = registry;
         this.giveService = giveService;
@@ -127,7 +129,7 @@ public final class VoucherCommand {
         this.storage = storage;
         this.scheduler = scheduler;
         this.fromhandGui = fromhandGui;
-        this.importer = importer;
+        this.migrationService = migrationService;
     }
 
     /** Builds and registers the command for {@code plugin}. Call during {@code onEnable}. */
@@ -161,8 +163,10 @@ public final class VoucherCommand {
                 .then(Commands.argument("id", StringArgumentType.word())
                     .executes(run(this::fromhand))))
             .then(Commands.literal("import").requires(perm(PERM_IMPORT))
-                .then(Commands.literal("crazyvouchers")
-                    .executes(run(ctx -> importCrazyVouchers(ctx.getSource())))))
+                .then(Commands.argument("source", StringArgumentType.word())
+                    .suggests((ctx, builder) -> suggest(builder, migrationService.presentIds()))
+                    .executes(run(ctx ->
+                        runImport(ctx.getSource(), StringArgumentType.getString(ctx, "source"))))))
             .then(Commands.literal("doctor").requires(perm(PERM_DOCTOR))
                 .executes(run(ctx -> doctor(ctx.getSource()))))
             .then(Commands.literal("help")
@@ -418,14 +422,15 @@ public final class VoucherCommand {
         });
     }
 
-    /** Imports CrazyVouchers configs, reloads when anything landed, and reports the outcome. */
-    private void importCrazyVouchers(CommandSourceStack source) {
+    /** Imports from {@code sourceId}, reloads when anything landed, and reports the outcome. */
+    private void runImport(CommandSourceStack source, String sourceId) {
         Player viewer = asPlayer(source);
-        CrazyVouchersImporter.Result result = importer.importAll();
-        if (!result.sourceFound()) {
+        Migrator migrator = migrationService.byId(sourceId).orElse(null);
+        if (migrator == null || !migrator.isPresent()) {
             reply(source, messages.get(viewer, "command.import.not-found"));
             return;
         }
+        MigrationReport result = migrator.migrate();
         if (!result.imported().isEmpty()) {
             configManager.reload();
         }

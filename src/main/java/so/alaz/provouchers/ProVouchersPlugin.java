@@ -10,7 +10,8 @@ import so.alaz.provouchers.command.Diagnostics;
 import so.alaz.provouchers.command.VoucherCommand;
 import so.alaz.provouchers.condition.ConditionRegistry;
 import so.alaz.provouchers.config.ConfigManager;
-import so.alaz.provouchers.config.CrazyVouchersImporter;
+import so.alaz.provouchers.migrate.CrazyVouchersMigrator;
+import so.alaz.provouchers.migrate.MigrationService;
 import so.alaz.provouchers.service.VoucherServiceImpl;
 import org.bukkit.configuration.ConfigurationSection;
 import so.alaz.provouchers.cooldown.CooldownService;
@@ -173,9 +174,10 @@ public final class ProVouchersPlugin extends JavaPlugin {
         Diagnostics diagnostics = new Diagnostics(this, storage, registry, hooks, messages,
             () -> backend.name().toLowerCase(Locale.ROOT));
         FromhandGui fromhandGui = new FromhandGui(guiManager, configManager, messages, text, getDataFolder());
+        MigrationService migrationService = new MigrationService(
+            new CrazyVouchersMigrator(getDataFolder(), registry));
         new VoucherCommand(registry, giveService, redeemHandler, configManager, previewGui, text,
-            messages, diagnostics, storage, scheduler, fromhandGui,
-            new CrazyVouchersImporter(getDataFolder(), registry)).register(this);
+            messages, diagnostics, storage, scheduler, fromhandGui, migrationService).register(this);
 
         getServer().getServicesManager().register(VoucherService.class,
             new VoucherServiceImpl(registry, giveService), this,

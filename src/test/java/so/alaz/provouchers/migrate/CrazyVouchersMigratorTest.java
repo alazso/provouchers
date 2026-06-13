@@ -1,8 +1,9 @@
-package so.alaz.provouchers.config;
+package so.alaz.provouchers.migrate;
 
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import so.alaz.provouchers.config.VoucherParser;
 import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.provouchers.voucher.VoucherCode;
 import so.alaz.provouchers.voucher.VoucherRegistry;
@@ -13,15 +14,15 @@ import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class CrazyVouchersImporterTest {
+class CrazyVouchersMigratorTest {
 
     @TempDir
     Path plugins;
 
-    private CrazyVouchersImporter importer(VoucherRegistry registry) throws Exception {
+    private CrazyVouchersMigrator importer(VoucherRegistry registry) throws Exception {
         Path dataFolder = plugins.resolve("ProVouchers");
         Files.createDirectories(dataFolder);
-        return new CrazyVouchersImporter(dataFolder.toFile(), registry);
+        return new CrazyVouchersMigrator(dataFolder.toFile(), registry);
     }
 
     private Voucher importedVoucher(String id) {
@@ -65,9 +66,9 @@ class CrazyVouchersImporterTest {
                   sounds:
                     - 'BLOCK.AMETHYST_BLOCK.STEP'
             """);
-        CrazyVouchersImporter.Result result = importer(new VoucherRegistry()).importAll();
-
-        assertThat(result.sourceFound()).isTrue();
+        CrazyVouchersMigrator migrator = importer(new VoucherRegistry());
+        assertThat(migrator.isPresent()).isTrue();
+        MigrationReport result = migrator.migrate();
         assertThat(result.imported()).containsExactly("voucher rank-up");
 
         Voucher voucher = importedVoucher("rank-up");
@@ -115,7 +116,7 @@ class CrazyVouchersImporterTest {
                     toggle: true
                     permissions: [ 'some.node' ]
             """);
-        CrazyVouchersImporter.Result result = importer(new VoucherRegistry()).importAll();
+        MigrationReport result = importer(new VoucherRegistry()).migrate();
         assertThat(result.imported()).containsExactly("voucher gated");
 
         Voucher voucher = importedVoucher("gated");
@@ -143,7 +144,7 @@ class CrazyVouchersImporterTest {
               items:
                 - 'Item:diamond_helmet, Damage:50, Trim:sentry!quartz, Amount:1, protection:4, unbreaking:3'
             """);
-        CrazyVouchersImporter.Result result = importer(new VoucherRegistry()).importAll();
+        MigrationReport result = importer(new VoucherRegistry()).migrate();
 
         Voucher voucher = importedVoucher("trim");
         assertThat(voucher.definedItems().get("imported_1").item().material()).isEqualTo("DIAMOND_HELMET");
@@ -172,7 +173,7 @@ class CrazyVouchersImporterTest {
                   toggle: true
                   sounds: [ 'block.note_block.pling' ]
             """);
-        CrazyVouchersImporter.Result result = importer(new VoucherRegistry()).importAll();
+        MigrationReport result = importer(new VoucherRegistry()).migrate();
         // The file id comes from the file name; the code value stays as configured.
         assertThat(result.imported()).containsExactly("code starter-money");
 
@@ -202,16 +203,15 @@ class CrazyVouchersImporterTest {
         VoucherRegistry registry = new VoucherRegistry();
         registry.register(VoucherParser.parseVoucher(yaml("item:\n  material: PAPER\n"), "taken"));
 
-        CrazyVouchersImporter.Result result = importer(registry).importAll();
+        MigrationReport result = importer(registry).migrate();
         assertThat(result.imported()).containsExactly("voucher starter_kit");
         assertThat(result.skipped()).hasSize(1);
         assertThat(result.skipped().get(0)).contains("taken");
     }
 
     @Test
-    void missingSourceFolderIsReported() throws Exception {
-        CrazyVouchersImporter.Result result = importer(new VoucherRegistry()).importAll();
-        assertThat(result.sourceFound()).isFalse();
+    void missingSourceFolderIsNotPresent() throws Exception {
+        assertThat(importer(new VoucherRegistry()).isPresent()).isFalse();
     }
 
     private static YamlConfiguration yaml(String content) throws Exception {
