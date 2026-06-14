@@ -130,6 +130,15 @@ public final class RedeemHandler {
      * voucher allows batch open, the whole stack is redeemed at once.
      */
     public void redeemHeldVoucher(Player player, EquipmentSlot hand, boolean sneaking) {
+        redeemHeldVoucher(player, hand, sneaking, false);
+    }
+
+    /**
+     * The shared body. {@code confirmed} is {@code true} on the re-entry from the two-step
+     * confirm GUI, which carries the original {@code sneaking} so batch open survives and
+     * bypasses the confirmation gate so a click after the window still redeems.
+     */
+    private void redeemHeldVoucher(Player player, EquipmentSlot hand, boolean sneaking, boolean confirmed) {
         ItemStack inHand = player.getInventory().getItem(hand);
         if (inHand == null || inHand.getType().isAir()) {
             return;
@@ -167,7 +176,7 @@ public final class RedeemHandler {
             send(player, messages.get(player, "redeem.not-yet-active"));
             return;
         }
-        if (!voucherPreChecks(player, voucher, hand)) {
+        if (!voucherPreChecks(player, voucher, hand, sneaking, confirmed)) {
             return;
         }
 
@@ -255,7 +264,8 @@ public final class RedeemHandler {
      * game mode, cooldown, conditions, and the cancellable pre-redeem event. Replies
      * to the player on failure. Reused by the item path and (later) virtual vouchers.
      */
-    private boolean voucherPreChecks(Player player, Voucher voucher, EquipmentSlot hand) {
+    private boolean voucherPreChecks(Player player, Voucher voucher, EquipmentSlot hand, boolean sneaking,
+                                     boolean confirmed) {
         if (!gameModeAllowed(player)) {
             send(player, messages.get(player, "redeem.wrong-gamemode"));
             return false;
@@ -272,16 +282,23 @@ public final class RedeemHandler {
             replyFailure(player, conditionResult);
             return false;
         }
-        if (voucher.twoStep() && confirmations.needsConfirm(player.getUniqueId(), voucher.id())) {
-            if (confirmGui != null) {
-                // GUI style: confirming re-runs the redeem, which finds the live pending entry.
-                confirmGui.open(player, voucher,
-                    () -> scheduler.entity(player, () -> redeemHeldVoucher(player, hand, false)),
-                    () -> confirmations.clear(player.getUniqueId()));
-            } else {
-                send(player, confirmMessage(player, voucher));
+        if (voucher.twoStep()) {
+            if (confirmed) {
+                // The confirm GUI already collected the second click; drop the pending entry so a
+                // later redeem of the same voucher is challenged again.
+                confirmations.clear(player.getUniqueId());
+            } else if (confirmations.needsConfirm(player.getUniqueId(), voucher.id())) {
+                if (confirmGui != null) {
+                    // GUI style: confirming re-runs the redeem with the original sneaking, marked
+                    // confirmed so it bypasses this gate even if the window has since lapsed.
+                    confirmGui.open(player, voucher,
+                        () -> scheduler.entity(player, () -> redeemHeldVoucher(player, hand, sneaking, true)),
+                        () -> confirmations.clear(player.getUniqueId()));
+                } else {
+                    send(player, confirmMessage(player, voucher));
+                }
+                return false;
             }
-            return false;
         }
         return new VoucherPreRedeemEvent(player, voucher).callEvent();
     }
