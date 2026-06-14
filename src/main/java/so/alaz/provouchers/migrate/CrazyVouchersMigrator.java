@@ -192,14 +192,18 @@ public final class CrazyVouchersMigrator implements Migrator {
         if (hdb != null) {
             out.put("item.custom", "hdb:" + hdb);
         }
-        if (v.contains("settings.damage")) {
-            out.put("item.damage", v.getInt("settings.damage"));
+        // The real item's durability and trim. CrazyVouchers names them "display-damage"/"display-trim"
+        // on the main voucher; the alternate head-item layout uses "settings.damage"/"settings.trim".
+        int damage = v.getInt("display-damage", v.getInt("settings.damage", -1));
+        if (damage > 0) {
+            out.put("item.damage", damage);
         }
-        String trimMaterial = v.getString("settings.trim.material");
-        String trimPattern = v.getString("settings.trim.pattern");
-        if (trimMaterial != null && !trimMaterial.isBlank() && trimPattern != null && !trimPattern.isBlank()) {
-            out.put("item.trim.material", trimMaterial);
-            out.put("item.trim.pattern", trimPattern);
+        String trimMaterial = firstNonBlank(v, "display-trim.material", "settings.trim.material");
+        String trimPattern = firstNonBlank(v, "display-trim.pattern", "settings.trim.pattern");
+        if (trimMaterial != null && trimPattern != null) {
+            // Trim material/pattern are namespaced keys, so normalise to lowercase as CrazyVouchers does.
+            out.put("item.trim.material", trimMaterial.toLowerCase(Locale.ROOT));
+            out.put("item.trim.pattern", trimPattern.toLowerCase(Locale.ROOT));
         }
         // The modern item model (1.21.4+), a namespace + key pair.
         String namespace = v.getString("components.item-model.namespace", "");
@@ -597,6 +601,7 @@ public final class CrazyVouchersMigrator implements Migrator {
     private static final List<String> VOUCHER_HANDLED = List.of(
         "name", "lore", "item", "glowing", "custom-model-data", "player", "skull",
         "has-argument", "commands", "random-commands", "chance-commands", "items", "cooldown",
+        "display-damage", "display-trim",
         "settings.glowing", "settings.player", "settings.skull", "settings.damage", "settings.trim",
         "settings.color", "settings.rgb",
         "components.item-model", "components.hide-tooltip",

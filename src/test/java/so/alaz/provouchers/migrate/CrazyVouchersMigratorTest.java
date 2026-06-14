@@ -94,10 +94,13 @@ class CrazyVouchersMigratorTest {
         Files.createDirectories(cv);
         Files.writeString(cv.resolve("Gated.yml"), """
             voucher:
-              item: 'paper'
+              item: 'diamond_chestplate'
               override-anti-dupe: false
               allow-vouchers-in-item-frames: false
               display-damage: 50
+              display-trim:
+                material: 'quartz'
+                pattern: 'sentry'
               is-edible: false
               options:
                 whitelist-worlds:
@@ -121,6 +124,9 @@ class CrazyVouchersMigratorTest {
 
         Voucher voucher = importedVoucher("gated");
         assertThat(voucher.maxUses()).isEqualTo(10);
+        // The real item's durability and trim come from display-damage / display-trim.
+        assertThat(voucher.item().damage()).isEqualTo(50);
+        assertThat(voucher.item().trim()).isEqualTo(new so.alaz.provouchers.voucher.ItemTrim("quartz", "sentry"));
         assertThat(voucher.conditionMaps()).hasSize(2);
         assertThat(voucher.conditionMaps().get(0)).containsEntry("type", "world")
             .containsEntry("deny", "Wrong world.");
@@ -129,7 +135,6 @@ class CrazyVouchersMigratorTest {
         // Every unmapped key is reported, not silently dropped.
         assertThat(result.warnings()).anyMatch(w -> w.contains("override-anti-dupe"))
             .anyMatch(w -> w.contains("allow-vouchers-in-item-frames"))
-            .anyMatch(w -> w.contains("display-damage"))
             .anyMatch(w -> w.contains("is-edible"))
             .anyMatch(w -> w.contains("blacklist-permission"));
     }
