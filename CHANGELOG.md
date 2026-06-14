@@ -4,6 +4,30 @@ All notable changes to ProVouchers are documented here. This project follows
 [Semantic Versioning](https://semver.org). Releases before 0.5.0 are listed on the
 [GitHub releases](https://github.com/alazso/provouchers/releases) page.
 
+## [1.3.0] - 2026-06-13
+
+### Added
+- Item appearance: voucher icons and defined items can carry `enchantments`,
+  `damage` (durability), `unbreakable`, an armor `trim`, an `item-model`
+  (1.21.4+), `hide-tooltip`, and a dye `color` (a named color, `#RRGGBB`, or
+  `r,g,b`) on leather armor, potions, and maps.
+- `enabled` on vouchers and codes: set `false` to keep one loaded but refuse
+  redeems. Distinct from a voucher's display-only `unredeemable`.
+- `effects` on codes: a sound and/or firework played to the redeemer on a
+  successful code redeem, the same block vouchers use.
+- `soulbound`: bind a voucher to its holder so it cannot be dropped, stored, or
+  traded. `true` enables every restriction, or toggle `block-drop`,
+  `block-containers`, and `bind-on-pickup` individually.
+- `auto-give.first-join` in config.yml: grant listed vouchers the first time a
+  player joins.
+- `/voucher import <source>`: import another voucher plugin's configuration into
+  ProVouchers files. CrazyVouchers is built in (modern and legacy vouchers and
+  codes); every key with no equivalent is reported, never silently dropped.
+- `redeem.confirm-style: gui`: two-step confirmation can use a clickable GUI
+  instead of the chat prompt.
+- `/voucher giveall [permission]`: restrict a mass give to players holding a
+  permission.
+
 ## [1.2.0] - 2026-06-11
 
 ### Added
