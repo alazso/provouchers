@@ -57,7 +57,6 @@ command:
     summary: "{prefix}<green>Imported <yellow>{imported}</yellow>, skipped <yellow>{skipped}</yellow>."  # {imported} {skipped}
     skipped-line: "<red>  - <gray>{line}"     # {line}
     warning-line: "<yellow>  ! <gray>{line}"  # {line}
-    more: "<dark_gray>  ... and {count} more."  # {count}
   doctor:
     heading: "{prefix}<gold>Doctor"
   help:

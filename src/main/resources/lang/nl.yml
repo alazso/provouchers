@@ -49,7 +49,6 @@ command:
     summary: "{prefix}<green><yellow>{imported}</yellow> geïmporteerd, <yellow>{skipped}</yellow> overgeslagen."  # {imported} {skipped}
     skipped-line: "<red>  - <gray>{line}"     # {line}
     warning-line: "<yellow>  ! <gray>{line}"  # {line}
-    more: "<dark_gray>  ... en {count} meer."  # {count}
   doctor:
     heading: "{prefix}<gold>Diagnose"
   help:

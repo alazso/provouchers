@@ -49,7 +49,6 @@ command:
     summary: "{prefix}<green>Importerede <yellow>{imported}</yellow>, sprang <yellow>{skipped}</yellow> over."  # {imported} {skipped}
     skipped-line: "<red>  - <gray>{line}"     # {line}
     warning-line: "<yellow>  ! <gray>{line}"  # {line}
-    more: "<dark_gray>  ... og {count} mere."  # {count}
   doctor:
     heading: "{prefix}<gold>Diagnose"
   help:

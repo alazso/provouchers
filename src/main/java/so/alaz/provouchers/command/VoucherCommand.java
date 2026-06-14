@@ -431,13 +431,14 @@ public final class VoucherCommand {
             return;
         }
         MigrationReport result = migrator.migrate();
-        if (!result.imported().isEmpty()) {
-            configManager.reload();
-        }
+        // Reload so the new files take effect, and surface any that failed to parse: an imported
+        // file that does not load would otherwise be reported as imported yet silently absent.
+        List<String> loadErrors = result.imported().isEmpty() ? List.of() : configManager.reload();
         reply(source, messages.get(viewer, "command.import.summary",
             "imported", result.imported().size(), "skipped", result.skipped().size()));
         reportLines(source, viewer, "command.import.skipped-line", result.skipped());
         reportLines(source, viewer, "command.import.warning-line", result.warnings());
+        reportLines(source, viewer, "command.reload.error-line", loadErrors);
     }
 
     /** Reports every line: a migration audit must be complete, so nothing is truncated. */

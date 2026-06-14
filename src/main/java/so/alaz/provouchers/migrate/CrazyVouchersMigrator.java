@@ -1,8 +1,10 @@
 package so.alaz.provouchers.migrate;
 
+import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.Nullable;
+import so.alaz.provouchers.util.Colors;
 import so.alaz.provouchers.util.LegacyText;
 import so.alaz.provouchers.voucher.VoucherRegistry;
 
@@ -122,7 +124,7 @@ public final class CrazyVouchersMigrator implements Migrator {
 
     private Map<String, Object> convertVoucher(ConfigurationSection v, List<String> warnings, String id) {
         Map<String, Object> out = new LinkedHashMap<>();
-        convertAppearance(v, out);
+        convertAppearance(v, out, warnings, id);
         if (v.getBoolean("has-argument", false)) {
             out.put("has-argument", true);
         }
@@ -147,7 +149,7 @@ public final class CrazyVouchersMigrator implements Migrator {
             out.put("cooldown", v.getInt("cooldown.interval", 5));
         }
         convertEffects(v, out, warnings, id);
-        applyLimiter(v, out);
+        applyLimiter(v, out, warnings, id);
         List<Map<String, Object>> conditions = buildConditions(v, warnings, id);
         if (!conditions.isEmpty()) {
             out.put("conditions", conditions);
@@ -158,7 +160,8 @@ public final class CrazyVouchersMigrator implements Migrator {
     }
 
     /** Name, lore, and every item-appearance key, including the alternate {@code settings.} block. */
-    private void convertAppearance(ConfigurationSection v, Map<String, Object> out) {
+    private void convertAppearance(ConfigurationSection v, Map<String, Object> out,
+                                   List<String> warnings, String id) {
         String name = v.getString("name");
         if (name != null) {
             out.put("display-name", LegacyText.toMiniMessage(name));
@@ -167,7 +170,10 @@ public final class CrazyVouchersMigrator implements Migrator {
         if (!lore.isEmpty()) {
             out.put("lore", lore.stream().map(LegacyText::toMiniMessage).toList());
         }
-        out.put("item.material", v.getString("item", "PAPER").toUpperCase(Locale.ROOT));
+        // getString returns "" (not the default) when the key is present but blank, so guard it.
+        String material = v.getString("item", "PAPER");
+        out.put("item.material",
+            (material.isBlank() ? "PAPER" : material).toUpperCase(Locale.ROOT));
         // CrazyVouchers glowing is an enum string (add_glow / remove_glow / none), not a boolean.
         // It can also live under settings.glowing on a head voucher.
         if ("add_glow".equalsIgnoreCase(v.getString("glowing", v.getString("settings.glowing", "none")))) {
@@ -199,15 +205,37 @@ public final class CrazyVouchersMigrator implements Migrator {
         String namespace = v.getString("components.item-model.namespace", "");
         String key = v.getString("components.item-model.key", "");
         if (!namespace.isBlank() && !key.isBlank()) {
-            out.put("item.item-model", namespace + ":" + key);
+            String model = namespace + ":" + key;
+            if (NamespacedKey.fromString(model) != null) {
+                out.put("item.item-model", model);
+            } else {
+                warnings.add(id + ": item-model '" + model
+                    + "' is not a valid namespaced key (lowercase namespace:key); not imported");
+            }
         }
         if (v.getBoolean("components.hide-tooltip", false)) {
             out.put("item.hide-tooltip", true);
         }
-        // Item dye: a named settings.color, or an r,g,b settings.rgb triple.
+        // Item dye: a named settings.color, or an r,g,b settings.rgb triple. CrazyVouchers accepts
+        // more color names than ProVouchers does, so validate before writing an unloadable value.
         String color = firstNonBlank(v, "settings.color", "settings.rgb");
         if (color != null) {
-            out.put("item.color", color);
+            if (isParseableColor(color)) {
+                out.put("item.color", color);
+            } else {
+                warnings.add(id + ": item color '" + color
+                    + "' is not a named color ProVouchers supports, #RRGGBB, or r,g,b; not imported");
+            }
+        }
+    }
+
+    /** Whether {@code value} is a color ProVouchers can parse, so we never write an unloadable one. */
+    private static boolean isParseableColor(String value) {
+        try {
+            Colors.parse(value);
+            return true;
+        } catch (IllegalArgumentException ex) {
+            return false;
         }
     }
 
@@ -217,8 +245,11 @@ public final class CrazyVouchersMigrator implements Migrator {
                             List<String> imported, List<String> skipped, List<String> warnings) {
         String id = sanitizeId(name);
         File target = new File(codesDir, id + ".yml");
-        if (target.isFile()) {
-            skipped.add("code " + id + ": a ProVouchers code file with this id already exists");
+        // The typed value defaults to the id when no explicit code is set, matching the parser.
+        String value = firstNonBlank(code, "code");
+        String effective = value != null ? value : id;
+        if (target.isFile() || registry.findCode(effective) != null) {
+            skipped.add("code " + id + ": a ProVouchers code with this id or input already exists");
             return;
         }
         write(target, convertCode(code, warnings, id), id, imported, skipped, "code");
@@ -245,7 +276,7 @@ public final class CrazyVouchersMigrator implements Migrator {
         if (!random.isEmpty()) {
             out.put("random-rewards", random);
         }
-        applyLimiter(c, out);
+        applyLimiter(c, out, warnings, id);
         convertEffects(c, out, warnings, id);
         List<Map<String, Object>> conditions = buildConditions(c, warnings, id);
         if (!conditions.isEmpty()) {
@@ -281,11 +312,14 @@ public final class CrazyVouchersMigrator implements Migrator {
     private List<Map<String, Object>> convertRandomRewards(ConfigurationSection v, List<String> rewards,
                                                            List<String> warnings, String id) {
         List<Map<String, Object>> sets = new ArrayList<>();
+        boolean weighted = false;
         // The legacy list form: each line is "<chance> <command>".
         for (String line : v.getStringList("chance-commands")) {
             String[] parts = line.trim().split("\\s+", 2);
-            if (parts.length == 2 && tryInt(parts[0]).isPresent()) {
-                sets.add(rewardSet(tryInt(parts[0]).getAsInt(), parts[1]));
+            java.util.OptionalInt chance = parts.length == 2 ? tryInt(parts[0]) : java.util.OptionalInt.empty();
+            if (chance.isPresent()) {
+                sets.add(rewardSet(chance.getAsInt(), parts[1]));
+                weighted = true;
             } else if (!line.isBlank()) {
                 sets.add(rewardSet(1.0, line));
             }
@@ -295,7 +329,6 @@ public final class CrazyVouchersMigrator implements Migrator {
             return sets;
         }
         List<List<String>> unweighted = new ArrayList<>();
-        boolean weighted = false;
         for (String key : rc.getKeys(false)) {
             ConfigurationSection entry = rc.getConfigurationSection(key);
             if (entry == null || entry.getStringList("commands").isEmpty()) {
@@ -341,8 +374,9 @@ public final class CrazyVouchersMigrator implements Migrator {
     private void convertEffects(ConfigurationSection v, Map<String, Object> out, List<String> warnings, String id) {
         if (v.getBoolean("options.sound.toggle", false)) {
             List<String> sounds = v.getStringList("options.sound.sounds");
-            if (!sounds.isEmpty()) {
-                out.put("effects.sound", sounds.get(0).toLowerCase(Locale.ROOT)
+            String sound = sounds.stream().filter(s -> !s.isBlank()).findFirst().orElse(null);
+            if (sound != null) {
+                out.put("effects.sound", sound.toLowerCase(Locale.ROOT)
                     + " " + v.getDouble("options.sound.volume", 1.0)
                     + " " + v.getDouble("options.sound.pitch", 1.0));
                 if (sounds.size() > 1) {
@@ -361,10 +395,15 @@ public final class CrazyVouchersMigrator implements Migrator {
     }
 
     /** A CrazyVouchers limiter caps total redemptions, which maps to {@code max-uses}. */
-    private void applyLimiter(ConfigurationSection v, Map<String, Object> out) {
+    private void applyLimiter(ConfigurationSection v, Map<String, Object> out, List<String> warnings, String id) {
         if (v.getBoolean("options.limiter.toggle", false)) {
             // "limit" is the v4 key; older configs used "amount".
-            out.put("max-uses", v.getInt("options.limiter.limit", v.getInt("options.limiter.amount", -1)));
+            int limit = v.getInt("options.limiter.limit", v.getInt("options.limiter.amount", -1));
+            if (limit > 0) {
+                out.put("max-uses", limit);
+            } else {
+                warnings.add(id + ": limiter is enabled but has no positive limit; cap not imported");
+            }
         }
     }
 

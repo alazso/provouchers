@@ -271,6 +271,118 @@ class CrazyVouchersMigratorTest {
     }
 
     @Test
+    void importsValidColorAndReportsUnparseableOne() throws Exception {
+        Path cv = plugins.resolve("CrazyVouchers/vouchers");
+        Files.createDirectories(cv);
+        Files.writeString(cv.resolve("Dyed.yml"), """
+            voucher:
+              item: 'leather_chestplate'
+              settings:
+                rgb: '122,33,57'
+            """);
+        Files.writeString(cv.resolve("Bad-Dye.yml"), """
+            voucher:
+              item: 'leather_chestplate'
+              settings:
+                color: 'gold'
+            """);
+        MigrationReport result = importer(new VoucherRegistry()).migrate();
+
+        // An r,g,b triple ProVouchers can parse maps through.
+        assertThat(importedVoucher("dyed").item().color()).isEqualTo("122,33,57");
+        // A name ProVouchers cannot represent is reported, not written as an unloadable value.
+        assertThat(importedVoucher("bad-dye").item().color()).isNull();
+        assertThat(result.warnings()).anyMatch(w -> w.contains("item color 'gold'"));
+    }
+
+    @Test
+    void reportsInvalidItemModel() throws Exception {
+        Path cv = plugins.resolve("CrazyVouchers/vouchers");
+        Files.createDirectories(cv);
+        Files.writeString(cv.resolve("Bad-Model.yml"), """
+            voucher:
+              item: 'paper'
+              components:
+                item-model:
+                  namespace: 'MyPack'
+                  key: 'wand'
+            """);
+        MigrationReport result = importer(new VoucherRegistry()).migrate();
+
+        assertThat(importedVoucher("bad-model").item().itemModel()).isNull();
+        assertThat(result.warnings()).anyMatch(w -> w.contains("item-model 'MyPack:wand'"));
+    }
+
+    @Test
+    void reportsLimiterWithoutLimit() throws Exception {
+        Path cv = plugins.resolve("CrazyVouchers/vouchers");
+        Files.createDirectories(cv);
+        Files.writeString(cv.resolve("No-Limit.yml"), """
+            voucher:
+              item: 'paper'
+              options:
+                limiter:
+                  toggle: true
+            """);
+        MigrationReport result = importer(new VoucherRegistry()).migrate();
+
+        assertThat(importedVoucher("no-limit").maxUses()).isEqualTo(-1);
+        assertThat(result.warnings()).anyMatch(w -> w.contains("limiter is enabled but has no positive limit"));
+    }
+
+    @Test
+    void warnsWhenChanceCommandsCompeteWithMultipleUnweighted() throws Exception {
+        Path cv = plugins.resolve("CrazyVouchers/vouchers");
+        Files.createDirectories(cv);
+        Files.writeString(cv.resolve("Mixed.yml"), """
+            voucher:
+              item: 'paper'
+              chance-commands:
+                - '50 eco give {player} 100'
+              random-commands:
+                "1":
+                  commands: [ 'give {player} dirt 1' ]
+                "2":
+                  commands: [ 'give {player} stone 1' ]
+            """);
+        MigrationReport result = importer(new VoucherRegistry()).migrate();
+
+        // The legacy weighted pool plus two unweighted entries collapse to one roll, which is reported.
+        assertThat(result.warnings()).anyMatch(w -> w.contains("weighted pool"));
+    }
+
+    @Test
+    void blankItemDefaultsToPaper() throws Exception {
+        Path cv = plugins.resolve("CrazyVouchers/vouchers");
+        Files.createDirectories(cv);
+        Files.writeString(cv.resolve("Blank.yml"), """
+            voucher:
+              item: ''
+              name: '&aThing'
+            """);
+        importer(new VoucherRegistry()).migrate();
+
+        assertThat(importedVoucher("blank").item().material()).isEqualTo("PAPER");
+    }
+
+    @Test
+    void skipsCodeWhoseValueAlreadyLoaded() throws Exception {
+        Path cv = plugins.resolve("CrazyVouchers/codes");
+        Files.createDirectories(cv);
+        Files.writeString(cv.resolve("Gift.yml"), """
+            voucher-code:
+              code: 'WELCOME'
+              commands: [ 'eco give {player} 1' ]
+            """);
+        VoucherRegistry registry = new VoucherRegistry();
+        registry.register(VoucherParser.parseCode(yaml("code: WELCOME\n"), "other-file"));
+
+        MigrationReport result = importer(registry).migrate();
+        assertThat(result.imported()).isEmpty();
+        assertThat(result.skipped()).anyMatch(s -> s.contains("id or input"));
+    }
+
+    @Test
     void missingSourceFolderIsNotPresent() throws Exception {
         assertThat(importer(new VoucherRegistry()).isPresent()).isFalse();
     }
