@@ -1,10 +1,16 @@
 package so.alaz.provouchers.storage;
 
+import so.alaz.provouchers.stash.StashEntry;
+import so.alaz.provouchers.stash.StashSource;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -30,7 +36,8 @@ public final class VoucherStorage {
         provider.migrations()
             .register(new InitialSchema())
             .register(new CooldownSchema())
-            .register(new UsedVoucherSchema());
+            .register(new UsedVoucherSchema())
+            .register(new StashSchema());
         return provider.init().thenCompose(ignored -> provider.migrations().migrate())
             .thenApply(applied -> null);
     }
@@ -218,5 +225,95 @@ public final class VoucherStorage {
             }
         }
         return cooldowns;
+    }
+
+    /** Queues a virtual voucher in a player's stash. */
+    public void addStash(StashEntry entry) throws SQLException {
+        try (Connection connection = provider.dataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                 "INSERT INTO provouchers_stash "
+                     + "(id, player_uuid, voucher_id, amount, arg, source, created_at, expires_at) "
+                     + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) {
+            statement.setString(1, entry.id().toString());
+            statement.setString(2, entry.player().toString());
+            statement.setString(3, entry.voucherId());
+            statement.setInt(4, entry.amount());
+            if (entry.arg() != null) {
+                statement.setString(5, entry.arg());
+            } else {
+                statement.setNull(5, Types.VARCHAR);
+            }
+            statement.setString(6, entry.source().name());
+            statement.setLong(7, entry.createdAt());
+            if (entry.expiresAt() != null) {
+                statement.setLong(8, entry.expiresAt());
+            } else {
+                statement.setNull(8, Types.BIGINT);
+            }
+            statement.executeUpdate();
+        }
+    }
+
+    /** A player's still-live (unexpired at {@code now}) stash entries, oldest first. */
+    public List<StashEntry> listStash(UUID player, long now) throws SQLException {
+        List<StashEntry> entries = new ArrayList<>();
+        try (Connection connection = provider.dataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                 "SELECT id, voucher_id, amount, arg, source, created_at, expires_at "
+                     + "FROM provouchers_stash WHERE player_uuid = ? ORDER BY created_at ASC")) {
+            statement.setString(1, player.toString());
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    long expiresValue = result.getLong("expires_at");
+                    Long expiresAt = result.wasNull() ? null : expiresValue;
+                    StashEntry entry = new StashEntry(
+                        UUID.fromString(result.getString("id")), player, result.getString("voucher_id"),
+                        result.getInt("amount"), result.getString("arg"),
+                        StashSource.fromStored(result.getString("source")),
+                        result.getLong("created_at"), expiresAt);
+                    if (!entry.isExpired(now)) {
+                        entries.add(entry);
+                    }
+                }
+            }
+        }
+        return entries;
+    }
+
+    /**
+     * Atomically claims one stash entry by id, removing it. Returns {@code true} only for the call
+     * that removed it, so a double click or a second session cannot claim the same entry twice.
+     */
+    public boolean claimStash(UUID id) throws SQLException {
+        try (Connection connection = provider.dataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                 "DELETE FROM provouchers_stash WHERE id = ?")) {
+            statement.setString(1, id.toString());
+            return statement.executeUpdate() > 0;
+        }
+    }
+
+    /** Removes every entry that has expired at or before {@code now}. Returns the count pruned. */
+    public int pruneExpiredStash(long now) throws SQLException {
+        try (Connection connection = provider.dataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                 "DELETE FROM provouchers_stash WHERE expires_at IS NOT NULL AND expires_at <= ?")) {
+            statement.setLong(1, now);
+            return statement.executeUpdate();
+        }
+    }
+
+    /** How many still-live (unexpired at {@code now}) entries a player has waiting. */
+    public int countStash(UUID player, long now) throws SQLException {
+        try (Connection connection = provider.dataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                 "SELECT COUNT(*) FROM provouchers_stash WHERE player_uuid = ? "
+                     + "AND (expires_at IS NULL OR expires_at > ?)")) {
+            statement.setString(1, player.toString());
+            statement.setLong(2, now);
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next() ? result.getInt(1) : 0;
+            }
+        }
     }
 }

@@ -1,5 +1,8 @@
 package so.alaz.provouchers.storage;
 
+import so.alaz.provouchers.stash.StashEntry;
+import so.alaz.provouchers.stash.StashSource;
+
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -51,5 +54,22 @@ final class StorageScenario {
         storage.setCooldown(player, "daily", now + 120_000);
         assertThat(storage.activeCooldowns(player, now)).containsEntry("daily", now + 120_000);
         assertThat(storage.activeCooldowns(player, now + 200_000)).isEmpty();
+
+        // Stash: entries queue, list live (filtering expiry), claim atomically once, and prune when lapsed.
+        UUID kept = UUID.randomUUID();
+        UUID expiring = UUID.randomUUID();
+        storage.addStash(new StashEntry(kept, player, "crate", 2, "vip", StashSource.ADMIN, now, null));
+        storage.addStash(new StashEntry(expiring, player, "gift", 1, null, StashSource.OFFLINE_GIVE,
+            now, now + 60_000));
+        assertThat(storage.listStash(player, now)).hasSize(2);
+        assertThat(storage.countStash(player, now)).isEqualTo(2);
+        assertThat(storage.claimStash(kept)).isTrue();
+        assertThat(storage.claimStash(kept)).isFalse();           // already claimed
+        assertThat(storage.listStash(player, now)).hasSize(1);
+        // Past the expiry the lapsed entry is hidden from the live list, then pruned and unclaimable.
+        assertThat(storage.listStash(player, now + 120_000)).isEmpty();
+        assertThat(storage.countStash(player, now + 120_000)).isZero();
+        assertThat(storage.pruneExpiredStash(now + 120_000)).isEqualTo(1);
+        assertThat(storage.claimStash(expiring)).isFalse();
     }
 }
