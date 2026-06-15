@@ -22,9 +22,13 @@ public final class DiscordWebhook {
         .connectTimeout(Duration.ofSeconds(10))
         .build();
 
-    /** Posts {@code content} to {@code url} asynchronously; {@code onError} receives a reason on failure. */
+    /** Posts a plain message to {@code url} as the webhook {@code content}, asynchronously. */
     public void post(String url, String content, Consumer<String> onError) {
-        String body = "{\"content\":\"" + escape(truncate(content)) + "\"}";
+        postBody(url, "{\"content\":\"" + escape(truncate(content)) + "\"}", onError);
+    }
+
+    /** Posts a ready JSON {@code body} to {@code url} asynchronously; {@code onError} gets a reason on failure. */
+    public void postBody(String url, String body, Consumer<String> onError) {
         HttpRequest request;
         try {
             request = HttpRequest.newBuilder(URI.create(url))

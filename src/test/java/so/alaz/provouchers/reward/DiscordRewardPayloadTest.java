@@ -42,11 +42,16 @@ class DiscordRewardPayloadTest {
     }
 
     @Test
-    void rejectsMissingMessage() {
-        assertThatThrownBy(() -> DiscordRewardPayload.parse("@announce"))
-            .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("webhook and a message");
-        assertThatThrownBy(() -> DiscordRewardPayload.parse(
-            "https://discord.com/api/webhooks/1/tok"))
-            .isInstanceOf(IllegalArgumentException.class);
+    void namedReferenceMayOmitMessage() {
+        DiscordRewardPayload p = DiscordRewardPayload.parse("@rare-drop");
+        assertThat(p.isNamedRef()).isTrue();
+        assertThat(p.namedRef()).isEqualTo("rare-drop");
+        assertThat(p.hasMessage()).isFalse();
+    }
+
+    @Test
+    void inlineUrlRequiresMessage() {
+        assertThatThrownBy(() -> DiscordRewardPayload.parse("https://discord.com/api/webhooks/1/tok"))
+            .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("needs a message");
     }
 }

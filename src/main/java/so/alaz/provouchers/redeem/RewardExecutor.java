@@ -9,6 +9,8 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.reward.CurrencyRewardPayload;
 import so.alaz.provouchers.reward.DiscordRewardPayload;
+import so.alaz.provouchers.reward.WebhookPayload;
+import so.alaz.provouchers.reward.WebhookSpec;
 import so.alaz.provouchers.reward.GroupRewardPayload;
 import so.alaz.provouchers.reward.PermissionRewardPayload;
 import so.alaz.provouchers.reward.RewardItemPayload;
@@ -57,12 +59,12 @@ public final class RewardExecutor {
     private final HookRegistry hooks;
     private final ComponentLogger logger;
     private final DiscordWebhook discord;
-    /** Named webhook URLs from config, keyed by lower-cased name, for {@code discord: @name}. */
-    private final Map<String, String> webhooks;
+    /** Configured webhooks keyed by lower-cased name, for {@code discord: @name}. */
+    private final Map<String, WebhookSpec> webhooks;
 
     public RewardExecutor(Scheduler scheduler, Text text, ItemResolver items,
                           VoucherItemFactory factory, HookRegistry hooks, ComponentLogger logger,
-                          DiscordWebhook discord, Map<String, String> webhooks) {
+                          DiscordWebhook discord, Map<String, WebhookSpec> webhooks) {
         this.scheduler = scheduler;
         this.text = text;
         this.items = items;
@@ -122,22 +124,37 @@ public final class RewardExecutor {
             case XP -> giveXp(player, payload);
             case GROUP -> applyGroup(player, source, payload);
             case PERMISSION -> applyPermission(player, source, payload);
-            case DISCORD -> postDiscord(player, source, payload);
+            case DISCORD -> postDiscord(player, source, payload, arg, namedRolls);
         }
     }
 
-    private void postDiscord(Player player, String source, String payload) {
+    private void postDiscord(Player player, String source, String payload, @Nullable String arg,
+                             Map<String, Long> namedRolls) {
         DiscordRewardPayload spec = DiscordRewardPayload.parse(payload);
-        String url = spec.target();
         if (spec.isNamedRef()) {
-            url = webhooks.get(spec.namedRef());
-            if (url == null || url.isBlank()) {
+            WebhookSpec webhook = webhooks.get(spec.namedRef());
+            if (webhook == null) {
                 throw new IllegalArgumentException("no webhook named '" + spec.namedRef() + "' is configured");
             }
+            if (webhook.payload() != null) {
+                // Rich webhook: render its template (resolving placeholders per value); ignore any message.
+                String body = WebhookPayload.render(webhook.payload(), raw -> text.resolve(
+                    Placeholders.apply(raw, player.getName(), arg, ThreadLocalRandom.current(), namedRolls),
+                    player));
+                discord.postBody(webhook.url(), body, reason -> warn(source, "discord", payload, reason));
+                return;
+            }
+            if (!spec.hasMessage()) {
+                throw new IllegalArgumentException(
+                    "webhook '" + spec.namedRef() + "' has no payload, so the reward must include a message");
+            }
+            discord.post(webhook.url(), text.plain(spec.message(), player),
+                reason -> warn(source, "discord", payload, reason));
+            return;
         }
-        // Resolve placeholders and flatten to plain text on this (region) thread; the POST is async.
-        String content = text.plain(spec.message(), player);
-        discord.post(url, content, reason -> warn(source, "discord", payload, reason));
+        // Inline URL: the message was required at parse and is already placeholder-substituted here.
+        discord.post(spec.target(), text.plain(spec.message(), player),
+            reason -> warn(source, "discord", payload, reason));
     }
 
     private void giveItem(Player player, String payload, Map<String, DefinedItem> definedItems) {

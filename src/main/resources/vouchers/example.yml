@@ -128,7 +128,8 @@ rewards:
   # - "xp: 30 levels"                                   # experience; amount [levels|points]
   # - "group: add vip 7d"                              # LuckPerms; add|remove, optional duration
   # - "permission: add essentials.fly"                 # LuckPerms; add|deny|remove|set <node> [true|false]
-  # - "discord: @announce %player% hit the rare reward!"   # post to a webhook named in config.yml
+  # - "discord: @announce %player% hit the rare reward!"   # webhook named in config (content)
+  # - "discord: @rare-drop"                                # named webhook with a payload template
   # - "discord: https://discord.com/api/webhooks/.. %player% redeemed!"  # or an inline webhook URL
 
 # ---- Random rewards: one weighted set is rolled, on top of rewards ----------
