@@ -4,6 +4,25 @@ All notable changes to ProVouchers are documented here. This project follows
 [Semantic Versioning](https://semver.org). Releases before 0.5.0 are listed on the
 [GitHub releases](https://github.com/alazso/provouchers/releases) page.
 
+## [1.4.0] - 2026-06-14
+
+### Added
+- The Stash: virtual, itemless vouchers a player claims from a menu with
+  `/stash`. A claim runs the voucher through the normal redeem pipeline (its
+  conditions and effects), with no cooldown or use limit, and the entry is
+  removed atomically so a reward is claimed at most once and never lost.
+- `/voucher stashgive <player> <id> [amount] [argument]`: queue a voucher in a
+  player's Stash, for an online player or any who has joined before.
+- `VoucherService.stash(uuid, id, amount)`: queue a virtual voucher from the
+  API, for online or offline players.
+- `stash.overflow: stash`: a give that does not fit a player's inventory queues
+  the remainder in their Stash instead of dropping the items.
+- `stash.expire-after`: Stash entries can lapse after a duration, swept
+  automatically, with a live countdown on each card.
+- A join notification reports waiting rewards, a Claim all button takes
+  everything at once, and `stash.command-aliases` / `stash.title` / `stash.rows`
+  tune the menu.
+
 ## [1.3.0] - 2026-06-13
 
 ### Added
