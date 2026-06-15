@@ -68,6 +68,9 @@ public final class VoucherServiceImpl implements VoucherService {
 
     @Override
     public boolean stash(UUID player, String voucherId, int amount) {
+        if (player == null || amount < 1) {
+            return false;
+        }
         so.alaz.provouchers.voucher.Voucher voucher = registry.getVoucher(voucherId).orElse(null);
         if (voucher == null) {
             return false;

@@ -260,20 +260,19 @@ public final class VoucherStorage {
         try (Connection connection = provider.dataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(
                  "SELECT id, voucher_id, amount, arg, source, created_at, expires_at "
-                     + "FROM provouchers_stash WHERE player_uuid = ? ORDER BY created_at ASC")) {
+                     + "FROM provouchers_stash WHERE player_uuid = ? "
+                     + "AND (expires_at IS NULL OR expires_at > ?) ORDER BY created_at ASC")) {
             statement.setString(1, player.toString());
+            statement.setLong(2, now);
             try (ResultSet result = statement.executeQuery()) {
                 while (result.next()) {
                     long expiresValue = result.getLong("expires_at");
                     Long expiresAt = result.wasNull() ? null : expiresValue;
-                    StashEntry entry = new StashEntry(
+                    entries.add(new StashEntry(
                         UUID.fromString(result.getString("id")), player, result.getString("voucher_id"),
                         result.getInt("amount"), result.getString("arg"),
                         StashSource.fromStored(result.getString("source")),
-                        result.getLong("created_at"), expiresAt);
-                    if (!entry.isExpired(now)) {
-                        entries.add(entry);
-                    }
+                        result.getLong("created_at"), expiresAt));
                 }
             }
         }

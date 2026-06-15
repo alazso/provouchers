@@ -58,7 +58,9 @@ public final class StashService {
     public void stash(UUID player, String voucherId, int amount, @Nullable String arg, StashSource source) {
         long now = System.currentTimeMillis();
         Long expiresAt = defaultExpiryMillis > 0 ? now + defaultExpiryMillis : null;
-        StashEntry entry = new StashEntry(UUID.randomUUID(), player, voucherId, amount, arg, source, now, expiresAt);
+        // The arg column is VARCHAR(255); cap it here so an over-long argument cannot fail the insert.
+        String capped = arg != null && arg.length() > 255 ? arg.substring(0, 255) : arg;
+        StashEntry entry = new StashEntry(UUID.randomUUID(), player, voucherId, amount, capped, source, now, expiresAt);
         scheduler.async(() -> {
             try {
                 storage.addStash(entry);
@@ -106,29 +108,23 @@ public final class StashService {
     }
 
     /**
-     * Claims one entry for an online player. Call this on the player's thread. It checks the claim is
-     * allowed, removes the entry atomically off-thread, grants the reward back on the player's thread,
-     * and finally runs {@code onDone} (a GUI refresh) on the player's thread.
+     * Claims one entry for an online player. Call this on the player's thread. The entry is removed
+     * atomically <em>first</em>, so its conditions and the pre-redeem event run only for the winner of
+     * a race; the reward is then granted on the player's thread. If the player logs out before the
+     * grant, or the voucher's conditions now fail, the entry is restored so the reward is never lost.
+     * {@code onDone} (a GUI refresh) runs on the player's thread.
      */
     public void claim(Player player, StashEntry entry, Runnable onDone) {
         Voucher voucher = registry.getVoucher(entry.voucherId()).orElse(null);
         if (voucher == null) {
             // The voucher was deleted since the entry was queued: drop the stale entry and explain.
-            scheduler.async(() -> {
-                try {
-                    storage.claimStash(entry.id());
-                } catch (SQLException | RuntimeException ignored) {
-                    // Best effort; the entry will simply show again until cleanup succeeds.
-                }
-            });
+            discard(entry);
             text.send(player, messages.get(player, "stash.not-configured"));
             onDone.run();
             return;
         }
-        if (entry.isExpired(System.currentTimeMillis()) || !redeemHandler.canClaim(player, voucher)) {
-            if (entry.isExpired(System.currentTimeMillis())) {
-                text.send(player, messages.get(player, "stash.already-claimed"));
-            }
+        if (entry.isExpired(System.currentTimeMillis())) {
+            text.send(player, messages.get(player, "stash.already-claimed"));
             onDone.run();
             return;
         }
@@ -140,16 +136,46 @@ public final class StashService {
                 logger.log(Level.WARNING, "Failed to claim stash entry " + entry.id(), ex);
                 claimed = false;
             }
-            boolean finalClaimed = claimed;
-            scheduler.entity(player, () -> {
-                if (finalClaimed) {
-                    redeemHandler.grantClaim(player, voucher, entry.amount(), entry.arg());
-                    text.send(player, messages.get(player, "stash.claimed", "voucher", voucher.id()));
-                } else {
+            if (!claimed) {
+                scheduler.entity(player, () -> {
                     text.send(player, messages.get(player, "stash.already-claimed"));
-                }
-                onDone.run();
-            });
+                    onDone.run();
+                });
+                return;
+            }
+            scheduler.entity(player,
+                () -> {
+                    if (redeemHandler.canClaim(player, voucher)) {
+                        redeemHandler.grantClaim(player, voucher, entry.amount(), entry.arg());
+                        text.send(player, messages.get(player, "stash.claimed", "voucher", voucher.id()));
+                    } else {
+                        reStash(entry);   // conditions failed after claiming: put it back
+                    }
+                    onDone.run();
+                },
+                () -> reStash(entry));     // the player left before the grant: put it back
+        });
+    }
+
+    /** Re-inserts a claimed entry so a reward is never lost when a grant could not complete. */
+    private void reStash(StashEntry entry) {
+        scheduler.async(() -> {
+            try {
+                storage.addStash(entry);
+            } catch (SQLException | RuntimeException ex) {
+                logger.log(Level.WARNING, "Failed to restore stash entry " + entry.id(), ex);
+            }
+        });
+    }
+
+    /** Drops a stale entry (its voucher no longer exists); best effort. */
+    private void discard(StashEntry entry) {
+        scheduler.async(() -> {
+            try {
+                storage.claimStash(entry.id());
+            } catch (SQLException | RuntimeException ex) {
+                logger.log(Level.WARNING, "Failed to discard stale stash entry " + entry.id(), ex);
+            }
         });
     }
 
@@ -163,7 +189,20 @@ public final class StashService {
     }
 
     private void claimAllStep(Player player, Deque<StashEntry> queue, int[] granted, Runnable onDone) {
-        StashEntry entry = queue.poll();
+        // Skip entries whose voucher is gone or already lapsed, iteratively so a long run of
+        // skippable entries cannot grow the stack. The recursion into the next entry happens through
+        // the scheduler below, never synchronously.
+        StashEntry entry = null;
+        Voucher voucher = null;
+        StashEntry candidate;
+        while ((candidate = queue.poll()) != null) {
+            Voucher resolved = registry.getVoucher(candidate.voucherId()).orElse(null);
+            if (resolved != null && !candidate.isExpired(System.currentTimeMillis())) {
+                entry = candidate;
+                voucher = resolved;
+                break;
+            }
+        }
         if (entry == null) {
             if (granted[0] > 0) {
                 text.send(player, messages.get(player, "stash.claimed-all", "count", granted[0]));
@@ -171,28 +210,28 @@ public final class StashService {
             onDone.run();
             return;
         }
-        Voucher voucher = registry.getVoucher(entry.voucherId()).orElse(null);
-        if (voucher == null || entry.isExpired(System.currentTimeMillis())
-            || !redeemHandler.canClaim(player, voucher)) {
-            claimAllStep(player, queue, granted, onDone);
-            return;
-        }
+        StashEntry claiming = entry;
+        Voucher claimingVoucher = voucher;
         scheduler.async(() -> {
             boolean claimed;
             try {
-                claimed = storage.claimStash(entry.id());
+                claimed = storage.claimStash(claiming.id());
             } catch (SQLException | RuntimeException ex) {
-                logger.log(Level.WARNING, "Failed to claim stash entry " + entry.id(), ex);
+                logger.log(Level.WARNING, "Failed to claim stash entry " + claiming.id(), ex);
                 claimed = false;
             }
             boolean finalClaimed = claimed;
-            scheduler.entity(player, () -> {
-                if (finalClaimed) {
-                    redeemHandler.grantClaim(player, voucher, entry.amount(), entry.arg());
-                    granted[0]++;
-                }
-                claimAllStep(player, queue, granted, onDone);
-            });
+            scheduler.entity(player,
+                () -> {
+                    if (finalClaimed && redeemHandler.canClaim(player, claimingVoucher)) {
+                        redeemHandler.grantClaim(player, claimingVoucher, claiming.amount(), claiming.arg());
+                        granted[0]++;
+                    } else if (finalClaimed) {
+                        reStash(claiming);   // conditions failed after claiming: put it back
+                    }
+                    claimAllStep(player, queue, granted, onDone);
+                },
+                () -> reStash(claiming));     // the player left mid-claim-all: put this one back
         });
     }
 }

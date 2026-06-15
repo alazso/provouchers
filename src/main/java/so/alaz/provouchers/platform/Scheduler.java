@@ -30,6 +30,14 @@ public final class Scheduler {
         entity.getScheduler().run(plugin, scheduled -> task.run(), null);
     }
 
+    /**
+     * Runs on the region thread owning the entity; if the entity has retired (e.g. the player logged
+     * out) before the task runs, {@code retired} runs instead so a side effect is never simply dropped.
+     */
+    public void entity(Entity entity, Runnable task, Runnable retired) {
+        entity.getScheduler().run(plugin, scheduled -> task.run(), retired);
+    }
+
     /** Runs on a dedicated async thread, as soon as possible. */
     public void async(Runnable task) {
         Bukkit.getAsyncScheduler().runNow(plugin, scheduled -> task.run());

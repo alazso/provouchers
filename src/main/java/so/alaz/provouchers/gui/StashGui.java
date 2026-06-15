@@ -89,23 +89,26 @@ public final class StashGui {
             text.send(viewer, messages.get(viewer, "stash.empty"));
             return;
         }
-        CompletableFuture.allOf(icons.toArray(CompletableFuture[]::new)).thenRun(() -> {
-            List<Button> buttons = new ArrayList<>(shown.size());
-            for (int i = 0; i < shown.size(); i++) {
-                buttons.add(card(viewer, shown.get(i), icons.get(i).join()));
-            }
-            int menuRow = (rows - 1) * 9;
-            PaginatedGui gui = PaginatedGui.builder(rows)
-                .title(title)
-                .contentRows(rows - 2)
-                .content(buttons)
-                .navigation(menuRow, menuRow + 8, navItem("<yellow>Previous"), navItem("<yellow>Next"))
-                .fixed(menuRow + 3, claimAll(viewer, shown))
-                .fixed(menuRow + 5, closeButton(viewer))
-                .filler(pane)
-                .build();
-            scheduler.entity(viewer, () -> guiManager.open(gui, viewer, page));
-        });
+        // Once every icon has resolved, build the cards and open on the viewer's thread: card() edits
+        // item meta, which must not run on the async thread that completed a skull icon's future.
+        CompletableFuture.allOf(icons.toArray(CompletableFuture[]::new)).thenRun(() ->
+            scheduler.entity(viewer, () -> {
+                List<Button> buttons = new ArrayList<>(shown.size());
+                for (int i = 0; i < shown.size(); i++) {
+                    buttons.add(card(viewer, shown.get(i), icons.get(i).join()));
+                }
+                int menuRow = (rows - 1) * 9;
+                PaginatedGui gui = PaginatedGui.builder(rows)
+                    .title(title)
+                    .contentRows(rows - 2)
+                    .content(buttons)
+                    .navigation(menuRow, menuRow + 8, navItem("<yellow>Previous"), navItem("<yellow>Next"))
+                    .fixed(menuRow + 3, claimAll(viewer, shown))
+                    .fixed(menuRow + 5, closeButton(viewer))
+                    .filler(pane)
+                    .build();
+                guiManager.open(gui, viewer, page);
+            }));
     }
 
     private Button card(Player viewer, StashEntry entry, ItemStack icon) {

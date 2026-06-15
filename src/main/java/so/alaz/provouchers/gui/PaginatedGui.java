@@ -6,8 +6,10 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 /**
@@ -93,8 +95,9 @@ public final class PaginatedGui implements Gui {
         fixed.forEach(result::putIfAbsent);
         // The filler dresses the menu bar: every non-content slot not already taken by a button.
         if (filler != null) {
+            Set<Integer> contentSet = new HashSet<>(contentSlots);
             for (int slot = 0; slot < rows * COLUMNS; slot++) {
-                if (!contentSlots.contains(slot) && !result.containsKey(slot)) {
+                if (!contentSet.contains(slot) && !result.containsKey(slot)) {
                     result.put(slot, Button.display(filler));
                 }
             }

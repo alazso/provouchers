@@ -51,7 +51,8 @@ public interface VoucherService {
      * Queues {@code amount} copies of a voucher in a player's Stash, claimable later through the
      * Stash GUI. Works whether the player is online or offline. The queueing is asynchronous.
      *
-     * @return {@code false} if no voucher with that id is loaded
+     * @return {@code false} if {@code player} is null, {@code amount} is below 1, or no voucher with
+     *     that id is loaded
      * @since 1.4.0
      */
     @ApiStatus.AvailableSince("1.4.0")

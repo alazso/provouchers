@@ -32,6 +32,9 @@ public final class StashSchema implements Migration {
                     expires_at BIGINT,
                     PRIMARY KEY (id)
                 )""");
+            // Reads filter by player; a plain CREATE INDEX is portable and runs once with this migration.
+            statement.executeUpdate(
+                "CREATE INDEX idx_provouchers_stash_player ON provouchers_stash (player_uuid)");
             // The offline-give queue was never wired; the Stash supersedes it.
             statement.executeUpdate("DROP TABLE IF EXISTS provouchers_offline_gives");
         }
