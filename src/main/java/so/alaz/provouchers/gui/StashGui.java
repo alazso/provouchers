@@ -57,21 +57,21 @@ public final class StashGui {
             .build();
     }
 
-    /** Opens the viewer's Stash. */
+    /** Opens the viewer's Stash on its first page. */
     public void open(Player viewer) {
-        refresh(viewer, false);
+        refresh(viewer, false, 0);
     }
 
     /**
-     * Loads the viewer's entries and rebuilds the menu. {@code closeIfEmpty} closes a stale menu when a
-     * claim empties the Stash, so the last claimed card never lingers on screen.
+     * Loads the viewer's entries and rebuilds the menu at {@code page}. {@code closeIfEmpty} closes a
+     * stale menu when a claim empties the Stash, so the last claimed card never lingers on screen.
      */
-    private void refresh(Player viewer, boolean closeIfEmpty) {
+    private void refresh(Player viewer, boolean closeIfEmpty, int page) {
         stashService.entries(viewer.getUniqueId(),
-            entries -> scheduler.entity(viewer, () -> build(viewer, entries, closeIfEmpty)));
+            entries -> scheduler.entity(viewer, () -> build(viewer, entries, closeIfEmpty, page)));
     }
 
-    private void build(Player viewer, List<StashEntry> entries, boolean closeIfEmpty) {
+    private void build(Player viewer, List<StashEntry> entries, boolean closeIfEmpty, int page) {
         List<StashEntry> shown = new ArrayList<>();
         List<CompletableFuture<ItemStack>> icons = new ArrayList<>();
         for (StashEntry entry : entries) {
@@ -100,10 +100,11 @@ public final class StashGui {
                 .contentRows(rows - 2)
                 .content(buttons)
                 .navigation(menuRow, menuRow + 8, navItem("<yellow>Previous"), navItem("<yellow>Next"))
-                .fixed(menuRow + 4, claimAll(viewer, shown))
+                .fixed(menuRow + 3, claimAll(viewer, shown))
+                .fixed(menuRow + 5, closeButton(viewer))
                 .filler(pane)
                 .build();
-            scheduler.entity(viewer, () -> guiManager.open(gui, viewer));
+            scheduler.entity(viewer, () -> guiManager.open(gui, viewer, page));
         });
     }
 
@@ -123,7 +124,8 @@ public final class StashGui {
             meta.lore(lore);
         });
         return Button.of(card, click -> {
-            stashService.claim(click.getPlayer(), entry, () -> refresh(click.getPlayer(), true));
+            int page = click.session.page();
+            stashService.claim(click.getPlayer(), entry, () -> refresh(click.getPlayer(), true, page));
             return GuiAction.none();
         });
     }
@@ -133,7 +135,18 @@ public final class StashGui {
             .name(line(messages.get(viewer, "stash.claim-all")))
             .build();
         return Button.of(icon, click -> {
-            stashService.claimAll(click.getPlayer(), entries, () -> refresh(click.getPlayer(), true));
+            int page = click.session.page();
+            stashService.claimAll(click.getPlayer(), entries, () -> refresh(click.getPlayer(), true, page));
+            return GuiAction.none();
+        });
+    }
+
+    private Button closeButton(Player viewer) {
+        ItemStack icon = new ItemBuilder(Material.BARRIER)
+            .name(line(messages.get(viewer, "stash.close")))
+            .build();
+        return Button.of(icon, click -> {
+            click.getPlayer().closeInventory();
             return GuiAction.none();
         });
     }

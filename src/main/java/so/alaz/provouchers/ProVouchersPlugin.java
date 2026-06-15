@@ -67,6 +67,7 @@ import so.alaz.provouchers.voucher.VoucherRegistry;
 import java.io.File;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -176,6 +177,8 @@ public final class ProVouchersPlugin extends JavaPlugin {
                 getServer().getPluginManager().registerEvents(
                     new StashJoinListener(stashService, scheduler, text, messages), this);
             }
+            // Sweep lapsed entries periodically so an expiring Stash does not accrue dead rows.
+            scheduler.repeatingAsync(stashService::pruneExpired, 60, 600, TimeUnit.SECONDS);
         }
 
         getServer().getPluginManager().registerEvents(

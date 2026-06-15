@@ -111,6 +111,7 @@ stash:
   empty: "<gray>Dein Stash ist leer."
   notify: "{prefix}<gold>Du hast <yellow>{count}</yellow> Belohnung(en) im Stash. <gray>Öffne ihn mit <yellow>/stash</yellow>."  # {count}
   claim-all: "<green>Alle einlösen"
+  close: "<red>Schließen"
   claimed-all: "<green><yellow>{count}</yellow> Belohnung(en) eingelöst."  # {count}
   lore:
     amount: "<gray>Anzahl: <yellow>{amount}"  # {amount}

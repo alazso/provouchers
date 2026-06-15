@@ -82,6 +82,15 @@ public final class StashService {
         });
     }
 
+    /** Removes every lapsed entry. Blocking; intended to be called from an async context (the sweeper). */
+    public void pruneExpired() {
+        try {
+            storage.pruneExpiredStash(System.currentTimeMillis());
+        } catch (SQLException | RuntimeException ex) {
+            logger.log(Level.WARNING, "Failed to prune expired stash entries", ex);
+        }
+    }
+
     /** Counts a player's live entries off-thread, then runs {@code callback} on the async thread. */
     public void count(UUID player, IntConsumer callback) {
         scheduler.async(() -> {

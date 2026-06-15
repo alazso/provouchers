@@ -111,6 +111,7 @@ stash:
   empty: "<gray>Je Stash is leeg."
   notify: "{prefix}<gold>Je hebt <yellow>{count}</yellow> beloning(en) in je Stash. <gray>Open het met <yellow>/stash</yellow>."  # {count}
   claim-all: "<green>Alles claimen"
+  close: "<red>Sluiten"
   claimed-all: "<green><yellow>{count}</yellow> beloning(en) geclaimd."  # {count}
   lore:
     amount: "<gray>Aantal: <yellow>{amount}"  # {amount}

@@ -111,6 +111,7 @@ stash:
   empty: "<gray>Tu Stash está vacío."
   notify: "{prefix}<gold>Tienes <yellow>{count}</yellow> recompensa(s) esperando en tu Stash. <gray>Ábrelo con <yellow>/stash</yellow>."  # {count}
   claim-all: "<green>Reclamar todo"
+  close: "<red>Cerrar"
   claimed-all: "<green>Se reclamaron <yellow>{count}</yellow> recompensa(s)."  # {count}
   lore:
     amount: "<gray>Cantidad: <yellow>{amount}"  # {amount}

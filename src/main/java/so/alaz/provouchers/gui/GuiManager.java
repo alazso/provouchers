@@ -29,7 +29,13 @@ public final class GuiManager {
 
     /** Opens {@code gui} for {@code player}. */
     public void open(Gui gui, Player player) {
+        open(gui, player, 0);
+    }
+
+    /** Opens {@code gui} for {@code player} at {@code page} (the menu clamps it when rendering). */
+    public void open(Gui gui, Player player, int page) {
         GuiSession session = new GuiSession(player, gui, this);
+        session.setPage(page);
         GuiHolder holder = new GuiHolder();
         holder.session = session;
         Inventory inventory = Bukkit.createInventory(holder, clampRows(gui.rows()) * 9, gui.title());

@@ -111,6 +111,7 @@ stash:
   empty: "<gray>Dit Stash er tomt."
   notify: "{prefix}<gold>Du har <yellow>{count}</yellow> belønning(er) i dit Stash. <gray>Åbn det med <yellow>/stash</yellow>."  # {count}
   claim-all: "<green>Indløs alt"
+  close: "<red>Luk"
   claimed-all: "<green>Indløste <yellow>{count}</yellow> belønning(er)."  # {count}
   lore:
     amount: "<gray>Antal: <yellow>{amount}"  # {amount}
