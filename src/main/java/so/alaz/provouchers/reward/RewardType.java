@@ -34,7 +34,9 @@ public enum RewardType {
     /** Add or remove a permission group (LuckPerms), optionally for a duration. */
     GROUP,
     /** Set or clear a permission node (LuckPerms). */
-    PERMISSION;
+    PERMISSION,
+    /** Post a message to a Discord webhook (a URL or a configured {@code @name}). */
+    DISCORD;
 
     /**
      * Resolves a reward keyword (case-insensitive) to its type, or {@code null}
@@ -55,6 +57,7 @@ public enum RewardType {
             case "xp", "experience", "exp" -> XP;
             case "group", "rank" -> GROUP;
             case "permission", "perm" -> PERMISSION;
+            case "discord" -> DISCORD;
             default -> null;
         };
     }

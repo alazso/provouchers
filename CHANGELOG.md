@@ -22,6 +22,10 @@ All notable changes to ProVouchers are documented here. This project follows
 - A join notification reports waiting rewards, a Claim all button takes
   everything at once, and `stash.command-aliases` / `stash.title` / `stash.rows`
   tune the menu.
+- `discord` reward: posts a message to a Discord webhook, given as an inline URL
+  or an `@name` from the new `webhooks` config map. Placeholders are resolved and
+  the message is flattened to plain text. Put it in a `random-rewards` set to
+  announce only rare hits.
 
 ## [1.3.0] - 2026-06-13
 

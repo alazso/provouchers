@@ -4,6 +4,7 @@ import io.github.miniplaceholders.api.MiniPlaceholders;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
@@ -58,6 +59,14 @@ public final class Text {
      */
     public String resolve(String input, @Nullable Player viewer) {
         return applyPlaceholders(input, viewer);
+    }
+
+    /**
+     * Renders the input (PlaceholderAPI then MiniMessage) and flattens it to plain text, dropping all
+     * formatting. Used for destinations that show plain text, such as a Discord webhook.
+     */
+    public String plain(String input, @Nullable Player viewer) {
+        return PlainTextComponentSerializer.plainText().serialize(render(input, viewer));
     }
 
     /**

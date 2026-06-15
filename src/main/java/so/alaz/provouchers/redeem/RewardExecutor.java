@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.reward.CurrencyRewardPayload;
+import so.alaz.provouchers.reward.DiscordRewardPayload;
 import so.alaz.provouchers.reward.GroupRewardPayload;
 import so.alaz.provouchers.reward.PermissionRewardPayload;
 import so.alaz.provouchers.reward.RewardItemPayload;
@@ -18,6 +19,7 @@ import so.alaz.provouchers.util.Placeholders;
 import so.alaz.provouchers.hook.EconomyHook;
 import so.alaz.provouchers.hook.HookRegistry;
 import so.alaz.provouchers.hook.PermissionHook;
+import so.alaz.provouchers.platform.DiscordWebhook;
 import so.alaz.provouchers.platform.Items;
 import so.alaz.provouchers.platform.Scheduler;
 import so.alaz.provouchers.platform.Sounds;
@@ -54,15 +56,21 @@ public final class RewardExecutor {
     private final VoucherItemFactory factory;
     private final HookRegistry hooks;
     private final ComponentLogger logger;
+    private final DiscordWebhook discord;
+    /** Named webhook URLs from config, keyed by lower-cased name, for {@code discord: @name}. */
+    private final Map<String, String> webhooks;
 
     public RewardExecutor(Scheduler scheduler, Text text, ItemResolver items,
-                          VoucherItemFactory factory, HookRegistry hooks, ComponentLogger logger) {
+                          VoucherItemFactory factory, HookRegistry hooks, ComponentLogger logger,
+                          DiscordWebhook discord, Map<String, String> webhooks) {
         this.scheduler = scheduler;
         this.text = text;
         this.items = items;
         this.factory = factory;
         this.hooks = hooks;
         this.logger = logger;
+        this.discord = discord;
+        this.webhooks = webhooks;
     }
 
     /**
@@ -114,7 +122,22 @@ public final class RewardExecutor {
             case XP -> giveXp(player, payload);
             case GROUP -> applyGroup(player, source, payload);
             case PERMISSION -> applyPermission(player, source, payload);
+            case DISCORD -> postDiscord(player, source, payload);
         }
+    }
+
+    private void postDiscord(Player player, String source, String payload) {
+        DiscordRewardPayload spec = DiscordRewardPayload.parse(payload);
+        String url = spec.target();
+        if (spec.isNamedRef()) {
+            url = webhooks.get(spec.namedRef());
+            if (url == null || url.isBlank()) {
+                throw new IllegalArgumentException("no webhook named '" + spec.namedRef() + "' is configured");
+            }
+        }
+        // Resolve placeholders and flatten to plain text on this (region) thread; the POST is async.
+        String content = text.plain(spec.message(), player);
+        discord.post(url, content, reason -> warn(source, "discord", payload, reason));
     }
 
     private void giveItem(Player player, String payload, Map<String, DefinedItem> definedItems) {
@@ -191,10 +214,13 @@ public final class RewardExecutor {
         });
     }
 
-    /** Feedback-only rewards: shown to the player but grant nothing, so they are skipped when quiet. */
+    /**
+     * Feedback-only rewards: a notification that grants nothing, skipped when quiet (batch open) so a
+     * stack does not spam chat or a Discord webhook with one notice per item.
+     */
     private static boolean isFeedbackOnly(RewardType type) {
         return switch (type) {
-            case MESSAGE, BROADCAST, TITLE, ACTIONBAR, SOUND -> true;
+            case MESSAGE, BROADCAST, TITLE, ACTIONBAR, SOUND, DISCORD -> true;
             default -> false;
         };
     }

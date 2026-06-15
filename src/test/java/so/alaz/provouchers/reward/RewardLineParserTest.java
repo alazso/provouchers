@@ -100,6 +100,21 @@ class RewardLineParserTest {
     }
 
     @Test
+    void parsesDiscordReward() {
+        RewardLine named = RewardLineParser.parse("discord: @announce %player% won!");
+        assertThat(named.type()).isEqualTo(RewardType.DISCORD);
+        assertThat(named.payload()).isEqualTo("@announce %player% won!");
+        assertThat(RewardLineParser.parse(
+            "discord: https://discord.com/api/webhooks/1/tok hi").type()).isEqualTo(RewardType.DISCORD);
+    }
+
+    @Test
+    void rejectsDiscordRewardWithNonWebhookUrl() {
+        assertThatThrownBy(() -> RewardLineParser.parse("discord: https://evil.example.com/hook hi"))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void rejectsMissingSeparator() {
         assertThatThrownBy(() -> RewardLineParser.parse("give diamond"))
             .isInstanceOf(IllegalArgumentException.class);

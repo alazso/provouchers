@@ -52,6 +52,7 @@ import so.alaz.provouchers.metrics.MetricCounters;
 import so.alaz.provouchers.metrics.Metrics;
 import so.alaz.provouchers.metrics.VoucherMetrics;
 import so.alaz.provouchers.platform.CooldownManager;
+import so.alaz.provouchers.platform.DiscordWebhook;
 import so.alaz.provouchers.platform.Scheduler;
 import so.alaz.provouchers.platform.Text;
 import so.alaz.provouchers.redeem.RedeemHandler;
@@ -86,6 +87,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
     private VoucherStorage storage;
     private Metrics metrics;
     private GuiManager guiManager;
+    private DiscordWebhook discordWebhook;
 
     @Override
     public void onEnable() {
@@ -126,9 +128,10 @@ public final class ProVouchersPlugin extends JavaPlugin {
 
         VoucherStamp stamp = new VoucherStamp(this);
         VoucherItemFactory factory = new VoucherItemFactory(text, stamp, itemResolver);
+        discordWebhook = new DiscordWebhook();
         RewardExecutor rewardExecutor = new RewardExecutor(
             scheduler, text, itemResolver, factory, hooks,
-            getComponentLogger());
+            getComponentLogger(), discordWebhook, loadWebhooks());
         VoucherGiveService giveService = new VoucherGiveService(factory, scheduler);
         PreviewGui previewGui = new PreviewGui(registry, factory, giveService,
             new VoucherAdminMenu(text), guiManager, scheduler,
@@ -230,6 +233,9 @@ public final class ProVouchersPlugin extends JavaPlugin {
         if (storage != null) {
             storage.shutdown();
         }
+        if (discordWebhook != null) {
+            discordWebhook.close();
+        }
         getComponentLogger().info(text("ProVouchers disabled.", NamedTextColor.GOLD));
     }
 
@@ -261,6 +267,21 @@ public final class ProVouchersPlugin extends JavaPlugin {
             tiers.put(tier.toLowerCase(Locale.ROOT), section.getDouble(tier, 1.0));
         }
         return new CooldownTiers(tiers);
+    }
+
+    /** The {@code webhooks} config section as lower-cased name to URL, skipping blank entries. */
+    private Map<String, String> loadWebhooks() {
+        Map<String, String> webhooks = new HashMap<>();
+        ConfigurationSection section = getConfig().getConfigurationSection("webhooks");
+        if (section != null) {
+            for (String name : section.getKeys(false)) {
+                String url = section.getString(name, "");
+                if (!url.isBlank()) {
+                    webhooks.put(name.toLowerCase(Locale.ROOT), url);
+                }
+            }
+        }
+        return webhooks;
     }
 
     private StorageConfig buildStorageConfig(Backend backend) {

@@ -80,6 +80,13 @@ stash:
   expire-after: ""           # entries lapse after this (e.g. 30d); blank = never
   overflow: drop             # when a give does not fit: drop the items, or stash them
 
+# Named Discord webhooks for the "discord: @<name> <message>" reward, so a voucher
+# references a name instead of pasting the secret URL into its file. Fill in the URLs
+# and add as many as you like. A reward can also use an inline webhook URL directly.
+webhooks:
+  announce: ""
+  staff: ""
+
 metrics:
   # Submit anonymous usage statistics (bStats and FastStats).
   # Set to false to opt out entirely.

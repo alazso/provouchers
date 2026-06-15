@@ -51,6 +51,7 @@ public final class RewardLineParser {
             case XP -> XpRewardPayload.parse(payload);
             case GROUP -> GroupRewardPayload.parse(payload);
             case PERMISSION -> PermissionRewardPayload.parse(payload);
+            case DISCORD -> DiscordRewardPayload.parse(payload);
             default -> { /* other reward types have free-form payloads */ }
         }
         return new RewardLine(type, payload);
