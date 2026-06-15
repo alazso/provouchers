@@ -32,6 +32,8 @@ import so.alaz.provouchers.platform.ItemBuilder;
 import so.alaz.provouchers.platform.Text;
 import so.alaz.provouchers.platform.Scheduler;
 import so.alaz.provouchers.redeem.RedeemHandler;
+import so.alaz.provouchers.stash.StashService;
+import so.alaz.provouchers.stash.StashSource;
 import so.alaz.provouchers.storage.VoucherStorage;
 import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.provouchers.voucher.VoucherRegistry;
@@ -68,6 +70,7 @@ public final class VoucherCommand {
     private static final String PERM_RESETUSES = "provouchers.resetuses";
     private static final String PERM_FROMHAND = "provouchers.fromhand";
     private static final String PERM_IMPORT = "provouchers.import";
+    private static final String PERM_STASHGIVE = "provouchers.stashgive";
 
     /** Valid voucher ids for files created in-game: file-name safe, lower-cased on use. */
     private static final Pattern FILE_ID = Pattern.compile("[A-Za-z0-9_-]{1,64}");
@@ -81,6 +84,7 @@ public final class VoucherCommand {
     private static final List<Sub> HELP = List.of(
         new Sub("give", "give <id> [amount] [player]", PERM_GIVE),
         new Sub("giveall", "giveall <id> [amount] [permission]", PERM_GIVEALL),
+        new Sub("stashgive", "stashgive <player> <id> [amount] [argument]", PERM_STASHGIVE),
         new Sub("redeem", "redeem <code> [argument]", PERM_REDEEM),
         new Sub("preview", "preview", PERM_PREVIEW),
         new Sub("list", "list", PERM_LIST),
@@ -103,6 +107,7 @@ public final class VoucherCommand {
     private final Scheduler scheduler;
     private final FromhandGui fromhandGui;
     private final MigrationService migrationService;
+    private final StashService stashService;
 
     public VoucherCommand(
         VoucherRegistry registry,
@@ -116,7 +121,8 @@ public final class VoucherCommand {
         VoucherStorage storage,
         Scheduler scheduler,
         FromhandGui fromhandGui,
-        MigrationService migrationService
+        MigrationService migrationService,
+        StashService stashService
     ) {
         this.registry = registry;
         this.giveService = giveService;
@@ -130,6 +136,7 @@ public final class VoucherCommand {
         this.scheduler = scheduler;
         this.fromhandGui = fromhandGui;
         this.migrationService = migrationService;
+        this.stashService = stashService;
     }
 
     /** Builds and registers the command for {@code plugin}. Call during {@code onEnable}. */
@@ -143,6 +150,7 @@ public final class VoucherCommand {
             .executes(run(ctx -> help(ctx.getSource())))
             .then(giveTree())
             .then(giveAllTree())
+            .then(stashGiveTree())
             .then(redeemTree())
             .then(Commands.literal("preview").requires(perm(PERM_PREVIEW))
                 .executes(run(ctx -> preview(ctx.getSource()))))
@@ -184,6 +192,40 @@ public final class VoucherCommand {
                     .executes(run(ctx -> give(ctx, IntegerArgumentType.getInteger(ctx, "amount"), false)))
                     .then(Commands.argument("target", ArgumentTypes.player())
                         .executes(run(ctx -> give(ctx, IntegerArgumentType.getInteger(ctx, "amount"), true))))));
+    }
+
+    private LiteralArgumentBuilder<CommandSourceStack> stashGiveTree() {
+        return Commands.literal("stashgive").requires(perm(PERM_STASHGIVE))
+            .then(Commands.argument("target", ArgumentTypes.player())
+                .then(Commands.argument("id", StringArgumentType.word())
+                    .suggests((ctx, builder) -> suggest(builder, registry.voucherIds()))
+                    .executes(run(ctx -> stashGive(ctx, 1, null)))
+                    .then(Commands.argument("amount", IntegerArgumentType.integer(1, MAX_AMOUNT))
+                        .suggests((ctx, builder) -> suggest(builder, AMOUNT_SUGGESTIONS))
+                        .executes(run(ctx -> stashGive(ctx, IntegerArgumentType.getInteger(ctx, "amount"), null)))
+                        .then(Commands.argument("argument", StringArgumentType.greedyString())
+                            .executes(run(ctx -> stashGive(ctx, IntegerArgumentType.getInteger(ctx, "amount"),
+                                StringArgumentType.getString(ctx, "argument"))))))));
+    }
+
+    /** Queues a virtual voucher in the target's Stash instead of handing over an item. */
+    private void stashGive(CommandContext<CommandSourceStack> ctx, int amount, @Nullable String argument) {
+        CommandSourceStack source = ctx.getSource();
+        Player viewer = asPlayer(source);
+        String id = StringArgumentType.getString(ctx, "id");
+        Voucher voucher = registry.getVoucher(id).orElse(null);
+        if (voucher == null) {
+            reply(source, messages.get(viewer, "command.unknown-voucher", "id", id));
+            return;
+        }
+        Player target = firstTarget(ctx);
+        if (target == null) {
+            reply(source, messages.get(viewer, "command.give.no-target"));
+            return;
+        }
+        stashService.stash(target.getUniqueId(), voucher.id(), amount, argument, StashSource.ADMIN);
+        reply(source, messages.get(viewer, "command.stashgive.success",
+            "amount", amount, "voucher", voucher.id(), "target", target.getName()));
     }
 
     private LiteralArgumentBuilder<CommandSourceStack> giveAllTree() {

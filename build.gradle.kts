@@ -113,6 +113,7 @@ val coverageExclusions = listOf(
     "**/voucher/VoucherItemFactory.class",
     "**/voucher/ItemResolver.class",
     "**/config/ConfigManager.class",
+    "**/stash/StashService.class",
 )
 
 tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {

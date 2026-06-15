@@ -5,6 +5,7 @@ import org.jetbrains.annotations.ApiStatus;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * The ProVouchers API entry point. Obtain it from Bukkit's services manager once
@@ -45,4 +46,14 @@ public interface VoucherService {
      * @return {@code false} if no voucher with that id is loaded
      */
     boolean give(Player player, String voucherId, int amount);
+
+    /**
+     * Queues {@code amount} copies of a voucher in a player's Stash, claimable later through the
+     * Stash GUI. Works whether the player is online or offline. The queueing is asynchronous.
+     *
+     * @return {@code false} if no voucher with that id is loaded
+     * @since 1.4.0
+     */
+    @ApiStatus.AvailableSince("1.4.0")
+    boolean stash(UUID player, String voucherId, int amount);
 }

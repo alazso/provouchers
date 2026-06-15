@@ -17,6 +17,8 @@ command:
     none-online: "{prefix}<gray>Brak graczy online."
     none-matched: "{prefix}<gray>Żaden gracz online nie ma tego uprawnienia."
     success: "{prefix}<green>Przekazano <yellow>{amount}x</yellow> <gold>{voucher}</gold> graczom: <yellow>{count}</yellow>."  # {amount} {voucher} {count}
+  stashgive:
+    success: "{prefix}<green>Schowano <yellow>{amount}x</yellow> <gold>{voucher}</gold> w Stashu gracza <yellow>{target}</yellow>."  # {amount} {voucher} {target}
   redeem:
     players-only: "{prefix}<red>Tylko gracze mogą realizować kody."
   preview:

@@ -18,6 +18,7 @@ import so.alaz.provouchers.cooldown.CooldownService;
 import so.alaz.provouchers.cooldown.CooldownTiers;
 import so.alaz.provouchers.locale.Messages;
 import so.alaz.provouchers.give.VoucherGiveService;
+import so.alaz.provouchers.stash.StashService;
 import so.alaz.provouchers.gui.GuiListener;
 import so.alaz.provouchers.gui.GuiManager;
 import so.alaz.provouchers.hook.EconomyHook;
@@ -123,6 +124,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
             scheduler, text, itemResolver, factory, hooks,
             getComponentLogger());
         VoucherGiveService giveService = new VoucherGiveService(factory, scheduler);
+        StashService stashService = new StashService(storage, scheduler, getLogger(), 0L);
         PreviewGui previewGui = new PreviewGui(registry, factory, giveService,
             new VoucherAdminMenu(text), guiManager, scheduler,
             text);
@@ -177,10 +179,11 @@ public final class ProVouchersPlugin extends JavaPlugin {
         MigrationService migrationService = new MigrationService(
             new CrazyVouchersMigrator(getDataFolder(), registry));
         new VoucherCommand(registry, giveService, redeemHandler, configManager, previewGui, text,
-            messages, diagnostics, storage, scheduler, fromhandGui, migrationService).register(this);
+            messages, diagnostics, storage, scheduler, fromhandGui, migrationService, stashService)
+            .register(this);
 
         getServer().getServicesManager().register(VoucherService.class,
-            new VoucherServiceImpl(registry, giveService), this,
+            new VoucherServiceImpl(registry, giveService, stashService), this,
             ServicePriority.Normal);
 
         metrics = VoucherMetrics.start(this, registry, counters,

@@ -5,10 +5,13 @@ import so.alaz.provouchers.api.Voucher;
 import so.alaz.provouchers.api.VoucherCode;
 import so.alaz.provouchers.api.VoucherService;
 import so.alaz.provouchers.give.VoucherGiveService;
+import so.alaz.provouchers.stash.StashService;
+import so.alaz.provouchers.stash.StashSource;
 import so.alaz.provouchers.voucher.VoucherRegistry;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * The {@link VoucherService} implementation registered with Bukkit's services
@@ -19,10 +22,13 @@ public final class VoucherServiceImpl implements VoucherService {
 
     private final VoucherRegistry registry;
     private final VoucherGiveService giveService;
+    private final StashService stashService;
 
-    public VoucherServiceImpl(VoucherRegistry registry, VoucherGiveService giveService) {
+    public VoucherServiceImpl(VoucherRegistry registry, VoucherGiveService giveService,
+                              StashService stashService) {
         this.registry = registry;
         this.giveService = giveService;
+        this.stashService = stashService;
     }
 
     @Override
@@ -59,4 +65,15 @@ public final class VoucherServiceImpl implements VoucherService {
         giveService.give(player, voucher, amount);
         return true;
     }
+
+    @Override
+    public boolean stash(UUID player, String voucherId, int amount) {
+        so.alaz.provouchers.voucher.Voucher voucher = registry.getVoucher(voucherId).orElse(null);
+        if (voucher == null) {
+            return false;
+        }
+        stashService.stash(player, voucher.id(), amount, null, StashSource.API);
+        return true;
+    }
 }
+

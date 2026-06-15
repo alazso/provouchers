@@ -17,6 +17,8 @@ command:
     none-online: "{prefix}<gray>Er zijn geen spelers online."
     none-matched: "{prefix}<gray>Geen online speler heeft die permissie."
     success: "{prefix}<green><yellow>{amount}x</yellow> <gold>{voucher}</gold> gegeven aan <yellow>{count}</yellow> speler(s)."  # {amount} {voucher} {count}
+  stashgive:
+    success: "{prefix}<green><yellow>{amount}x</yellow> <gold>{voucher}</gold> in de Stash van <yellow>{target}</yellow> geplaatst."  # {amount} {voucher} {target}
   redeem:
     players-only: "{prefix}<red>Alleen spelers kunnen codes inwisselen."
   preview:

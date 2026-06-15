@@ -17,6 +17,8 @@ command:
     none-online: "{prefix}<gray>Aucun joueur en ligne à qui donner."
     none-matched: "{prefix}<gray>Aucun joueur en ligne n'a cette permission."
     success: "{prefix}<green><yellow>{amount}x</yellow> <gold>{voucher}</gold> donné(s) à <yellow>{count}</yellow> joueur(s)."  # {amount} {voucher} {count}
+  stashgive:
+    success: "{prefix}<green><yellow>{amount}x</yellow> <gold>{voucher}</gold> placé(s) dans le Stash de <yellow>{target}</yellow>."  # {amount} {voucher} {target}
   redeem:
     players-only: "{prefix}<red>Seuls les joueurs peuvent utiliser des codes."
   preview:
