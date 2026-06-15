@@ -71,5 +71,19 @@ final class StorageScenario {
         assertThat(storage.countStash(player, now + 120_000)).isZero();
         assertThat(storage.pruneExpiredStash(now + 120_000)).isEqualTo(1);
         assertThat(storage.claimStash(expiring)).isFalse();
+
+        // addOrMergeStash folds never-expiring entries of the same voucher and arg into one stack,
+        // but keeps a differing arg, a differing voucher, and an expiring entry separate.
+        UUID merger = UUID.randomUUID();
+        storage.addOrMergeStash(new StashEntry(merger, merger, "loot", 10, null, StashSource.OVERFLOW, now, null));
+        storage.addOrMergeStash(new StashEntry(UUID.randomUUID(), merger, "loot", 10, null,
+            StashSource.OVERFLOW, now, null));
+        assertThat(storage.listStash(merger, now)).singleElement()
+            .satisfies(e -> assertThat(e.amount()).isEqualTo(20));
+        storage.addOrMergeStash(new StashEntry(UUID.randomUUID(), merger, "loot", 5, "vip",
+            StashSource.ADMIN, now, null));                       // different arg, stays separate
+        storage.addOrMergeStash(new StashEntry(UUID.randomUUID(), merger, "loot", 5, null,
+            StashSource.OVERFLOW, now, now + 60_000));            // expiring, stays separate
+        assertThat(storage.listStash(merger, now)).hasSize(3);
     }
 }

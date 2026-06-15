@@ -113,6 +113,8 @@ public final class StashGui {
 
     private Button card(Player viewer, StashEntry entry, ItemStack icon) {
         ItemStack card = icon.clone();
+        // Show the count on the stack (the corner caps at 64); the true total is in the lore below.
+        card.setAmount(Math.min(64, Math.max(1, entry.amount())));
         card.editMeta(meta -> {
             List<Component> lore = meta.lore() != null ? new ArrayList<>(meta.lore()) : new ArrayList<>();
             lore.add(Component.empty());

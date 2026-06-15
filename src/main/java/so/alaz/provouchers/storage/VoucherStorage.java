@@ -254,6 +254,35 @@ public final class VoucherStorage {
         }
     }
 
+    /**
+     * Adds {@code entry}, merging its amount into an existing never-expiring entry for the same voucher
+     * and argument so repeated gives show as one stack rather than many. Entries that expire are kept
+     * separate so each keeps its own countdown.
+     */
+    public void addOrMergeStash(StashEntry entry) throws SQLException {
+        if (entry.expiresAt() == null && mergeStash(entry)) {
+            return;
+        }
+        addStash(entry);
+    }
+
+    /** Adds {@code entry}'s amount to a matching never-expiring row; returns whether one was found. */
+    private boolean mergeStash(StashEntry entry) throws SQLException {
+        String sql = "UPDATE provouchers_stash SET amount = amount + ? "
+            + "WHERE player_uuid = ? AND voucher_id = ? AND expires_at IS NULL AND "
+            + (entry.arg() != null ? "arg = ?" : "arg IS NULL");
+        try (Connection connection = provider.dataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, entry.amount());
+            statement.setString(2, entry.player().toString());
+            statement.setString(3, entry.voucherId());
+            if (entry.arg() != null) {
+                statement.setString(4, entry.arg());
+            }
+            return statement.executeUpdate() > 0;
+        }
+    }
+
     /** A player's still-live (unexpired at {@code now}) stash entries, oldest first. */
     public List<StashEntry> listStash(UUID player, long now) throws SQLException {
         List<StashEntry> entries = new ArrayList<>();

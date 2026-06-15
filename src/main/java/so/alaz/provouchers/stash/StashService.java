@@ -63,7 +63,7 @@ public final class StashService {
         StashEntry entry = new StashEntry(UUID.randomUUID(), player, voucherId, amount, capped, source, now, expiresAt);
         scheduler.async(() -> {
             try {
-                storage.addStash(entry);
+                storage.addOrMergeStash(entry);
             } catch (SQLException | RuntimeException ex) {
                 logger.log(Level.WARNING, "Failed to stash voucher '" + voucherId + "' for " + player, ex);
             }
@@ -161,7 +161,7 @@ public final class StashService {
     private void reStash(StashEntry entry) {
         scheduler.async(() -> {
             try {
-                storage.addStash(entry);
+                storage.addOrMergeStash(entry);
             } catch (SQLException | RuntimeException ex) {
                 logger.log(Level.WARNING, "Failed to restore stash entry " + entry.id(), ex);
             }
