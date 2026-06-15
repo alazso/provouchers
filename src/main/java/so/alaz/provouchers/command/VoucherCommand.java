@@ -110,6 +110,8 @@ public final class VoucherCommand {
     private final FromhandGui fromhandGui;
     private final MigrationService migrationService;
     private final StashService stashService;
+    /** Set when the command is registered; used to re-read config.yml on reload. */
+    private Plugin plugin;
 
     public VoucherCommand(
         VoucherRegistry registry,
@@ -143,6 +145,7 @@ public final class VoucherCommand {
 
     /** Builds and registers the command for {@code plugin}. Call during {@code onEnable}. */
     public void register(Plugin plugin) {
+        this.plugin = plugin;
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
             event.registrar().register(buildTree(), "ProVouchers command", List.of("pv", "vouchers")));
     }
@@ -386,6 +389,9 @@ public final class VoucherCommand {
 
     private void reloadAll(CommandSourceStack source) {
         Player viewer = asPlayer(source);
+        if (plugin != null) {
+            plugin.reloadConfig();   // re-read config.yml so live settings (e.g. stash.overflow) update
+        }
         messages.reload();
         List<String> errors = configManager.reload();
         if (errors.isEmpty()) {

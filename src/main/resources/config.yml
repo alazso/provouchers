@@ -70,7 +70,7 @@ redeem:
 
 # The Stash: virtual (itemless) vouchers a player claims from a menu (/stash).
 # Gives to offline players and overflow can land here instead of being lost.
-# Changing these needs a restart.
+# Changing these needs a restart, except overflow, which /voucher reload applies.
 stash:
   enabled: true
   command-aliases: [ rewards ]

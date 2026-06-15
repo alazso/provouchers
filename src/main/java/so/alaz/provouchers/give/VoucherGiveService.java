@@ -11,27 +11,35 @@ import so.alaz.provouchers.platform.Scheduler;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 
 /**
  * Builds and hands out voucher items, the single give path shared by the command, the public API
  * service, and the preview GUI. Overflow that does not fit the inventory is the one place that policy
- * lives: by default it drops at the player's feet, but when {@link #overflowToStash(StashService)} is
- * configured it is queued in the player's Stash as virtual vouchers instead, so a reward is never lost.
+ * lives: by default it drops at the player's feet, but when {@link #overflowPolicy} routes it to the
+ * Stash it is queued as virtual vouchers instead, so a reward is never lost. The policy is read live,
+ * so {@code /voucher reload} can switch it without a restart.
  */
 public final class VoucherGiveService {
 
     private final VoucherItemFactory factory;
     private final Scheduler scheduler;
-    @Nullable private StashService overflowStash;
+    @Nullable private StashService stashService;
+    private BooleanSupplier overflowToStash = () -> false;
 
     public VoucherGiveService(VoucherItemFactory factory, Scheduler scheduler) {
         this.factory = factory;
         this.scheduler = scheduler;
     }
 
-    /** Routes give overflow into the Stash as virtual vouchers instead of dropping it on the ground. */
-    public void overflowToStash(StashService stash) {
-        this.overflowStash = stash;
+    /**
+     * Configures overflow: {@code stashService} receives the leftovers when {@code overflowToStash}
+     * reports {@code true} at delivery time. The supplier is read on every give, so a config change
+     * picked up by {@code /voucher reload} takes effect without a restart.
+     */
+    public void overflowPolicy(StashService stashService, BooleanSupplier overflowToStash) {
+        this.stashService = stashService;
+        this.overflowToStash = overflowToStash;
     }
 
     /** Gives {@code amount} of {@code voucher} to {@code target}, stashing or dropping any overflow. */
@@ -45,9 +53,9 @@ public final class VoucherGiveService {
         if (leftovers.isEmpty()) {
             return;
         }
-        if (overflowStash != null) {
+        if (stashService != null && overflowToStash.getAsBoolean()) {
             int count = leftovers.values().stream().mapToInt(ItemStack::getAmount).sum();
-            overflowStash.stash(target.getUniqueId(), voucher.id(), count, null, StashSource.OVERFLOW);
+            stashService.stash(target.getUniqueId(), voucher.id(), count, null, StashSource.OVERFLOW);
         } else {
             leftovers.values().forEach(leftover ->
                 target.getWorld().dropItemNaturally(target.getLocation(), leftover));
