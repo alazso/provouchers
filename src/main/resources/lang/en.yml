@@ -28,6 +28,8 @@ command:
   stashgive:
     success: "{prefix}<green>Stashed <yellow>{amount}x</yellow> <gold>{voucher}</gold> for <yellow>{target}</yellow>."  # {amount} {voucher} {target}
     unknown-target: "{prefix}<red>No player named <yellow>{target}</yellow> has joined this server."  # {target}
+  stash:
+    players-only: "{prefix}<red>Only players can open the Stash."
   redeem:
     players-only: "{prefix}<red>Only players can redeem codes."
   preview:
@@ -109,6 +111,17 @@ code:
   redeemed: "<green>Code redeemed."
 
 # ---- Soulbound restrictions (shown as an action bar) -------------------------
+# ---- The Stash (virtual vouchers claimed from /stash) ----
+stash:
+  claimed: "<green>Claimed <gold>{voucher}</gold>."                # {voucher}
+  already-claimed: "<red>That reward is no longer available."
+  not-configured: "<red>That reward's voucher no longer exists."
+  empty: "<gray>Your Stash is empty."
+  notify: "{prefix}<gold>You have <yellow>{count}</yellow> reward(s) waiting in your Stash. <gray>Open it with <yellow>/stash</yellow>."  # {count}
+  lore:
+    amount: "<gray>Amount: <yellow>{amount}"  # {amount}
+    claim: "<green>Click to claim"
+
 soulbound:
   no-drop: "<red>This voucher is bound to you and cannot be dropped."
   no-container: "<red>This voucher is bound to you and cannot be stored."

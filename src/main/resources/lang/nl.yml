@@ -20,6 +20,8 @@ command:
   stashgive:
     success: "{prefix}<green><yellow>{amount}x</yellow> <gold>{voucher}</gold> in de Stash van <yellow>{target}</yellow> geplaatst."  # {amount} {voucher} {target}
     unknown-target: "{prefix}<red>Geen speler met de naam <yellow>{target}</yellow> heeft deze server bezocht."  # {target}
+  stash:
+    players-only: "{prefix}<red>Alleen spelers kunnen de Stash openen."
   redeem:
     players-only: "{prefix}<red>Alleen spelers kunnen codes inwisselen."
   preview:
@@ -101,6 +103,17 @@ code:
   redeemed: "<green>Code ingewisseld."
 
 # ---- Soulbound-beperkingen (getoond in de actiebalk) ----------------------------------
+# ---- The Stash (virtual vouchers claimed from /stash) ----
+stash:
+  claimed: "<green><gold>{voucher}</gold> geclaimd."                # {voucher}
+  already-claimed: "<red>Die beloning is niet meer beschikbaar."
+  not-configured: "<red>De voucher van die beloning bestaat niet meer."
+  empty: "<gray>Je Stash is leeg."
+  notify: "{prefix}<gold>Je hebt <yellow>{count}</yellow> beloning(en) in je Stash. <gray>Open het met <yellow>/stash</yellow>."  # {count}
+  lore:
+    amount: "<gray>Aantal: <yellow>{amount}"  # {amount}
+    claim: "<green>Klik om te claimen"
+
 soulbound:
   no-drop: "<red>Deze voucher is aan je gebonden en kan niet worden weggegooid."
   no-container: "<red>Deze voucher is aan je gebonden en kan niet worden opgeborgen."

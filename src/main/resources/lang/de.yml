@@ -20,6 +20,8 @@ command:
   stashgive:
     success: "{prefix}<green><yellow>{amount}x</yellow> <gold>{voucher}</gold> für <yellow>{target}</yellow> im Stash hinterlegt."  # {amount} {voucher} {target}
     unknown-target: "{prefix}<red>Kein Spieler namens <yellow>{target}</yellow> war je auf diesem Server."  # {target}
+  stash:
+    players-only: "{prefix}<red>Nur Spieler können den Stash öffnen."
   redeem:
     players-only: "{prefix}<red>Nur Spieler können Codes einlösen."
   preview:
@@ -101,6 +103,17 @@ code:
   redeemed: "<green>Code eingelöst."
 
 # ---- Soulbound-Einschränkungen (als Aktionsleiste angezeigt) ------------------
+# ---- The Stash (virtual vouchers claimed from /stash) ----
+stash:
+  claimed: "<green><gold>{voucher}</gold> eingelöst."                # {voucher}
+  already-claimed: "<red>Diese Belohnung ist nicht mehr verfügbar."
+  not-configured: "<red>Der Gutschein dieser Belohnung existiert nicht mehr."
+  empty: "<gray>Dein Stash ist leer."
+  notify: "{prefix}<gold>Du hast <yellow>{count}</yellow> Belohnung(en) im Stash. <gray>Öffne ihn mit <yellow>/stash</yellow>."  # {count}
+  lore:
+    amount: "<gray>Anzahl: <yellow>{amount}"  # {amount}
+    claim: "<green>Zum Einlösen klicken"
+
 soulbound:
   no-drop: "<red>Dieser Gutschein ist an dich gebunden und kann nicht weggeworfen werden."
   no-container: "<red>Dieser Gutschein ist an dich gebunden und kann nicht gelagert werden."

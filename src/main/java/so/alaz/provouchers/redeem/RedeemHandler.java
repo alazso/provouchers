@@ -327,16 +327,57 @@ public final class RedeemHandler {
                 cooldowns.apply(player.getUniqueId(), voucher.id(), effective);
             }
         }
-        grant(player, "voucher '" + voucher.id() + "'", voucher.rewards(), voucher.randomRewards(), null, quiet,
+        grantRewards(player, voucher, uid, null, quiet);
+        if (recordUse && voucher.hasUseLimits()) {
+            recordVoucherUse(player, voucher, 1);
+        }
+    }
+
+    /**
+     * The reward-granting core shared by item redeems and virtual claims: grant the rewards, play the
+     * effects unless {@code quiet}, record the metric, and fire {@link VoucherRedeemEvent}. Applies no
+     * cooldown or use limit, so a claim can reuse it without an item's redemption controls.
+     */
+    private void grantRewards(Player player, Voucher voucher, @Nullable String uid, @Nullable String arg,
+                              boolean quiet) {
+        grant(player, "voucher '" + voucher.id() + "'", voucher.rewards(), voucher.randomRewards(), arg, quiet,
             voucher.definedItems());
         if (!quiet) {
             playEffects(player, voucher.effects());
         }
-        if (recordUse && voucher.hasUseLimits()) {
-            recordVoucherUse(player, voucher, 1);
-        }
         counters.recordVoucherRedemption();
         new VoucherRedeemEvent(player, voucher, uid).callEvent();
+    }
+
+    /**
+     * Whether {@code player} may claim a virtual copy of {@code voucher} now: it must be enabled and
+     * redeemable, its conditions must pass, and the pre-redeem event must not be cancelled. Replies to
+     * the player on failure. A claim applies no cooldown, game mode, two-step, or use limit; the stash
+     * entry is the one-time token.
+     */
+    public boolean canClaim(Player player, Voucher voucher) {
+        if (voucher.unredeemable()) {
+            send(player, messages.get(player, "redeem.unredeemable"));
+            return false;
+        }
+        if (!voucher.enabled()) {
+            send(player, messages.get(player, "redeem.disabled"));
+            return false;
+        }
+        ConditionResult conditionResult = evaluate(voucher.conditionMaps(), player);
+        if (!conditionResult.getPassed()) {
+            counters.recordConditionDenial();
+            replyFailure(player, conditionResult);
+            return false;
+        }
+        return new VoucherPreRedeemEvent(player, voucher).callEvent();
+    }
+
+    /** Grants {@code amount} virtual copies of {@code voucher}, with effects and messages on the first only. */
+    public void grantClaim(Player player, Voucher voucher, int amount, @Nullable String arg) {
+        for (int i = 0; i < amount; i++) {
+            grantRewards(player, voucher, null, arg, i > 0);
+        }
     }
 
     /** Best-effort persistent use count: a storage failure loses the count but never the reward. */

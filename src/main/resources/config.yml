@@ -68,6 +68,17 @@ redeem:
 #    vip: 0.5
 #    mvp: 0.0
 
+# The Stash: virtual (itemless) vouchers a player claims from a menu (/stash).
+# Gives to offline players and overflow can land here instead of being lost.
+# Changing these needs a restart.
+stash:
+  enabled: true
+  command-aliases: [ rewards ]
+  title: "<gradient:#FFD700:#FF8A00>Your Stash"
+  rows: 6                    # menu height, 1 to 6
+  notify-on-join: true       # tell a joining player when rewards are waiting
+  expire-after: ""           # entries lapse after this (e.g. 30d); blank = never
+
 metrics:
   # Submit anonymous usage statistics (bStats and FastStats).
   # Set to false to opt out entirely.

@@ -20,6 +20,8 @@ command:
   stashgive:
     success: "{prefix}<green>Lagde <yellow>{amount}x</yellow> <gold>{voucher}</gold> i <yellow>{target}</yellow>s Stash."  # {amount} {voucher} {target}
     unknown-target: "{prefix}<red>Ingen spiller ved navn <yellow>{target}</yellow> har været på denne server."  # {target}
+  stash:
+    players-only: "{prefix}<red>Kun spillere kan åbne deres Stash."
   redeem:
     players-only: "{prefix}<red>Kun spillere kan indløse koder."
   preview:
@@ -101,6 +103,17 @@ code:
   redeemed: "<green>Kode indløst."
 
 # ---- Soulbound-begrænsninger (vises i handlingslinjen) -------------------------------
+# ---- The Stash (virtual vouchers claimed from /stash) ----
+stash:
+  claimed: "<green>Indløste <gold>{voucher}</gold>."                # {voucher}
+  already-claimed: "<red>Den belønning er ikke længere tilgængelig."
+  not-configured: "<red>Belønningens voucher findes ikke længere."
+  empty: "<gray>Dit Stash er tomt."
+  notify: "{prefix}<gold>Du har <yellow>{count}</yellow> belønning(er) i dit Stash. <gray>Åbn det med <yellow>/stash</yellow>."  # {count}
+  lore:
+    amount: "<gray>Antal: <yellow>{amount}"  # {amount}
+    claim: "<green>Klik for at indløse"
+
 soulbound:
   no-drop: "<red>Denne voucher er bundet til dig og kan ikke smides."
   no-container: "<red>Denne voucher er bundet til dig og kan ikke opbevares."

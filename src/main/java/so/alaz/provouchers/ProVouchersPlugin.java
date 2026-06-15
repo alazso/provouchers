@@ -7,6 +7,7 @@ import so.alaz.provouchers.antidupe.DupeDetector;
 import so.alaz.provouchers.antidupe.VoucherStamp;
 import so.alaz.provouchers.api.VoucherService;
 import so.alaz.provouchers.command.Diagnostics;
+import so.alaz.provouchers.command.StashCommand;
 import so.alaz.provouchers.command.VoucherCommand;
 import so.alaz.provouchers.condition.ConditionRegistry;
 import so.alaz.provouchers.config.ConfigManager;
@@ -19,6 +20,7 @@ import so.alaz.provouchers.cooldown.CooldownTiers;
 import so.alaz.provouchers.locale.Messages;
 import so.alaz.provouchers.give.VoucherGiveService;
 import so.alaz.provouchers.stash.StashService;
+import so.alaz.provouchers.util.Durations;
 import so.alaz.provouchers.gui.GuiListener;
 import so.alaz.provouchers.gui.GuiManager;
 import so.alaz.provouchers.hook.EconomyHook;
@@ -37,11 +39,13 @@ import so.alaz.provouchers.gui.ConfirmGui;
 import so.alaz.provouchers.gui.FromhandGui;
 import so.alaz.provouchers.gui.PreviewGui;
 import so.alaz.provouchers.gui.RewardPreviewGui;
+import so.alaz.provouchers.gui.StashGui;
 import so.alaz.provouchers.gui.VoucherAdminMenu;
 import so.alaz.provouchers.listener.CooldownLoadListener;
 import so.alaz.provouchers.listener.FireworkGuardListener;
 import so.alaz.provouchers.listener.FirstJoinListener;
 import so.alaz.provouchers.listener.SoulboundListener;
+import so.alaz.provouchers.listener.StashJoinListener;
 import so.alaz.provouchers.listener.VoucherInteractListener;
 import so.alaz.provouchers.listener.VoucherStationListener;
 import so.alaz.provouchers.metrics.MetricCounters;
@@ -61,6 +65,7 @@ import so.alaz.provouchers.voucher.VoucherItemFactory;
 import so.alaz.provouchers.voucher.VoucherRegistry;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Locale;
@@ -124,7 +129,6 @@ public final class ProVouchersPlugin extends JavaPlugin {
             scheduler, text, itemResolver, factory, hooks,
             getComponentLogger());
         VoucherGiveService giveService = new VoucherGiveService(factory, scheduler);
-        StashService stashService = new StashService(storage, scheduler, getLogger(), 0L);
         PreviewGui previewGui = new PreviewGui(registry, factory, giveService,
             new VoucherAdminMenu(text), guiManager, scheduler,
             text);
@@ -157,6 +161,22 @@ public final class ProVouchersPlugin extends JavaPlugin {
             getConfig().getBoolean("redeem.batch-open-quiet", true),
             getConfig().getLong("redeem.confirm-window-seconds", 5L)
         );
+
+        Duration stashExpiry = Durations.parseOrNull(getConfig().getString("stash.expire-after", ""));
+        StashService stashService = new StashService(storage, registry, redeemHandler, scheduler, text,
+            messages, getLogger(), stashExpiry != null ? stashExpiry.toMillis() : 0L);
+        boolean stashEnabled = getConfig().getBoolean("stash.enabled", true);
+        if (stashEnabled) {
+            StashGui stashGui = new StashGui(stashService, registry, factory, guiManager, scheduler, text,
+                messages, getConfig().getString("stash.title", "<gradient:#FFD700:#FF8A00>Your Stash"),
+                getConfig().getInt("stash.rows", 6));
+            new StashCommand(stashGui, text, messages)
+                .register(this, getConfig().getStringList("stash.command-aliases"));
+            if (getConfig().getBoolean("stash.notify-on-join", true)) {
+                getServer().getPluginManager().registerEvents(
+                    new StashJoinListener(stashService, scheduler, text, messages), this);
+            }
+        }
 
         getServer().getPluginManager().registerEvents(
             new VoucherInteractListener(stamp, redeemHandler, registry, rewardPreviewGui,

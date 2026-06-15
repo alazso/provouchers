@@ -20,6 +20,8 @@ command:
   stashgive:
     success: "{prefix}<green>Se guardó <yellow>{amount}x</yellow> <gold>{voucher}</gold> en el Stash de <yellow>{target}</yellow>."  # {amount} {voucher} {target}
     unknown-target: "{prefix}<red>Ningún jugador llamado <yellow>{target}</yellow> se ha unido a este servidor."  # {target}
+  stash:
+    players-only: "{prefix}<red>Solo los jugadores pueden abrir el Stash."
   redeem:
     players-only: "{prefix}<red>Solo los jugadores pueden canjear códigos."
   preview:
@@ -101,6 +103,17 @@ code:
   redeemed: "<green>Código canjeado."
 
 # ---- Restricciones soulbound (mostradas en la barra de acción) --------------------
+# ---- The Stash (virtual vouchers claimed from /stash) ----
+stash:
+  claimed: "<green><gold>{voucher}</gold> reclamado."                # {voucher}
+  already-claimed: "<red>Esa recompensa ya no está disponible."
+  not-configured: "<red>El vale de esa recompensa ya no existe."
+  empty: "<gray>Tu Stash está vacío."
+  notify: "{prefix}<gold>Tienes <yellow>{count}</yellow> recompensa(s) esperando en tu Stash. <gray>Ábrelo con <yellow>/stash</yellow>."  # {count}
+  lore:
+    amount: "<gray>Cantidad: <yellow>{amount}"  # {amount}
+    claim: "<green>Haz clic para reclamar"
+
 soulbound:
   no-drop: "<red>Este vale está vinculado a ti y no se puede tirar."
   no-container: "<red>Este vale está vinculado a ti y no se puede guardar."
