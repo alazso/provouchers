@@ -78,6 +78,7 @@ stash:
   rows: 6                    # menu height, 1 to 6
   notify-on-join: true       # tell a joining player when rewards are waiting
   expire-after: ""           # entries lapse after this (e.g. 30d); blank = never
+  overflow: drop             # when a give does not fit: drop the items, or stash them
 
 metrics:
   # Submit anonymous usage statistics (bStats and FastStats).

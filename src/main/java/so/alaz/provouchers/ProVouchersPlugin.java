@@ -179,6 +179,9 @@ public final class ProVouchersPlugin extends JavaPlugin {
             }
             // Sweep lapsed entries periodically so an expiring Stash does not accrue dead rows.
             scheduler.repeatingAsync(stashService::pruneExpired, 60, 600, TimeUnit.SECONDS);
+            if ("stash".equalsIgnoreCase(getConfig().getString("stash.overflow", "drop"))) {
+                giveService.overflowToStash(stashService);
+            }
         }
 
         getServer().getPluginManager().registerEvents(
