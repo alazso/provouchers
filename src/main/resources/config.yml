@@ -80,23 +80,6 @@ stash:
   expire-after: ""           # entries lapse after this (e.g. 30d); blank = never
   overflow: drop             # when a give does not fit: drop the items, or stash them
 
-# Named Discord webhooks for the "discord: @<name>" reward, so a voucher references a
-# name instead of pasting the secret URL into its file. An entry is either a URL (the
-# reward supplies the message) or a { url, payload } block whose JSON payload template is
-# rendered with placeholders. A reward can also use an inline webhook URL directly.
-discord-webhooks:
-  announce: ""
-  staff: ""
-  # A rich webhook with its own payload template, used by "discord: @rare-drop":
-  #rare-drop:
-  #  url: ""
-  #  payload:
-  #    username: "Crate Bot"
-  #    embeds:
-  #      - title: "Rare drop!"
-  #        description: "%player% just hit the jackpot."
-  #        color: 16766720
-
 metrics:
   # Submit anonymous usage statistics (bStats and FastStats).
   # Set to false to opt out entirely.

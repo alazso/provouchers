@@ -111,6 +111,22 @@ conditions:
 #       - "<gray>A legendary blade."
 #     glow: true
 
+# ---- Discord webhooks: targets for "discord: @<name>" rewards ----------------
+# Named here so a reward references the name and the secret URL lives in one
+# place. An entry is either a URL (the reward supplies the message, posted as the
+# content) or a { url, payload } block whose JSON payload template is rendered
+# with placeholders and posted as-is.
+# discord-webhooks:
+#   announce: "https://discord.com/api/webhooks/.."
+#   rare-drop:
+#     url: "https://discord.com/api/webhooks/.."
+#     payload:
+#       username: "Crate Bot"
+#       embeds:
+#         - title: "Rare drop!"
+#           description: "%player% hit the jackpot, rolling %random:1-1000:roll%."
+#           color: 16766720
+
 # ---- Rewards: all of these run ----------------------------------------------
 rewards:
   - "message: <green>You redeemed the example voucher!"
@@ -128,7 +144,7 @@ rewards:
   # - "xp: 30 levels"                                   # experience; amount [levels|points]
   # - "group: add vip 7d"                              # LuckPerms; add|remove, optional duration
   # - "permission: add essentials.fly"                 # LuckPerms; add|deny|remove|set <node> [true|false]
-  # - "discord: @announce %player% hit the rare reward!"   # webhook named in config (content)
+  # - "discord: @announce %player% hit the rare reward!"   # webhook named above (content)
   # - "discord: @rare-drop"                                # named webhook with a payload template
   # - "discord: https://discord.com/api/webhooks/.. %player% redeemed!"  # or an inline webhook URL
 

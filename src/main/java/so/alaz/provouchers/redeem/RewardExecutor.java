@@ -59,12 +59,10 @@ public final class RewardExecutor {
     private final HookRegistry hooks;
     private final ComponentLogger logger;
     private final DiscordWebhook discord;
-    /** Configured webhooks keyed by lower-cased name, for {@code discord: @name}. */
-    private final Map<String, WebhookSpec> webhooks;
 
     public RewardExecutor(Scheduler scheduler, Text text, ItemResolver items,
                           VoucherItemFactory factory, HookRegistry hooks, ComponentLogger logger,
-                          DiscordWebhook discord, Map<String, WebhookSpec> webhooks) {
+                          DiscordWebhook discord) {
         this.scheduler = scheduler;
         this.text = text;
         this.items = items;
@@ -72,7 +70,6 @@ public final class RewardExecutor {
         this.hooks = hooks;
         this.logger = logger;
         this.discord = discord;
-        this.webhooks = webhooks;
     }
 
     /**
@@ -81,11 +78,12 @@ public final class RewardExecutor {
      * {@code definedItems} resolves {@code item: @name} references.
      */
     public void execute(Player player, String source, List<RewardLine> rewards, @Nullable String arg,
-                        boolean quiet, Map<String, DefinedItem> definedItems) {
+                        boolean quiet, Map<String, DefinedItem> definedItems,
+                        Map<String, WebhookSpec> webhooks) {
         Map<String, Long> namedRolls = new HashMap<>();
         for (RewardLine reward : rewards) {
             try {
-                execute(player, source, reward, arg, quiet, namedRolls, definedItems);
+                execute(player, source, reward, arg, quiet, namedRolls, definedItems, webhooks);
             } catch (RuntimeException ex) {
                 warn(source, reward.type().name().toLowerCase(), reward.payload(), ex.getMessage());
             }
@@ -93,7 +91,8 @@ public final class RewardExecutor {
     }
 
     private void execute(Player player, String source, RewardLine reward, @Nullable String arg, boolean quiet,
-                         Map<String, Long> namedRolls, Map<String, DefinedItem> definedItems) {
+                         Map<String, Long> namedRolls, Map<String, DefinedItem> definedItems,
+                         Map<String, WebhookSpec> webhooks) {
         // Batch open runs quiet: substantive rewards still apply, but per-item feedback that would
         // spam chat (messages, broadcasts, titles, action bars, sounds) is skipped.
         if (quiet && isFeedbackOnly(reward.type())) {
@@ -124,12 +123,12 @@ public final class RewardExecutor {
             case XP -> giveXp(player, payload);
             case GROUP -> applyGroup(player, source, payload);
             case PERMISSION -> applyPermission(player, source, payload);
-            case DISCORD -> postDiscord(player, source, payload, arg, namedRolls);
+            case DISCORD -> postDiscord(player, source, payload, arg, namedRolls, webhooks);
         }
     }
 
     private void postDiscord(Player player, String source, String payload, @Nullable String arg,
-                             Map<String, Long> namedRolls) {
+                             Map<String, Long> namedRolls, Map<String, WebhookSpec> webhooks) {
         DiscordRewardPayload spec = DiscordRewardPayload.parse(payload);
         if (spec.isNamedRef()) {
             WebhookSpec webhook = webhooks.get(spec.namedRef());

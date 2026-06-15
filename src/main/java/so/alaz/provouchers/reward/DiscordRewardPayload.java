@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 
 /**
  * The parsed payload of a {@code discord} reward: a webhook target and an optional message. The
- * target is either a Discord webhook URL or an {@code @name} reference into the configured
+ * target is either a Discord webhook URL or an {@code @name} reference into the voucher's own
  * {@code discord-webhooks} map. An inline URL must be followed by a message (posted as the webhook
  * content); an {@code @name} may omit the message, in which case the named webhook's own payload
  * template is used. The message keeps its placeholders and MiniMessage; they resolve when the reward
@@ -36,14 +36,19 @@ public record DiscordRewardPayload(String target, @Nullable String message) {
         if (target.startsWith("@")) {
             return new DiscordRewardPayload(target, message);
         }
-        if (!WEBHOOK_URL.matcher(target).matches()) {
+        if (!isWebhookUrl(target)) {
             throw new IllegalArgumentException(
-                "'" + target + "' is not a Discord webhook URL or an @name from the discord-webhooks config");
+                "'" + target + "' is not a Discord webhook URL or an @name from the voucher's discord-webhooks");
         }
         if (message == null || message.isBlank()) {
             throw new IllegalArgumentException("discord reward needs a message after the webhook URL");
         }
         return new DiscordRewardPayload(target, message);
+    }
+
+    /** Whether {@code url} is a recognised Discord webhook URL. */
+    public static boolean isWebhookUrl(String url) {
+        return url != null && WEBHOOK_URL.matcher(url).matches();
     }
 
     /** Whether the target is an {@code @name} reference into the configured webhooks. */

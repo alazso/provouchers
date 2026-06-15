@@ -3,6 +3,7 @@ package so.alaz.provouchers.voucher;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.reward.RewardLine;
 import so.alaz.provouchers.reward.RewardSet;
+import so.alaz.provouchers.reward.WebhookSpec;
 
 import java.util.List;
 import java.util.Locale;
@@ -26,6 +27,7 @@ import java.util.Map;
  * @param hasArgument   whether a free-form argument is accepted
  * @param enabled       if {@code false} the code loads but cannot be redeemed (an admin toggle)
  * @param effects       optional sound and firework played on a successful redeem, or {@code null}
+ * @param discordWebhooks named Discord webhook targets for {@code discord: @name} rewards, keyed by lower-cased name
  */
 public record VoucherCode(
     String code,
@@ -40,7 +42,8 @@ public record VoucherCode(
     Map<String, DefinedItem> definedItems,
     boolean hasArgument,
     boolean enabled,
-    @Nullable VoucherEffects effects
+    @Nullable VoucherEffects effects,
+    Map<String, WebhookSpec> discordWebhooks
 ) implements so.alaz.provouchers.api.VoucherCode {
 
     public VoucherCode {
@@ -54,6 +57,7 @@ public record VoucherCode(
         rewards = List.copyOf(rewards);
         randomRewards = List.copyOf(randomRewards);
         definedItems = Map.copyOf(definedItems);
+        discordWebhooks = Map.copyOf(discordWebhooks);
     }
 
     /** The lookup key for this code: itself, or its lower-cased form when case-insensitive. */

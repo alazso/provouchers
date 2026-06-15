@@ -57,7 +57,6 @@ import so.alaz.provouchers.platform.Scheduler;
 import so.alaz.provouchers.platform.Text;
 import so.alaz.provouchers.redeem.RedeemHandler;
 import so.alaz.provouchers.redeem.RewardExecutor;
-import so.alaz.provouchers.reward.WebhookSpec;
 import so.alaz.provouchers.storage.Backend;
 import so.alaz.provouchers.storage.StorageConfig;
 import so.alaz.provouchers.storage.StorageProvider;
@@ -71,7 +70,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
@@ -133,7 +131,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
         discordWebhook = new DiscordWebhook();
         RewardExecutor rewardExecutor = new RewardExecutor(
             scheduler, text, itemResolver, factory, hooks,
-            getComponentLogger(), discordWebhook, loadWebhooks());
+            getComponentLogger(), discordWebhook);
         VoucherGiveService giveService = new VoucherGiveService(factory, scheduler);
         PreviewGui previewGui = new PreviewGui(registry, factory, giveService,
             new VoucherAdminMenu(text), guiManager, scheduler,
@@ -269,47 +267,6 @@ public final class ProVouchersPlugin extends JavaPlugin {
             tiers.put(tier.toLowerCase(Locale.ROOT), section.getDouble(tier, 1.0));
         }
         return new CooldownTiers(tiers);
-    }
-
-    /**
-     * The {@code discord-webhooks} config, keyed by lower-cased name. Each entry is either a URL string
-     * (content-only) or a {@code {url, payload}} section (a rendered payload template). Blank URLs are
-     * skipped.
-     */
-    private Map<String, WebhookSpec> loadWebhooks() {
-        Map<String, WebhookSpec> webhooks = new HashMap<>();
-        ConfigurationSection section = getConfig().getConfigurationSection("discord-webhooks");
-        if (section == null) {
-            return webhooks;
-        }
-        for (String name : section.getKeys(false)) {
-            String url;
-            Map<String, Object> payload = null;
-            ConfigurationSection entry = section.getConfigurationSection(name);
-            if (entry != null) {
-                url = entry.getString("url", "");
-                ConfigurationSection payloadSection = entry.getConfigurationSection("payload");
-                if (payloadSection != null && !payloadSection.getKeys(false).isEmpty()) {
-                    payload = toMap(payloadSection);
-                }
-            } else {
-                url = section.getString(name, "");
-            }
-            if (!url.isBlank()) {
-                webhooks.put(name.toLowerCase(Locale.ROOT), new WebhookSpec(url, payload));
-            }
-        }
-        return webhooks;
-    }
-
-    /** Converts a config section to a nested map (sub-sections become maps; lists and scalars pass through). */
-    private static Map<String, Object> toMap(ConfigurationSection section) {
-        Map<String, Object> map = new LinkedHashMap<>();
-        for (String key : section.getKeys(false)) {
-            Object value = section.get(key);
-            map.put(key, value instanceof ConfigurationSection sub ? toMap(sub) : value);
-        }
-        return map;
     }
 
     private StorageConfig buildStorageConfig(Backend backend) {

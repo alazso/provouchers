@@ -11,6 +11,8 @@ import so.alaz.provouchers.util.Colors;
 import so.alaz.provouchers.util.Expiry;
 import so.alaz.provouchers.reward.RewardItemPayload;
 import so.alaz.provouchers.reward.RewardType;
+import so.alaz.provouchers.reward.DiscordRewardPayload;
+import so.alaz.provouchers.reward.WebhookSpec;
 import so.alaz.provouchers.voucher.CustomItemRef;
 import so.alaz.provouchers.voucher.DefinedItem;
 import so.alaz.provouchers.voucher.FireworkSpec;
@@ -65,9 +67,11 @@ public final class VoucherParser {
         }
 
         Map<String, DefinedItem> definedItems = parseDefinedItems(section, voucherId);
+        Map<String, WebhookSpec> discordWebhooks = parseWebhooks(section, voucherId);
         List<RewardLine> rewards = parseRewards(section.getStringList("rewards"), voucherId);
         List<RewardSet> randomRewards = parseRandomRewards(section, voucherId);
         validateItemRefs(rewards, randomRewards, definedItems, voucherId);
+        validateWebhookRefs(rewards, randomRewards, discordWebhooks, voucherId);
         int maxUses = parseLimit(section, "max-uses", voucherId);
         int usesPerPlayer = parseLimit(section, "uses-per-player", voucherId);
         // The use-counter column holds 64 characters; "voucher:" + a longer id would overflow it.
@@ -99,7 +103,8 @@ public final class VoucherParser {
             emptyToNull(section.getString("two-step-authentication-message", "")),
             parseEffects(section, voucherId),
             parseSoulbound(section),
-            section.getBoolean("enabled", true)
+            section.getBoolean("enabled", true),
+            discordWebhooks
         );
     }
 
@@ -157,9 +162,11 @@ public final class VoucherParser {
             throw new VoucherParseException("code '" + code + "': uses-per-player must be at least 1");
         }
         Map<String, DefinedItem> definedItems = parseDefinedItems(section, code);
+        Map<String, WebhookSpec> discordWebhooks = parseWebhooks(section, code);
         List<RewardLine> rewards = parseRewards(section.getStringList("rewards"), code);
         List<RewardSet> randomRewards = parseRandomRewards(section, code);
         validateItemRefs(rewards, randomRewards, definedItems, code);
+        validateWebhookRefs(rewards, randomRewards, discordWebhooks, code);
         return new VoucherCode(
             code,
             section.getBoolean("case-sensitive", false),
@@ -173,8 +180,51 @@ public final class VoucherParser {
             definedItems,
             section.getBoolean("has-argument", false),
             section.getBoolean("enabled", true),
-            parseEffects(section, code)
+            parseEffects(section, code),
+            discordWebhooks
         );
+    }
+
+    /**
+     * The {@code discord-webhooks:} map: named webhooks (a URL, or a {@code url} plus a {@code payload}
+     * template) referenced by a {@code discord: @name} reward. Keyed by lower-cased name.
+     */
+    private static Map<String, WebhookSpec> parseWebhooks(ConfigurationSection section, String id) {
+        ConfigurationSection webhooks = section.getConfigurationSection("discord-webhooks");
+        if (webhooks == null) {
+            return Map.of();
+        }
+        Map<String, WebhookSpec> result = new LinkedHashMap<>();
+        for (String name : webhooks.getKeys(false)) {
+            String url;
+            Map<String, Object> payload = null;
+            ConfigurationSection entry = webhooks.getConfigurationSection(name);
+            if (entry != null) {
+                url = entry.getString("url", "");
+                ConfigurationSection payloadSection = entry.getConfigurationSection("payload");
+                if (payloadSection != null && !payloadSection.getKeys(false).isEmpty()) {
+                    payload = toMap(payloadSection);
+                }
+            } else {
+                url = webhooks.getString(name, "");
+            }
+            if (!DiscordRewardPayload.isWebhookUrl(url)) {
+                throw new VoucherParseException(
+                    id + ": discord-webhook '" + name + "' needs a valid Discord webhook url");
+            }
+            result.put(name.toLowerCase(Locale.ROOT), new WebhookSpec(url, payload));
+        }
+        return result;
+    }
+
+    /** Converts a config section to a nested map (sub-sections become maps; lists and scalars pass through). */
+    private static Map<String, Object> toMap(ConfigurationSection section) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        for (String key : section.getKeys(false)) {
+            Object value = section.get(key);
+            map.put(key, value instanceof ConfigurationSection sub ? toMap(sub) : value);
+        }
+        return map;
     }
 
     /** The {@code items:} map of reusable decorated items, keyed by lower-cased name. */
@@ -212,6 +262,25 @@ public final class VoucherParser {
             if (payload.isDefinedRef() && !definedItems.containsKey(payload.definedName())) {
                 throw new VoucherParseException("'" + id + "': reward '" + line.payload()
                     + "' references undefined item '" + payload.definedName() + "'");
+            }
+        }
+    }
+
+    /** Rejects a {@code discord: @name} reward whose name is not in the {@code discord-webhooks:} map. */
+    private static void validateWebhookRefs(List<RewardLine> rewards, List<RewardSet> randomRewards,
+                                            Map<String, WebhookSpec> webhooks, String id) {
+        List<RewardLine> all = new ArrayList<>(rewards);
+        for (RewardSet set : randomRewards) {
+            all.addAll(set.rewards());
+        }
+        for (RewardLine line : all) {
+            if (line.type() != RewardType.DISCORD) {
+                continue;
+            }
+            DiscordRewardPayload payload = DiscordRewardPayload.parse(line.payload());
+            if (payload.isNamedRef() && !webhooks.containsKey(payload.namedRef())) {
+                throw new VoucherParseException("'" + id + "': reward '" + line.payload()
+                    + "' references undefined webhook '" + payload.namedRef() + "'");
             }
         }
     }

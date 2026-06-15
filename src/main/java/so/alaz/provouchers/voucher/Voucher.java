@@ -3,6 +3,7 @@ package so.alaz.provouchers.voucher;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.reward.RewardLine;
 import so.alaz.provouchers.reward.RewardSet;
+import so.alaz.provouchers.reward.WebhookSpec;
 
 import java.util.List;
 import java.util.Locale;
@@ -40,6 +41,7 @@ import java.util.Map;
  * @param effects       optional sound and particle played to the redeemer, or {@code null} for none
  * @param soulbound     transfer restrictions binding the item to its player, or {@code null}
  * @param enabled       if {@code false} the voucher loads but cannot be redeemed (an admin toggle)
+ * @param discordWebhooks named Discord webhook targets for {@code discord: @name} rewards, keyed by lower-cased name
  */
 public record Voucher(
     String id,
@@ -64,7 +66,8 @@ public record Voucher(
     @Nullable String confirmMessage,
     @Nullable VoucherEffects effects,
     @Nullable SoulboundSpec soulbound,
-    boolean enabled
+    boolean enabled,
+    Map<String, WebhookSpec> discordWebhooks
 ) implements so.alaz.provouchers.api.Voucher {
 
     public Voucher {
@@ -76,6 +79,7 @@ public record Voucher(
         rewards = List.copyOf(rewards);
         randomRewards = List.copyOf(randomRewards);
         definedItems = Map.copyOf(definedItems);
+        discordWebhooks = Map.copyOf(discordWebhooks);
         if (cooldownSeconds < 0) {
             throw new IllegalArgumentException("Voucher '" + id + "' cooldown must not be negative");
         }

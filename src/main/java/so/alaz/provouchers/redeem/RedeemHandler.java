@@ -25,6 +25,7 @@ import so.alaz.provouchers.api.event.VoucherRedeemEvent;
 import so.alaz.provouchers.reward.RewardLine;
 import so.alaz.provouchers.reward.RewardSelection;
 import so.alaz.provouchers.reward.RewardSet;
+import so.alaz.provouchers.reward.WebhookSpec;
 import so.alaz.provouchers.storage.VoucherStorage;
 import so.alaz.provouchers.voucher.DefinedItem;
 import so.alaz.provouchers.voucher.FireworkSpec;
@@ -341,7 +342,7 @@ public final class RedeemHandler {
     private void grantRewards(Player player, Voucher voucher, @Nullable String uid, @Nullable String arg,
                               boolean quiet) {
         grant(player, "voucher '" + voucher.id() + "'", voucher.rewards(), voucher.randomRewards(), arg, quiet,
-            voucher.definedItems());
+            voucher.definedItems(), voucher.discordWebhooks());
         if (!quiet) {
             playEffects(player, voucher.effects());
         }
@@ -525,7 +526,7 @@ public final class RedeemHandler {
                     return;
                 }
                 grant(player, "code '" + code.code() + "'", code.rewards(), code.randomRewards(),
-                    argument, false, code.definedItems());
+                    argument, false, code.definedItems(), code.discordWebhooks());
                 playEffects(player, code.effects());
                 counters.recordCodeRedemption();
                 new VoucherCodeRedeemEvent(player, code, argument).callEvent();
@@ -536,12 +537,13 @@ public final class RedeemHandler {
 
     private void grant(Player player, String source, List<RewardLine> always, List<RewardSet> random,
                        @Nullable String argument, boolean quiet,
-                       java.util.Map<String, DefinedItem> definedItems) {
+                       java.util.Map<String, DefinedItem> definedItems,
+                       java.util.Map<String, WebhookSpec> discordWebhooks) {
         List<RewardLine> granted = RewardSelection.gather(always, random, ThreadLocalRandom.current());
         for (RewardLine line : granted) {
             counters.recordRewardGranted(line.type());
         }
-        rewardExecutor.execute(player, source, granted, argument, quiet, definedItems);
+        rewardExecutor.execute(player, source, granted, argument, quiet, definedItems, discordWebhooks);
     }
 
     private ConditionResult evaluate(List<java.util.Map<String, Object>> conditionMaps, Player player) {
