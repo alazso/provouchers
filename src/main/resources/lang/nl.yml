@@ -19,6 +19,7 @@ command:
     success: "{prefix}<green><yellow>{amount}x</yellow> <gold>{voucher}</gold> gegeven aan <yellow>{count}</yellow> speler(s)."  # {amount} {voucher} {count}
   stashgive:
     success: "{prefix}<green><yellow>{amount}x</yellow> <gold>{voucher}</gold> in de Stash van <yellow>{target}</yellow> geplaatst."  # {amount} {voucher} {target}
+    unknown-target: "{prefix}<red>Geen speler met de naam <yellow>{target}</yellow> heeft deze server bezocht."  # {target}
   redeem:
     players-only: "{prefix}<red>Alleen spelers kunnen codes inwisselen."
   preview:

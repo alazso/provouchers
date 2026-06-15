@@ -14,6 +14,7 @@ import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.command.brigadier.argument.ArgumentTypes;
 import io.papermc.paper.command.brigadier.argument.resolvers.selector.PlayerSelectorArgumentResolver;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -42,6 +43,7 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -196,7 +198,8 @@ public final class VoucherCommand {
 
     private LiteralArgumentBuilder<CommandSourceStack> stashGiveTree() {
         return Commands.literal("stashgive").requires(perm(PERM_STASHGIVE))
-            .then(Commands.argument("target", ArgumentTypes.player())
+            .then(Commands.argument("target", StringArgumentType.word())
+                .suggests((ctx, builder) -> suggest(builder, onlineNames(ctx)))
                 .then(Commands.argument("id", StringArgumentType.word())
                     .suggests((ctx, builder) -> suggest(builder, registry.voucherIds()))
                     .executes(run(ctx -> stashGive(ctx, 1, null)))
@@ -208,7 +211,11 @@ public final class VoucherCommand {
                                 StringArgumentType.getString(ctx, "argument"))))))));
     }
 
-    /** Queues a virtual voucher in the target's Stash instead of handing over an item. */
+    /**
+     * Queues a virtual voucher in the target's Stash instead of handing over an item. The target is a
+     * name resolved to an online player, else a previously seen (cached) offline player, so an admin
+     * can stash a reward for someone who is not online; a never-seen name is reported.
+     */
     private void stashGive(CommandContext<CommandSourceStack> ctx, int amount, @Nullable String argument) {
         CommandSourceStack source = ctx.getSource();
         Player viewer = asPlayer(source);
@@ -218,14 +225,31 @@ public final class VoucherCommand {
             reply(source, messages.get(viewer, "command.unknown-voucher", "id", id));
             return;
         }
-        Player target = firstTarget(ctx);
-        if (target == null) {
-            reply(source, messages.get(viewer, "command.give.no-target"));
-            return;
+        String name = StringArgumentType.getString(ctx, "target");
+        Player online = source.getSender().getServer().getPlayerExact(name);
+        UUID targetId;
+        String targetName;
+        if (online != null) {
+            targetId = online.getUniqueId();
+            targetName = online.getName();
+        } else {
+            OfflinePlayer cached = source.getSender().getServer().getOfflinePlayerIfCached(name);
+            if (cached == null || cached.getName() == null) {
+                reply(source, messages.get(viewer, "command.stashgive.unknown-target", "target", name));
+                return;
+            }
+            targetId = cached.getUniqueId();
+            targetName = cached.getName();
         }
-        stashService.stash(target.getUniqueId(), voucher.id(), amount, argument, StashSource.ADMIN);
+        stashService.stash(targetId, voucher.id(), amount, argument, StashSource.ADMIN);
         reply(source, messages.get(viewer, "command.stashgive.success",
-            "amount", amount, "voucher", voucher.id(), "target", target.getName()));
+            "amount", amount, "voucher", voucher.id(), "target", targetName));
+    }
+
+    /** The names of online players, for tab-completing a target argument. */
+    private static List<String> onlineNames(CommandContext<CommandSourceStack> ctx) {
+        return ctx.getSource().getSender().getServer().getOnlinePlayers().stream()
+            .map(Player::getName).toList();
     }
 
     private LiteralArgumentBuilder<CommandSourceStack> giveAllTree() {

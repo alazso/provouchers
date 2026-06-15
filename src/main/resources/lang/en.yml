@@ -27,6 +27,7 @@ command:
     success: "{prefix}<green>Gave <yellow>{amount}x</yellow> <gold>{voucher}</gold> to <yellow>{count}</yellow> player(s)."  # {amount} {voucher} {count}
   stashgive:
     success: "{prefix}<green>Stashed <yellow>{amount}x</yellow> <gold>{voucher}</gold> for <yellow>{target}</yellow>."  # {amount} {voucher} {target}
+    unknown-target: "{prefix}<red>No player named <yellow>{target}</yellow> has joined this server."  # {target}
   redeem:
     players-only: "{prefix}<red>Only players can redeem codes."
   preview:

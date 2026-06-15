@@ -19,6 +19,7 @@ command:
     success: "{prefix}<green>Gav <yellow>{amount}x</yellow> <gold>{voucher}</gold> til <yellow>{count}</yellow> spiller(e)."  # {amount} {voucher} {count}
   stashgive:
     success: "{prefix}<green>Lagde <yellow>{amount}x</yellow> <gold>{voucher}</gold> i <yellow>{target}</yellow>s Stash."  # {amount} {voucher} {target}
+    unknown-target: "{prefix}<red>Ingen spiller ved navn <yellow>{target}</yellow> har været på denne server."  # {target}
   redeem:
     players-only: "{prefix}<red>Kun spillere kan indløse koder."
   preview:

@@ -19,6 +19,7 @@ command:
     success: "{prefix}<green><yellow>{amount}x</yellow> <gold>{voucher}</gold> donné(s) à <yellow>{count}</yellow> joueur(s)."  # {amount} {voucher} {count}
   stashgive:
     success: "{prefix}<green><yellow>{amount}x</yellow> <gold>{voucher}</gold> placé(s) dans le Stash de <yellow>{target}</yellow>."  # {amount} {voucher} {target}
+    unknown-target: "{prefix}<red>Aucun joueur nommé <yellow>{target}</yellow> ne s'est connecté à ce serveur."  # {target}
   redeem:
     players-only: "{prefix}<red>Seuls les joueurs peuvent utiliser des codes."
   preview:
