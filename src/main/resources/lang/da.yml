@@ -110,8 +110,11 @@ stash:
   not-configured: "<red>Belønningens voucher findes ikke længere."
   empty: "<gray>Dit Stash er tomt."
   notify: "{prefix}<gold>Du har <yellow>{count}</yellow> belønning(er) i dit Stash. <gray>Åbn det med <yellow>/stash</yellow>."  # {count}
+  claim-all: "<green>Indløs alt"
+  claimed-all: "<green>Indløste <yellow>{count}</yellow> belønning(er)."  # {count}
   lore:
     amount: "<gray>Antal: <yellow>{amount}"  # {amount}
+    expires: "<gray>Udløber om <yellow>{time}"  # {time}
     claim: "<green>Klik for at indløse"
 
 soulbound:

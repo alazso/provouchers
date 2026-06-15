@@ -11,6 +11,8 @@ import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.provouchers.voucher.VoucherRegistry;
 
 import java.sql.SQLException;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -138,6 +140,49 @@ public final class StashService {
                     text.send(player, messages.get(player, "stash.already-claimed"));
                 }
                 onDone.run();
+            });
+        });
+    }
+
+    /**
+     * Claims every entry in {@code entries} in turn for an online player, each atomically, then sends a
+     * single summary and runs {@code onDone} (a GUI refresh). Entries whose conditions fail are skipped
+     * (their own denial message is shown). Call this on the player's thread.
+     */
+    public void claimAll(Player player, List<StashEntry> entries, Runnable onDone) {
+        claimAllStep(player, new ArrayDeque<>(entries), new int[]{0}, onDone);
+    }
+
+    private void claimAllStep(Player player, Deque<StashEntry> queue, int[] granted, Runnable onDone) {
+        StashEntry entry = queue.poll();
+        if (entry == null) {
+            if (granted[0] > 0) {
+                text.send(player, messages.get(player, "stash.claimed-all", "count", granted[0]));
+            }
+            onDone.run();
+            return;
+        }
+        Voucher voucher = registry.getVoucher(entry.voucherId()).orElse(null);
+        if (voucher == null || entry.isExpired(System.currentTimeMillis())
+            || !redeemHandler.canClaim(player, voucher)) {
+            claimAllStep(player, queue, granted, onDone);
+            return;
+        }
+        scheduler.async(() -> {
+            boolean claimed;
+            try {
+                claimed = storage.claimStash(entry.id());
+            } catch (SQLException | RuntimeException ex) {
+                logger.log(Level.WARNING, "Failed to claim stash entry " + entry.id(), ex);
+                claimed = false;
+            }
+            boolean finalClaimed = claimed;
+            scheduler.entity(player, () -> {
+                if (finalClaimed) {
+                    redeemHandler.grantClaim(player, voucher, entry.amount(), entry.arg());
+                    granted[0]++;
+                }
+                claimAllStep(player, queue, granted, onDone);
             });
         });
     }

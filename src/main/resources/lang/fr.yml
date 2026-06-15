@@ -110,8 +110,11 @@ stash:
   not-configured: "<red>Le bon de cette récompense n'existe plus."
   empty: "<gray>Votre Stash est vide."
   notify: "{prefix}<gold>Vous avez <yellow>{count}</yellow> récompense(s) en attente dans votre Stash. <gray>Ouvrez-le avec <yellow>/stash</yellow>."  # {count}
+  claim-all: "<green>Tout récupérer"
+  claimed-all: "<green><yellow>{count}</yellow> récompense(s) récupérée(s)."  # {count}
   lore:
     amount: "<gray>Quantité : <yellow>{amount}"  # {amount}
+    expires: "<gray>Expire dans <yellow>{time}"  # {time}
     claim: "<green>Cliquez pour récupérer"
 
 soulbound:

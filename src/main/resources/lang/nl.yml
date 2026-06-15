@@ -110,8 +110,11 @@ stash:
   not-configured: "<red>De voucher van die beloning bestaat niet meer."
   empty: "<gray>Je Stash is leeg."
   notify: "{prefix}<gold>Je hebt <yellow>{count}</yellow> beloning(en) in je Stash. <gray>Open het met <yellow>/stash</yellow>."  # {count}
+  claim-all: "<green>Alles claimen"
+  claimed-all: "<green><yellow>{count}</yellow> beloning(en) geclaimd."  # {count}
   lore:
     amount: "<gray>Aantal: <yellow>{amount}"  # {amount}
+    expires: "<gray>Verloopt over <yellow>{time}"  # {time}
     claim: "<green>Klik om te claimen"
 
 soulbound:

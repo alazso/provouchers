@@ -27,10 +27,13 @@ public final class PaginatedGui implements Gui {
     private final int nextSlot;
     @Nullable private final ItemStack previousItem;
     @Nullable private final ItemStack nextItem;
+    @Nullable private final ItemStack filler;
+    private final Map<Integer, Button> fixed;
 
     private PaginatedGui(Component title, int rows, List<Integer> contentSlots, List<Button> content,
                          int previousSlot, int nextSlot,
-                         @Nullable ItemStack previousItem, @Nullable ItemStack nextItem) {
+                         @Nullable ItemStack previousItem, @Nullable ItemStack nextItem,
+                         @Nullable ItemStack filler, Map<Integer, Button> fixed) {
         this.title = title;
         this.rows = rows;
         this.contentSlots = contentSlots;
@@ -39,6 +42,8 @@ public final class PaginatedGui implements Gui {
         this.nextSlot = nextSlot;
         this.previousItem = previousItem;
         this.nextItem = nextItem;
+        this.filler = filler;
+        this.fixed = fixed;
     }
 
     @Override
@@ -84,6 +89,16 @@ public final class PaginatedGui implements Gui {
                 return GuiAction.none();
             }));
         }
+        // Fixed controls (e.g. claim-all) never override content or navigation.
+        fixed.forEach(result::putIfAbsent);
+        // The filler dresses the menu bar: every non-content slot not already taken by a button.
+        if (filler != null) {
+            for (int slot = 0; slot < rows * COLUMNS; slot++) {
+                if (!contentSlots.contains(slot) && !result.containsKey(slot)) {
+                    result.put(slot, Button.display(filler));
+                }
+            }
+        }
         return result;
     }
 
@@ -101,6 +116,8 @@ public final class PaginatedGui implements Gui {
         private int nextSlot;
         @Nullable private ItemStack previousItem;
         @Nullable private ItemStack nextItem;
+        @Nullable private ItemStack filler;
+        private final Map<Integer, Button> fixed = new HashMap<>();
 
         Builder(int rows) {
             int clamped = Math.max(1, Math.min(6, rows));
@@ -120,6 +137,13 @@ public final class PaginatedGui implements Gui {
             return this;
         }
 
+        /** Restricts content to the first {@code contentRows} rows, freeing the rest for a menu bar. */
+        public Builder contentRows(int contentRows) {
+            int clamped = Math.max(1, Math.min(rows, contentRows));
+            this.contentSlots = IntStream.range(0, clamped * COLUMNS).boxed().toList();
+            return this;
+        }
+
         /** Configures navigation: which slots hold the prev/next buttons and their icons. */
         public Builder navigation(int previousSlot, int nextSlot, ItemStack previousItem, ItemStack nextItem) {
             this.previousSlot = previousSlot;
@@ -129,9 +153,21 @@ public final class PaginatedGui implements Gui {
             return this;
         }
 
+        /** Fills every non-content slot left empty (the buffer row and menu bar) with {@code filler}. */
+        public Builder filler(ItemStack filler) {
+            this.filler = filler;
+            return this;
+        }
+
+        /** Pins a button to a slot (a menu-bar control such as claim-all); never overrides content. */
+        public Builder fixed(int slot, Button button) {
+            this.fixed.put(slot, button);
+            return this;
+        }
+
         public PaginatedGui build() {
             return new PaginatedGui(title, rows, contentSlots, List.copyOf(content),
-                previousSlot, nextSlot, previousItem, nextItem);
+                previousSlot, nextSlot, previousItem, nextItem, filler, Map.copyOf(fixed));
         }
     }
 }

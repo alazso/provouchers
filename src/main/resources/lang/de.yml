@@ -110,8 +110,11 @@ stash:
   not-configured: "<red>Der Gutschein dieser Belohnung existiert nicht mehr."
   empty: "<gray>Dein Stash ist leer."
   notify: "{prefix}<gold>Du hast <yellow>{count}</yellow> Belohnung(en) im Stash. <gray>Öffne ihn mit <yellow>/stash</yellow>."  # {count}
+  claim-all: "<green>Alle einlösen"
+  claimed-all: "<green><yellow>{count}</yellow> Belohnung(en) eingelöst."  # {count}
   lore:
     amount: "<gray>Anzahl: <yellow>{amount}"  # {amount}
+    expires: "<gray>Läuft ab in <yellow>{time}"  # {time}
     claim: "<green>Zum Einlösen klicken"
 
 soulbound:
