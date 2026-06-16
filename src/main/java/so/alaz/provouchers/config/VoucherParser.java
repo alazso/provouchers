@@ -266,7 +266,11 @@ public final class VoucherParser {
         }
     }
 
-    /** Rejects a {@code discord: @name} reward whose name is not in the {@code discord-webhooks:} map. */
+    /**
+     * Validates every {@code discord: @name} reward against the {@code discord-webhooks:} map: the
+     * name must exist, and a content-only webhook (no payload template) needs the reward to supply a
+     * message. Both are caught here at load rather than failing silently at redeem.
+     */
     private static void validateWebhookRefs(List<RewardLine> rewards, List<RewardSet> randomRewards,
                                             Map<String, WebhookSpec> webhooks, String id) {
         List<RewardLine> all = new ArrayList<>(rewards);
@@ -278,9 +282,17 @@ public final class VoucherParser {
                 continue;
             }
             DiscordRewardPayload payload = DiscordRewardPayload.parse(line.payload());
-            if (payload.isNamedRef() && !webhooks.containsKey(payload.namedRef())) {
+            if (!payload.isNamedRef()) {
+                continue;
+            }
+            WebhookSpec webhook = webhooks.get(payload.namedRef());
+            if (webhook == null) {
                 throw new VoucherParseException("'" + id + "': reward '" + line.payload()
                     + "' references undefined webhook '" + payload.namedRef() + "'");
+            }
+            if (webhook.payload() == null && !payload.hasMessage()) {
+                throw new VoucherParseException("'" + id + "': reward '" + line.payload()
+                    + "' references content-only webhook '" + payload.namedRef() + "', so it needs a message");
             }
         }
     }

@@ -1,11 +1,14 @@
 package so.alaz.provouchers.platform;
 
+import com.google.gson.Gson;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -18,13 +21,15 @@ public final class DiscordWebhook {
     /** Discord caps a webhook message at 2000 characters. */
     private static final int MAX_CONTENT = 2000;
 
+    private static final Gson GSON = new Gson();
+
     private final HttpClient client = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(10))
         .build();
 
     /** Posts a plain message to {@code url} as the webhook {@code content}, asynchronously. */
     public void post(String url, String content, Consumer<String> onError) {
-        postBody(url, "{\"content\":\"" + escape(truncate(content)) + "\"}", onError);
+        postBody(url, GSON.toJson(Map.of("content", truncate(content))), onError);
     }
 
     /** Posts a ready JSON {@code body} to {@code url} asynchronously; {@code onError} gets a reason on failure. */
@@ -58,29 +63,11 @@ public final class DiscordWebhook {
     }
 
     private static String truncate(String content) {
-        return content.length() > MAX_CONTENT ? content.substring(0, MAX_CONTENT) : content;
-    }
-
-    /** Escapes a string for a JSON value (the webhook {@code content} field). */
-    static String escape(String value) {
-        StringBuilder out = new StringBuilder(value.length() + 16);
-        for (int i = 0; i < value.length(); i++) {
-            char c = value.charAt(i);
-            switch (c) {
-                case '"' -> out.append("\\\"");
-                case '\\' -> out.append("\\\\");
-                case '\n' -> out.append("\\n");
-                case '\r' -> out.append("\\r");
-                case '\t' -> out.append("\\t");
-                default -> {
-                    if (c < 0x20) {
-                        out.append(String.format("\\u%04x", (int) c));
-                    } else {
-                        out.append(c);
-                    }
-                }
-            }
+        if (content.length() <= MAX_CONTENT) {
+            return content;
         }
-        return out.toString();
+        // Back off by one if the cut would land between a surrogate pair, leaving a lone surrogate.
+        int end = Character.isHighSurrogate(content.charAt(MAX_CONTENT - 1)) ? MAX_CONTENT - 1 : MAX_CONTENT;
+        return content.substring(0, end);
     }
 }
