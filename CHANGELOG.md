@@ -4,7 +4,7 @@ All notable changes to ProVouchers are documented here. This project follows
 [Semantic Versioning](https://semver.org). Releases before 0.5.0 are listed on the
 [GitHub releases](https://github.com/alazso/provouchers/releases) page.
 
-## [1.4.0] - 2026-06-14
+## [1.4.0] - 2026-06-15
 
 ### Added
 - The Stash: virtual, itemless vouchers a player claims from a menu with
@@ -27,6 +27,16 @@ All notable changes to ProVouchers are documented here. This project follows
   a URL (the reward supplies the message) or a `{ url, payload }` whose JSON payload
   template (embeds, username, ...) is rendered with placeholders resolved. Put it
   in a `random-rewards` set to announce only rare hits.
+
+### Changed
+- `redeem.left-click-preview` now defaults to `false`. The left-click reward
+  preview is experimental and unfinished, so it is opt-in until it is complete;
+  servers that set the key explicitly are unaffected.
+
+### Fixed
+- Shutdown is now best-effort: if one teardown step fails (for example a class that
+  cannot load after the plugin jar was replaced under a running server), the
+  remaining steps, including storage cleanup, still run.
 
 ## [1.3.0] - 2026-06-13
 
