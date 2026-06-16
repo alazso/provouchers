@@ -32,6 +32,7 @@ All notable changes to ProVouchers are documented here. This project follows
 - `redeem.left-click-preview` now defaults to `false`. The left-click reward
   preview is experimental and unfinished, so it is opt-in until it is complete;
   servers that set the key explicitly are unaffected.
+- Updated FastStats to 0.26.1, HikariCP to 7.1.0, and the MariaDB JDBC driver to 3.5.9.
 
 ### Fixed
 - Shutdown is now best-effort: if one teardown step fails (for example a class that
