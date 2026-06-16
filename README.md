@@ -26,7 +26,8 @@ Create vouchers and redeemable codes backed by a **powerful ecosystem of integra
 | 🌍 **Per-player localization** | Every player sees messages in their own Minecraft client language. Ships in **7 languages**. |
 | 🔒 **Soulbound vouchers** | Cannot be dropped, stored, or traded (each toggle configurable), with optional bind-on-pickup. |
 | 🎁 **Vouchers and codes** | One reward system, two ways to deliver it. |
-| 🧩 **Typed rewards** | Items, currency, XP, ranks, permissions, commands, titles, sounds, and weighted random sets. |
+| 📥 **The Stash** | Virtual vouchers players claim from a `/stash` menu: deliver to offline players, and let a full inventory overflow here instead of dropping. |
+| 🧩 **Typed rewards** | Items, currency, XP, ranks, permissions, commands, titles, sounds, **Discord webhooks**, and weighted random sets. |
 | 🧱 **Layered conditions** | Gate redemptions on playtime, rank, region, economy, advancements, PlaceholderAPI, and more. |
 | 🛡️ **Anti-dupe that holds** | Per-item stamps in persistent storage. Clones are rejected; creative, crafting, and item frames are blocked. |
 | ⏳ **Persistent limits** | Cooldowns and usage caps survive restarts and apply network-wide on a shared database. |
@@ -38,11 +39,18 @@ Create vouchers and redeemable codes backed by a **powerful ecosystem of integra
 
 **Delivery and rewards**
 - **Vouchers** (physical items players right-click) and **codes** (typed with `/voucher redeem`).
-- Reward types: **items, currency, XP, ranks, permissions, console/player commands, broadcasts, titles, action bars, sounds**.
+- Reward types: **items, currency, XP, ranks, permissions, console/player commands, broadcasts, titles, action bars, sounds, Discord webhooks**.
 - **Weighted random reward sets**, on top of always-run rewards.
 - **Named random rolls** (`%random:1-100:loot%`): give a roll and announce the exact same number.
 - **Decorated reward items**: define an item once (name, lore, glow, custom/head) and grant it by reference.
+- **Discord webhooks**: post a message or a rich embed to a per-voucher webhook on redeem; drop it in a random set to announce only the rare hits.
 - **Shift + right-click to mass-open** a whole stack at once.
+
+**The Stash** (virtual, itemless vouchers)
+- Players claim queued rewards from a **`/stash` menu**; each claim runs the voucher through the normal pipeline (its conditions and effects), with a **Claim all** button.
+- **`/voucher stashgive`** and the developer API deliver vouchers to **offline players**.
+- **Overflow safety net**: a reward that does not fit a player's inventory queues in the Stash instead of dropping on the ground.
+- Optional **auto-expiry** with a live countdown on each entry.
 
 **Conditions** (all must pass before a redeem)
 - permission, rank (LuckPerms), world, region (WorldGuard), gamemode, economy balance (Vault), experience level, **playtime**, **item in inventory**, **advancement completed**, **PlaceholderAPI comparison**, player statistic.
