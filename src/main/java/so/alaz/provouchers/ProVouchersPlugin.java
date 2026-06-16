@@ -224,19 +224,31 @@ public final class ProVouchersPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        // Best-effort: each step is independent, so one failing (e.g. a class that cannot load
+        // because the jar was swapped under a running server) must not skip storage cleanup.
         if (guiManager != null) {
-            guiManager.closeAll();
+            closeQuietly("close open menus", guiManager::closeAll);
         }
         if (metrics != null) {
-            metrics.shutdown();
+            closeQuietly("stop metrics", metrics::shutdown);
         }
         if (storage != null) {
-            storage.shutdown();
+            closeQuietly("close storage", storage::shutdown);
         }
         if (discordWebhook != null) {
-            discordWebhook.close();
+            closeQuietly("close the webhook client", discordWebhook::close);
         }
         getComponentLogger().info(text("ProVouchers disabled.", NamedTextColor.GOLD));
+    }
+
+    /** Runs a shutdown step, logging (not propagating) any failure so later steps still run. */
+    private void closeQuietly(String what, Runnable step) {
+        try {
+            step.run();
+        } catch (Throwable t) {
+            getComponentLogger().warn(text("ProVouchers: failed to " + what + " during shutdown: "
+                + t, NamedTextColor.RED));
+        }
     }
 
     /**
