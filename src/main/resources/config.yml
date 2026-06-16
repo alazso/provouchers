@@ -43,7 +43,8 @@ anti-dupe:
 
 redeem:
   # Left-click a held voucher to preview its rewards in a GUI.
-  left-click-preview: true
+  # Experimental and incomplete: off by default for now.
+  left-click-preview: false
   # When batch-opening a stack (shift-right-click), suppress the per-item reward
   # feedback (messages, titles, sounds) and show one summary line instead of many.
   batch-open-quiet: true
