@@ -3,6 +3,7 @@ package so.alaz.provouchers.stash;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.locale.Messages;
+import so.alaz.provouchers.metrics.MetricCounters;
 import so.alaz.provouchers.platform.Scheduler;
 import so.alaz.provouchers.platform.Text;
 import so.alaz.provouchers.redeem.RedeemHandler;
@@ -35,12 +36,13 @@ public final class StashService {
     private final Text text;
     private final Messages messages;
     private final Logger logger;
+    private final MetricCounters counters;
     /** Default lifetime for new entries in millis, or {@code 0} to never expire. */
     private final long defaultExpiryMillis;
 
     public StashService(VoucherStorage storage, VoucherRegistry registry, RedeemHandler redeemHandler,
                         Scheduler scheduler, Text text, Messages messages, Logger logger,
-                        long defaultExpiryMillis) {
+                        MetricCounters counters, long defaultExpiryMillis) {
         this.storage = storage;
         this.registry = registry;
         this.redeemHandler = redeemHandler;
@@ -48,6 +50,7 @@ public final class StashService {
         this.text = text;
         this.messages = messages;
         this.logger = logger;
+        this.counters = counters;
         this.defaultExpiryMillis = Math.max(0, defaultExpiryMillis);
     }
 
@@ -64,6 +67,7 @@ public final class StashService {
         scheduler.async(() -> {
             try {
                 storage.addOrMergeStash(entry);
+                counters.recordStashed(amount);
             } catch (SQLException | RuntimeException ex) {
                 logger.log(Level.WARNING, "Failed to stash voucher '" + voucherId + "' for " + player, ex);
             }
@@ -87,7 +91,7 @@ public final class StashService {
     /** Removes every lapsed entry. Blocking; intended to be called from an async context (the sweeper). */
     public void pruneExpired() {
         try {
-            storage.pruneExpiredStash(System.currentTimeMillis());
+            counters.recordStashExpired(storage.pruneExpiredStash(System.currentTimeMillis()));
         } catch (SQLException | RuntimeException ex) {
             logger.log(Level.WARNING, "Failed to prune expired stash entries", ex);
         }

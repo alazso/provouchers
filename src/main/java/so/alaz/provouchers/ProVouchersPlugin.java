@@ -168,7 +168,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
 
         Duration stashExpiry = Durations.parseOrNull(getConfig().getString("stash.expire-after", ""));
         StashService stashService = new StashService(storage, registry, redeemHandler, scheduler, text,
-            messages, getLogger(), stashExpiry != null ? stashExpiry.toMillis() : 0L);
+            messages, getLogger(), counters, stashExpiry != null ? stashExpiry.toMillis() : 0L);
         boolean stashEnabled = getConfig().getBoolean("stash.enabled", true);
         if (stashEnabled) {
             StashGui stashGui = new StashGui(stashService, registry, factory, guiManager, scheduler, text,

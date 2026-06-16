@@ -90,13 +90,22 @@ public final class VoucherMetrics {
             .addChart(MetricChart.bool("uses_cooldowns", () -> anyCooldowns(registry)))
             .addChart(MetricChart.bool("uses_expiry", () -> anyExpiry(registry)))
             .addChart(MetricChart.bool("uses_conditions", () -> anyConditions(registry)))
+            .addChart(MetricChart.bool("uses_soulbound", () -> anySoulbound(registry)))
+            .addChart(MetricChart.bool("uses_two_step", () -> anyTwoStep(registry)))
+            .addChart(MetricChart.bool("uses_batch_open", () -> anyBatchOpen(registry)))
+            // Stash configuration shape
+            .addChart(MetricChart.string("stash_overflow", () -> stashOverflow(plugin)))
+            .addChart(MetricChart.bool("uses_stash_expiry", () -> usesStashExpiry(plugin)))
             // Runtime activity (session totals)
             .addChart(MetricChart.number("redemptions", counters::totalRedemptions))
             .addChart(MetricChart.number("voucher_redemptions", counters::voucherRedemptions))
             .addChart(MetricChart.number("code_redemptions", counters::codeRedemptions))
             .addChart(MetricChart.number("dupes_blocked", counters::duplicatesBlocked))
             .addChart(MetricChart.number("condition_denials", counters::conditionDenials))
-            .addChart(MetricChart.string("top_reward_granted", counters::topRewardGranted));
+            .addChart(MetricChart.string("top_reward_granted", counters::topRewardGranted))
+            .addChart(MetricChart.number("stashed", counters::stashed))
+            .addChart(MetricChart.number("stash_claims", counters::stashClaims))
+            .addChart(MetricChart.number("stash_expired", counters::stashExpired));
         return builder.start();
     }
 
@@ -255,6 +264,43 @@ public final class VoucherMetrics {
             }
         }
         return false;
+    }
+
+    private static boolean anySoulbound(VoucherRegistry registry) {
+        for (Voucher voucher : registry.vouchers()) {
+            if (voucher.soulbound() != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean anyTwoStep(VoucherRegistry registry) {
+        for (Voucher voucher : registry.vouchers()) {
+            if (voucher.twoStep()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean anyBatchOpen(VoucherRegistry registry) {
+        for (Voucher voucher : registry.vouchers()) {
+            if (voucher.batchOpen()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** The configured Stash overflow policy, clamped to the two known values. */
+    private static String stashOverflow(JavaPlugin plugin) {
+        return "stash".equalsIgnoreCase(plugin.getConfig().getString("stash.overflow", "drop")) ? "stash" : "drop";
+    }
+
+    /** Whether a default Stash expiry is configured. */
+    private static boolean usesStashExpiry(JavaPlugin plugin) {
+        return !plugin.getConfig().getString("stash.expire-after", "").isBlank();
     }
 
     private static String label(RewardType type) {

@@ -379,6 +379,7 @@ public final class RedeemHandler {
         for (int i = 0; i < amount; i++) {
             grantRewards(player, voucher, null, arg, i > 0);
         }
+        counters.recordStashClaim(amount);
     }
 
     /** Best-effort persistent use count: a storage failure loses the count but never the reward. */

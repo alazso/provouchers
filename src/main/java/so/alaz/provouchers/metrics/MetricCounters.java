@@ -23,6 +23,9 @@ public final class MetricCounters {
     private final LongAdder codeRedemptions = new LongAdder();
     private final LongAdder duplicatesBlocked = new LongAdder();
     private final LongAdder conditionDenials = new LongAdder();
+    private final LongAdder stashed = new LongAdder();
+    private final LongAdder stashClaims = new LongAdder();
+    private final LongAdder stashExpired = new LongAdder();
     private final Map<RewardType, LongAdder> rewardsGranted = new EnumMap<>(RewardType.class);
 
     public MetricCounters() {
@@ -54,6 +57,21 @@ public final class MetricCounters {
         }
     }
 
+    /** Records {@code amount} virtual vouchers queued into a player's Stash (stashgive, overflow, or API). */
+    public void recordStashed(int amount) {
+        stashed.add(amount);
+    }
+
+    /** Records {@code amount} virtual vouchers claimed from a Stash. */
+    public void recordStashClaim(int amount) {
+        stashClaims.add(amount);
+    }
+
+    /** Records {@code count} Stash entries swept by the expiry pruner. */
+    public void recordStashExpired(int count) {
+        stashExpired.add(count);
+    }
+
     public int totalRedemptions() {
         return clamp(voucherRedemptions.sum() + codeRedemptions.sum());
     }
@@ -72,6 +90,18 @@ public final class MetricCounters {
 
     public int conditionDenials() {
         return clamp(conditionDenials.sum());
+    }
+
+    public int stashed() {
+        return clamp(stashed.sum());
+    }
+
+    public int stashClaims() {
+        return clamp(stashClaims.sum());
+    }
+
+    public int stashExpired() {
+        return clamp(stashExpired.sum());
     }
 
     /** The reward type granted most often this session, or {@code "none"} before any grant. */
