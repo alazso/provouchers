@@ -271,11 +271,17 @@ public final class RedeemHandler {
             send(player, messages.get(player, "redeem.wrong-gamemode"));
             return false;
         }
-        if (!player.hasPermission("provouchers.bypass.cooldown")
-            && cooldowns.isOnCooldown(player.getUniqueId(), voucher.id())) {
-            long seconds = cooldowns.remaining(player.getUniqueId(), voucher.id()).toSeconds();
-            send(player, messages.get(player, "redeem.cooldown", "seconds", Math.max(1, seconds)));
-            return false;
+        if (!player.hasPermission("provouchers.bypass.cooldown")) {
+            if (voucher.cooldownSeconds() > 0 && !cooldowns.ensureLoaded(player.getUniqueId())) {
+                // Until the player's stored cooldowns have loaded, memory could miss one, so refuse instead.
+                send(player, messages.get(player, "redeem.verify-failed"));
+                return false;
+            }
+            if (cooldowns.isOnCooldown(player.getUniqueId(), voucher.id())) {
+                long seconds = cooldowns.remaining(player.getUniqueId(), voucher.id()).toSeconds();
+                send(player, messages.get(player, "redeem.cooldown", "seconds", Math.max(1, seconds)));
+                return false;
+            }
         }
         ConditionResult conditionResult = evaluate(voucher.conditionMaps(), player);
         if (!conditionResult.getPassed()) {
