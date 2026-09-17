@@ -51,6 +51,11 @@ public final class Scheduler {
         Bukkit.getAsyncScheduler().runNow(plugin, scheduled -> task.run());
     }
 
+    /** Runs {@code task} once on an async thread after {@code delay}. */
+    public void delayedAsync(Runnable task, long delay, TimeUnit unit) {
+        Bukkit.getAsyncScheduler().runDelayed(plugin, scheduled -> task.run(), delay, unit);
+    }
+
     /** Runs {@code task} on an async thread after {@code delay}, then every {@code period} thereafter. */
     public void repeatingAsync(Runnable task, long delay, long period, TimeUnit unit) {
         Bukkit.getAsyncScheduler().runAtFixedRate(plugin, scheduled -> task.run(), delay, period, unit);

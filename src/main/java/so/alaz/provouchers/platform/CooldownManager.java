@@ -2,6 +2,7 @@ package so.alaz.provouchers.platform;
 
 import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 
 /**
  * Tracks keyed cooldowns against the system clock. Keys are any object with sensible
@@ -19,6 +20,21 @@ public final class CooldownManager {
         } else {
             expiries.put(key, System.currentTimeMillis() + millis);
         }
+    }
+
+    /**
+     * Extends the key's cooldown to last at least the given milliseconds, keeping the later expiry,
+     * so it never shortens a longer cooldown already running.
+     */
+    public void extendMillis(Object key, long millis) {
+        if (millis > 0) {
+            expiries.merge(key, System.currentTimeMillis() + millis, Math::max);
+        }
+    }
+
+    /** Removes the cooldown of every key that matches, such as all of one player's keys. */
+    public void removeIf(Predicate<Object> key) {
+        expiries.keySet().removeIf(key);
     }
 
     /** Whether the key is currently on cooldown. */
