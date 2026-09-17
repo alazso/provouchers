@@ -149,16 +149,39 @@ public final class StashService {
             // Exactly one of these runs, so every removed row is either granted or restored, once.
             scheduler.entity(player,
                 () -> {
-                    if (redeemHandler.canClaim(player, voucher)) {
-                        redeemHandler.grantClaim(player, voucher, taken.amount(), taken.arg());
+                    if (grantOrRestore(player, voucher, taken)) {
                         text.send(player, messages.get(player, "stash.claimed", "voucher", voucher.id()));
-                    } else {
-                        restore(taken);   // conditions failed after claiming: put these rows back
                     }
                     onDone.run();
                 },
                 () -> restore(taken));     // the player left before the grant: put these rows back
         });
+    }
+
+    /**
+     * On the player's thread: grants a taken card when its voucher can be claimed now, otherwise restores
+     * its rows, and returns whether it granted. A failure before granting starts restores the rows too.
+     * Once granting starts the rows count as consumed, so a failure part-way through is logged, not
+     * restored, since restoring could grant the rewards that already went out a second time.
+     */
+    private boolean grantOrRestore(Player player, Voucher voucher, StashCard taken) {
+        boolean granting = false;
+        try {
+            if (!redeemHandler.canClaim(player, voucher)) {
+                restore(taken);   // conditions failed after claiming: put these rows back
+                return false;
+            }
+            granting = true;
+            redeemHandler.grantClaim(player, voucher, taken.amount(), taken.arg());
+            return true;
+        } catch (RuntimeException ex) {
+            if (!granting) {
+                restore(taken);
+            }
+            logger.log(Level.WARNING, "Failed to claim " + taken.amount() + "x '" + voucher.id() + "' from the "
+                + "stash of " + player.getName() + (granting ? "; the rewards may be partly granted" : ""), ex);
+            return granting;
+        }
     }
 
     /**
@@ -173,7 +196,7 @@ public final class StashService {
         List<StashEntry> removed = new ArrayList<>(card.entries().size());
         for (StashEntry entry : card.entries()) {
             try {
-                if (storage.claimStash(entry.id())) {
+                if (storage.claimStash(entry)) {
                     removed.add(entry);
                 }
             } catch (SQLException | RuntimeException ex) {
@@ -208,7 +231,7 @@ public final class StashService {
         scheduler.async(() -> {
             for (StashEntry entry : card.entries()) {
                 try {
-                    storage.claimStash(entry.id());
+                    storage.claimStash(entry);
                 } catch (SQLException | RuntimeException ex) {
                     logger.log(Level.WARNING, "Failed to discard stale stash entry " + entry.id(), ex);
                     return;
@@ -254,11 +277,8 @@ public final class StashService {
             StashCard taken = take(claiming);
             scheduler.entity(player,
                 () -> {
-                    if (taken != null && redeemHandler.canClaim(player, claimingVoucher)) {
-                        redeemHandler.grantClaim(player, claimingVoucher, taken.amount(), taken.arg());
+                    if (taken != null && grantOrRestore(player, claimingVoucher, taken)) {
                         granted[0]++;
-                    } else if (taken != null) {
-                        restore(taken);   // conditions failed after claiming: put these rows back
                     }
                     claimAllStep(player, queue, granted, onDone);
                 },

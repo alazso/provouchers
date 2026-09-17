@@ -56,11 +56,11 @@ final class StorageScenario {
         assertThat(storage.activeCooldowns(player, now + 200_000)).isEmpty();
 
         // Stash: entries queue, list live (filtering expiry), claim atomically once, and prune when lapsed.
-        UUID kept = UUID.randomUUID();
-        UUID expiring = UUID.randomUUID();
-        storage.addStash(new StashEntry(kept, player, "crate", 2, "vip", StashSource.ADMIN, now, null));
-        storage.addStash(new StashEntry(expiring, player, "gift", 1, null, StashSource.OFFLINE_GIVE,
-            now, now + 60_000));
+        StashEntry kept = new StashEntry(UUID.randomUUID(), player, "crate", 2, "vip", StashSource.ADMIN, now, null);
+        StashEntry expiring = new StashEntry(UUID.randomUUID(), player, "gift", 1, null, StashSource.OFFLINE_GIVE,
+            now, now + 60_000);
+        storage.addStash(kept);
+        storage.addStash(expiring);
         assertThat(storage.listStash(player, now)).hasSize(2);
         assertThat(storage.claimStash(kept)).isTrue();
         assertThat(storage.claimStash(kept)).isFalse();           // already claimed

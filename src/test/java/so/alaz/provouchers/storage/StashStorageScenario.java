@@ -4,6 +4,8 @@ import so.alaz.provouchers.stash.StashCard;
 import so.alaz.provouchers.stash.StashEntry;
 import so.alaz.provouchers.stash.StashSource;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +46,7 @@ final class StashStorageScenario {
             concurrentCardClaimsSplitTheRows(storage);
             staleCardClaimsOnlyItsOwnRows(storage);
             restoreReinsertsTheIdenticalRowOnce(storage);
+            rowMergedByAnOlderServerIsNotClaimedAtTheReadAmount(provider, storage);
         } finally {
             storage.shutdown().get(30, TimeUnit.SECONDS);
         }
@@ -80,7 +83,7 @@ final class StashStorageScenario {
         long now = System.currentTimeMillis();
         StashEntry row = entry(player, "crate", 3, "vip", now);
         storage.addStash(row);
-        assertThat(race(THREADS, thread -> () -> storage.claimStash(row.id()))).containsOnlyOnce(true);
+        assertThat(race(THREADS, thread -> () -> storage.claimStash(row))).containsOnlyOnce(true);
         assertThat(storage.listStash(player, now)).isEmpty();
     }
 
@@ -146,14 +149,39 @@ final class StashStorageScenario {
         storage.addStash(expiring);
         storage.addStash(lasting);
         assertThat(storage.listStash(player, now)).containsExactlyInAnyOrder(expiring, lasting);
-        assertThat(storage.claimStash(expiring.id())).isTrue();
-        assertThat(storage.claimStash(lasting.id())).isTrue();
+        assertThat(storage.claimStash(expiring)).isTrue();
+        assertThat(storage.claimStash(lasting)).isTrue();
 
         assertThat(storage.restoreStash(expiring)).isTrue();
         assertThat(storage.restoreStash(expiring)).isFalse();
         assertThat(race(THREADS, thread -> () -> storage.restoreStash(lasting))).containsOnlyOnce(true);
         assertThat(storage.listStash(player, now)).containsExactlyInAnyOrder(expiring, lasting);
         clear(storage, player);
+    }
+
+    /**
+     * A server on an older version sharing the database merges a delivery into an existing row after this
+     * server's menu read it. The claim removes a row only while it holds the amount it was read with, so
+     * it misses instead of deleting the merged total while granting the stale amount, and the next read
+     * shows the new total, which then claims normally.
+     */
+    private static void rowMergedByAnOlderServerIsNotClaimedAtTheReadAmount(StorageProvider provider,
+                                                                            VoucherStorage storage) throws Exception {
+        UUID player = UUID.randomUUID();
+        long now = System.currentTimeMillis();
+        StashEntry read = entry(player, "loot", 1, null, now);
+        storage.addStash(read);
+        try (Connection connection = provider.dataSource().getConnection();
+             PreparedStatement merge = connection.prepareStatement(
+                 "UPDATE provouchers_stash SET amount = amount + 4 WHERE id = ?")) {
+            merge.setString(1, read.id().toString());
+            merge.executeUpdate();
+        }
+        assertThat(storage.claimStash(read)).isFalse();
+        StashCard current = onlyCard(storage, player, now);
+        assertThat(current.amount()).isEqualTo(5);
+        assertThat(claimRows(storage, current)).hasSize(1);
+        assertThat(storage.listStash(player, now)).isEmpty();
     }
 
     private static StashEntry entry(UUID player, String voucherId, int amount, String arg, long createdAt) {
@@ -171,7 +199,7 @@ final class StashStorageScenario {
     private static List<StashEntry> claimRows(VoucherStorage storage, StashCard card) throws SQLException {
         List<StashEntry> removed = new ArrayList<>();
         for (StashEntry entry : card.entries()) {
-            if (storage.claimStash(entry.id())) {
+            if (storage.claimStash(entry)) {
                 removed.add(entry);
             }
         }
@@ -181,7 +209,7 @@ final class StashStorageScenario {
     /** Removes every row the player still has, expired or not. */
     private static void clear(VoucherStorage storage, UUID player) throws SQLException {
         for (StashEntry entry : storage.listStash(player, Long.MIN_VALUE)) {
-            storage.claimStash(entry.id());
+            storage.claimStash(entry);
         }
     }
 

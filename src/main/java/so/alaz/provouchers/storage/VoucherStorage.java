@@ -313,15 +313,19 @@ public final class VoucherStorage {
     }
 
     /**
-     * Atomically claims one stash entry by id, removing it. Returns {@code true} only for the call
-     * that removed it, so a double click or a second session cannot claim the same entry twice. A
-     * menu card claims each of its rows this way, so overlapping claims split the rows between them.
+     * Atomically claims one stash entry, removing it only while it still holds the amount it was read
+     * with. Returns {@code true} only for the call that removed it, so a double click or a second
+     * session cannot claim the same entry twice. A menu card claims each of its rows this way, so
+     * overlapping claims split the rows between them. This version never updates a row after insert;
+     * the amount check refuses a row that an older server version sharing the database merged a
+     * delivery into after it was read, so the stale amount is never granted for the larger row.
      */
-    public boolean claimStash(UUID id) throws SQLException {
+    public boolean claimStash(StashEntry entry) throws SQLException {
         try (Connection connection = provider.dataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(
-                 "DELETE FROM provouchers_stash WHERE id = ?")) {
-            statement.setString(1, id.toString());
+                 "DELETE FROM provouchers_stash WHERE id = ? AND amount = ?")) {
+            statement.setString(1, entry.id().toString());
+            statement.setInt(2, entry.amount());
             return statement.executeUpdate() > 0;
         }
     }
