@@ -14,7 +14,10 @@ All notable changes to ProVouchers are documented here. This project follows
 ### Changed
 - Aliases for `/voucher` and `/stash` are trimmed and lower-cased; blank entries,
   entries containing spaces, and duplicates are ignored.
-- Updated FastStats to 0.27.0.
+- Activity metrics (redemptions, blocked duplicates, condition denials, Stash
+  activity) report the count since the previous report instead of a running
+  session total, so they no longer climb with server uptime.
+- Updated FastStats to 0.30.1.
 
 ## [1.4.0] - 2026-06-15
 

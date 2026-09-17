@@ -15,7 +15,9 @@ import java.util.concurrent.atomic.LongAdder;
  * drained on read. That keeps reads idempotent, which matters because the same
  * chart is polled independently by every enabled provider (bStats and FastStats):
  * a drain-on-read counter would split its count between whichever provider polled
- * first. {@link LongAdder} keeps the hot increment paths contention-free.
+ * first. Chart them with {@link MetricChart#counter}, which gives each provider its
+ * own mark and reports the increase since that provider's last report.
+ * {@link LongAdder} keeps the hot increment paths contention-free.
  */
 public final class MetricCounters {
 
@@ -72,36 +74,36 @@ public final class MetricCounters {
         stashExpired.add(count);
     }
 
-    public int totalRedemptions() {
-        return clamp(voucherRedemptions.sum() + codeRedemptions.sum());
+    public long totalRedemptions() {
+        return voucherRedemptions.sum() + codeRedemptions.sum();
     }
 
-    public int voucherRedemptions() {
-        return clamp(voucherRedemptions.sum());
+    public long voucherRedemptions() {
+        return voucherRedemptions.sum();
     }
 
-    public int codeRedemptions() {
-        return clamp(codeRedemptions.sum());
+    public long codeRedemptions() {
+        return codeRedemptions.sum();
     }
 
-    public int duplicatesBlocked() {
-        return clamp(duplicatesBlocked.sum());
+    public long duplicatesBlocked() {
+        return duplicatesBlocked.sum();
     }
 
-    public int conditionDenials() {
-        return clamp(conditionDenials.sum());
+    public long conditionDenials() {
+        return conditionDenials.sum();
     }
 
-    public int stashed() {
-        return clamp(stashed.sum());
+    public long stashed() {
+        return stashed.sum();
     }
 
-    public int stashClaims() {
-        return clamp(stashClaims.sum());
+    public long stashClaims() {
+        return stashClaims.sum();
     }
 
-    public int stashExpired() {
-        return clamp(stashExpired.sum());
+    public long stashExpired() {
+        return stashExpired.sum();
     }
 
     /** The reward type granted most often this session, or {@code "none"} before any grant. */
@@ -116,9 +118,5 @@ public final class MetricCounters {
             }
         }
         return top == null ? "none" : top.name().toLowerCase(Locale.ROOT);
-    }
-
-    private static int clamp(long value) {
-        return value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
     }
 }

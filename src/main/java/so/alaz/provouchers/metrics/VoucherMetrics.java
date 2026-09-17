@@ -96,16 +96,16 @@ public final class VoucherMetrics {
             // Stash configuration shape
             .addChart(MetricChart.string("stash_overflow", () -> stashOverflow(plugin)))
             .addChart(MetricChart.bool("uses_stash_expiry", () -> usesStashExpiry(plugin)))
-            // Runtime activity (session totals)
-            .addChart(MetricChart.number("redemptions", counters::totalRedemptions))
-            .addChart(MetricChart.number("voucher_redemptions", counters::voucherRedemptions))
-            .addChart(MetricChart.number("code_redemptions", counters::codeRedemptions))
-            .addChart(MetricChart.number("dupes_blocked", counters::duplicatesBlocked))
-            .addChart(MetricChart.number("condition_denials", counters::conditionDenials))
+            // Runtime activity (counts per reporting interval)
+            .addChart(MetricChart.counter("redemptions", counters::totalRedemptions))
+            .addChart(MetricChart.counter("voucher_redemptions", counters::voucherRedemptions))
+            .addChart(MetricChart.counter("code_redemptions", counters::codeRedemptions))
+            .addChart(MetricChart.counter("dupes_blocked", counters::duplicatesBlocked))
+            .addChart(MetricChart.counter("condition_denials", counters::conditionDenials))
             .addChart(MetricChart.string("top_reward_granted", counters::topRewardGranted))
-            .addChart(MetricChart.number("stashed", counters::stashed))
-            .addChart(MetricChart.number("stash_claims", counters::stashClaims))
-            .addChart(MetricChart.number("stash_expired", counters::stashExpired));
+            .addChart(MetricChart.counter("stashed", counters::stashed))
+            .addChart(MetricChart.counter("stash_claims", counters::stashClaims))
+            .addChart(MetricChart.counter("stash_expired", counters::stashExpired));
         return builder.start();
     }
 

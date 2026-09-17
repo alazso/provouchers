@@ -91,8 +91,13 @@ public final class MetricsBuilder {
             BukkitContext.Factory factory = new BukkitContext.Factory(plugin, token)
                 .metrics(metricsFactory -> {
                     var built = metricsFactory;
+                    List<CounterMark> counters = new ArrayList<>();
                     for (MetricChart chart : charts) {
-                        built = built.addMetric(toFastStatsMetric(chart));
+                        built = built.addMetric(toFastStatsMetric(chart, counters));
+                    }
+                    if (!counters.isEmpty()) {
+                        // Runs only after an accepted submission, on the thread that read the metrics.
+                        built = built.onFlush(() -> counters.forEach(CounterMark::commit));
                     }
                     return built.create();
                 });
@@ -114,15 +119,28 @@ public final class MetricsBuilder {
             case NUMBER -> new SingleLineChart(chart.id, () -> chart.intSupplier.get());
             case BOOL -> new SimplePie(chart.id, () -> chart.boolSupplier.get().toString());
             case STRING_LIST -> new AdvancedPie(chart.id, () -> frequency(chart.listSupplier.get()));
+            case COUNTER -> {
+                // bStats reads each chart once per submission and has no success callback: advance on read.
+                CounterMark mark = new CounterMark(chart.counterSupplier);
+                yield new SingleLineChart(chart.id, () -> (int) Math.min(Integer.MAX_VALUE, mark.takeDelta()));
+            }
         };
     }
 
-    private static Metric<?> toFastStatsMetric(MetricChart chart) {
+    /** Converts a chart; a counter's mark is added to {@code counters} so {@code onFlush} can commit it. */
+    private static Metric<?> toFastStatsMetric(MetricChart chart, List<CounterMark> counters) {
         return switch (chart.type) {
             case STRING -> Metric.string(chart.id, () -> chart.stringSupplier.get());
             case NUMBER -> Metric.number(chart.id, () -> chart.intSupplier.get());
             case BOOL -> Metric.bool(chart.id, () -> chart.boolSupplier.get());
             case STRING_LIST -> Metric.stringArray(chart.id, () -> chart.listSupplier.get().toArray(String[]::new));
+            case COUNTER -> {
+                // FastStats also runs every supplier when it assembles an error report, on a separate task, so
+                // a read must not advance the mark: it moves only when onFlush reports an accepted submission.
+                CounterMark mark = new CounterMark(chart.counterSupplier);
+                counters.add(mark);
+                yield Metric.number(chart.id, mark::peekDelta);
+            }
         };
     }
 
