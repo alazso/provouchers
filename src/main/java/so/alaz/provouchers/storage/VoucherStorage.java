@@ -98,37 +98,68 @@ public final class VoucherStorage {
         }
     }
 
-    /** Records a unique id as redeemed. Returns {@code false} if it was already present. */
-    public boolean recordUse(String uid, UUID player) throws SQLException {
+    /**
+     * Records a unique id as redeemed: a claim identified by the id, {@code player}, and
+     * {@code redeemedAt} (the epoch millis the claiming server wrote). Returns {@code true} when the
+     * stored row is this claim, and {@code false} when the id is claimed by anything else.
+     *
+     * <p>When the insert fails, the row is read back in autocommit, so PostgreSQL has no aborted
+     * transaction to read in. A row matching this claim exactly means the insert committed before the
+     * driver failed, so the claim holds; any other row means the id was already claimed; no row rethrows
+     * the original failure. A failing read propagates.
+     */
+    public boolean recordUse(String uid, UUID player, long redeemedAt) throws SQLException {
         try (Connection connection = connection();
              PreparedStatement statement = connection.prepareStatement(
                  "INSERT INTO provouchers_used_vouchers (uid, player_uuid, redeemed_at) "
                      + "VALUES (?, ?, ?)")) {
             statement.setString(1, uid);
             statement.setString(2, player.toString());
-            statement.setLong(3, System.currentTimeMillis());
+            statement.setLong(3, redeemedAt);
             statement.executeUpdate();
             return true;
         } catch (SQLException ex) {
-            if (isUsed(uid)) {
-                return false;
+            // Read after the failed insert released its connection (the SQLite pool holds just one).
+            UsedClaim stored = usedClaim(uid);
+            if (stored == null) {
+                throw ex;
             }
-            throw ex;
+            return stored.player().equals(player.toString()) && stored.redeemedAt() == redeemedAt;
+        }
+    }
+
+    /** Who claimed a unique id, and the epoch millis their claim was written with. */
+    private record UsedClaim(String player, long redeemedAt) {
+    }
+
+    /** The stored claim of a unique id, or {@code null} when the id is unclaimed. */
+    @Nullable
+    private UsedClaim usedClaim(String uid) throws SQLException {
+        try (Connection connection = connection();
+             PreparedStatement statement = connection.prepareStatement(
+                 "SELECT player_uuid, redeemed_at FROM provouchers_used_vouchers WHERE uid = ?")) {
+            statement.setString(1, uid);
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next() ? new UsedClaim(result.getString(1), result.getLong(2)) : null;
+            }
         }
     }
 
     /**
-     * Removes a unique id recorded by {@link #recordUse} for {@code player}, making the item redeemable
-     * again. Used when a redemption that claimed the id is abandoned before its reward is delivered.
-     * Matching the player too means a stale release can never free an id another player claimed.
-     * Returns whether a row was removed.
+     * Removes the claim {@link #recordUse} made of a unique id for {@code player} at
+     * {@code redeemedAt}, making the item redeemable again, and returns whether a row was removed. Used
+     * when a redemption that claimed the id is abandoned before its reward is delivered. Matching the
+     * whole claim means a give-back can never remove a different claim of the id, even the same
+     * player's other one, so repeating it is harmless.
      */
-    public boolean deleteUse(String uid, UUID player) throws SQLException {
+    public boolean deleteUse(String uid, UUID player, long redeemedAt) throws SQLException {
         try (Connection connection = connection();
              PreparedStatement statement = connection.prepareStatement(
-                 "DELETE FROM provouchers_used_vouchers WHERE uid = ? AND player_uuid = ?")) {
+                 "DELETE FROM provouchers_used_vouchers "
+                     + "WHERE uid = ? AND player_uuid = ? AND redeemed_at = ?")) {
             statement.setString(1, uid);
             statement.setString(2, player.toString());
+            statement.setLong(3, redeemedAt);
             return statement.executeUpdate() > 0;
         }
     }
