@@ -132,7 +132,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
         RewardExecutor rewardExecutor = new RewardExecutor(
             scheduler, text, itemResolver, factory, hooks,
             getComponentLogger(), discordWebhook);
-        VoucherGiveService giveService = new VoucherGiveService(factory, scheduler);
+        VoucherGiveService giveService = new VoucherGiveService(factory, scheduler, getComponentLogger());
         PreviewGui previewGui = new PreviewGui(registry, factory, giveService,
             new VoucherAdminMenu(text), guiManager, scheduler,
             text);
