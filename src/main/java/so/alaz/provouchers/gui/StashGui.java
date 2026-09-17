@@ -9,7 +9,7 @@ import so.alaz.provouchers.locale.Messages;
 import so.alaz.provouchers.platform.ItemBuilder;
 import so.alaz.provouchers.platform.Scheduler;
 import so.alaz.provouchers.platform.Text;
-import so.alaz.provouchers.stash.StashEntry;
+import so.alaz.provouchers.stash.StashCard;
 import so.alaz.provouchers.stash.StashService;
 import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.provouchers.voucher.VoucherItemFactory;
@@ -20,11 +20,12 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * The player's Stash: a paginated chest of their waiting virtual vouchers, each rendered from its own
- * icon with an amount, an optional expiry, and a "click to claim" hint. The bottom row is a menu bar
- * (previous, claim-all, next), separated from the cards by a buffer row of panes. Clicking a card
- * claims that reward and refreshes; claiming the last one closes the menu. Cards are built on the
- * viewer's thread (icons may resolve skulls) and the menu is opened there too.
+ * The player's Stash: a paginated chest of their waiting virtual vouchers, one card per
+ * {@link StashCard} (matching never-expiring entries summed, each expiring entry on its own), rendered
+ * from the voucher's icon with an amount, an optional expiry, and a "click to claim" hint. The bottom
+ * row is a menu bar (previous, claim-all, next), separated from the cards by a buffer row of panes.
+ * Clicking a card claims the entries it was built from and refreshes; claiming the last one closes the
+ * menu. Cards are built on the viewer's thread (icons may resolve skulls) and the menu is opened there too.
  */
 public final class StashGui {
 
@@ -63,23 +64,23 @@ public final class StashGui {
     }
 
     /**
-     * Loads the viewer's entries and rebuilds the menu at {@code page}. {@code closeIfEmpty} closes a
+     * Loads the viewer's cards and rebuilds the menu at {@code page}. {@code closeIfEmpty} closes a
      * stale menu when a claim empties the Stash, so the last claimed card never lingers on screen.
      */
     private void refresh(Player viewer, boolean closeIfEmpty, int page) {
-        stashService.entries(viewer.getUniqueId(),
-            entries -> scheduler.entity(viewer, () -> build(viewer, entries, closeIfEmpty, page)));
+        stashService.cards(viewer.getUniqueId(),
+            cards -> scheduler.entity(viewer, () -> build(viewer, cards, closeIfEmpty, page)));
     }
 
-    private void build(Player viewer, List<StashEntry> entries, boolean closeIfEmpty, int page) {
-        List<StashEntry> shown = new ArrayList<>();
+    private void build(Player viewer, List<StashCard> cards, boolean closeIfEmpty, int page) {
+        List<StashCard> shown = new ArrayList<>();
         List<CompletableFuture<ItemStack>> icons = new ArrayList<>();
-        for (StashEntry entry : entries) {
-            Voucher voucher = registry.getVoucher(entry.voucherId()).orElse(null);
+        for (StashCard card : cards) {
+            Voucher voucher = registry.getVoucher(card.voucherId()).orElse(null);
             if (voucher == null) {
-                continue;
+                continue;   // removed by a reload since the cards were read
             }
-            shown.add(entry);
+            shown.add(card);
             icons.add(factory.buildDisplay(voucher, viewer));
         }
         if (shown.isEmpty()) {
@@ -111,37 +112,40 @@ public final class StashGui {
             }));
     }
 
-    private Button card(Player viewer, StashEntry entry, ItemStack icon) {
-        ItemStack card = icon.clone();
+    private Button card(Player viewer, StashCard card, ItemStack icon) {
+        ItemStack item = icon.clone();
+        int amount = card.amount();
+        Long expiresAt = card.expiresAt();
         // Show the count on the stack (the corner caps at 64); the true total is in the lore below.
-        card.setAmount(Math.min(64, Math.max(1, entry.amount())));
-        card.editMeta(meta -> {
+        item.setAmount(Math.min(64, Math.max(1, amount)));
+        item.editMeta(meta -> {
             List<Component> lore = meta.lore() != null ? new ArrayList<>(meta.lore()) : new ArrayList<>();
             lore.add(Component.empty());
-            if (entry.amount() > 1) {
-                lore.add(line(messages.get(viewer, "stash.lore.amount", "amount", entry.amount())));
+            if (amount > 1) {
+                lore.add(line(messages.get(viewer, "stash.lore.amount", "amount", amount)));
             }
-            if (entry.expiresAt() != null) {
+            if (expiresAt != null) {
                 lore.add(line(messages.get(viewer, "stash.lore.expires",
-                    "time", relativeTime(entry.expiresAt() - System.currentTimeMillis()))));
+                    "time", relativeTime(expiresAt - System.currentTimeMillis()))));
             }
             lore.add(line(messages.get(viewer, "stash.lore.claim")));
             meta.lore(lore);
         });
-        return Button.of(card, click -> {
+        // The click claims the entries this card was built from, never rows queued since.
+        return Button.of(item, click -> {
             int page = click.session.page();
-            stashService.claim(click.getPlayer(), entry, () -> refresh(click.getPlayer(), true, page));
+            stashService.claim(click.getPlayer(), card, () -> refresh(click.getPlayer(), true, page));
             return GuiAction.none();
         });
     }
 
-    private Button claimAll(Player viewer, List<StashEntry> entries) {
+    private Button claimAll(Player viewer, List<StashCard> cards) {
         ItemStack icon = new ItemBuilder(Material.CHEST)
             .name(line(messages.get(viewer, "stash.claim-all")))
             .build();
         return Button.of(icon, click -> {
             int page = click.session.page();
-            stashService.claimAll(click.getPlayer(), entries, () -> refresh(click.getPlayer(), true, page));
+            stashService.claimAll(click.getPlayer(), cards, () -> refresh(click.getPlayer(), true, page));
             return GuiAction.none();
         });
     }

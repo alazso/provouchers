@@ -227,7 +227,11 @@ public final class VoucherStorage {
         return cooldowns;
     }
 
-    /** Queues a virtual voucher in a player's stash. */
+    /**
+     * Queues a virtual voucher in a player's stash as its own row. Rows are never merged or updated
+     * afterwards (the menu groups matching entries for display), so concurrent deliveries cannot
+     * inflate one another and a row still holds the amount it was read with when a claim removes it.
+     */
     public void addStash(StashEntry entry) throws SQLException {
         try (Connection connection = provider.dataSource().getConnection();
              PreparedStatement statement = connection.prepareStatement(
@@ -255,31 +259,31 @@ public final class VoucherStorage {
     }
 
     /**
-     * Adds {@code entry}, merging its amount into an existing never-expiring entry for the same voucher
-     * and argument so repeated gives show as one stack rather than many. Entries that expire are kept
-     * separate so each keeps its own countdown.
+     * Puts a claimed entry back exactly as it was read: same id, amount, argument, source, and
+     * timestamps. Returns {@code false} if a row with its id already exists, so the primary key turns a
+     * second restore of one entry into a no-op rather than a duplicate reward.
      */
-    public void addOrMergeStash(StashEntry entry) throws SQLException {
-        if (entry.expiresAt() == null && mergeStash(entry)) {
-            return;
+    public boolean restoreStash(StashEntry entry) throws SQLException {
+        try {
+            addStash(entry);
+            return true;
+        } catch (SQLException ex) {
+            // Checked after the failed insert released its connection (the SQLite pool holds just one).
+            if (hasStash(entry.id())) {
+                return false;
+            }
+            throw ex;
         }
-        addStash(entry);
     }
 
-    /** Adds {@code entry}'s amount to a matching never-expiring row; returns whether one was found. */
-    private boolean mergeStash(StashEntry entry) throws SQLException {
-        String sql = "UPDATE provouchers_stash SET amount = amount + ? "
-            + "WHERE player_uuid = ? AND voucher_id = ? AND expires_at IS NULL AND "
-            + (entry.arg() != null ? "arg = ?" : "arg IS NULL");
+    private boolean hasStash(UUID id) throws SQLException {
         try (Connection connection = provider.dataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setInt(1, entry.amount());
-            statement.setString(2, entry.player().toString());
-            statement.setString(3, entry.voucherId());
-            if (entry.arg() != null) {
-                statement.setString(4, entry.arg());
+             PreparedStatement statement = connection.prepareStatement(
+                 "SELECT 1 FROM provouchers_stash WHERE id = ?")) {
+            statement.setString(1, id.toString());
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next();
             }
-            return statement.executeUpdate() > 0;
         }
     }
 
@@ -310,7 +314,8 @@ public final class VoucherStorage {
 
     /**
      * Atomically claims one stash entry by id, removing it. Returns {@code true} only for the call
-     * that removed it, so a double click or a second session cannot claim the same entry twice.
+     * that removed it, so a double click or a second session cannot claim the same entry twice. A
+     * menu card claims each of its rows this way, so overlapping claims split the rows between them.
      */
     public boolean claimStash(UUID id) throws SQLException {
         try (Connection connection = provider.dataSource().getConnection();
@@ -328,20 +333,6 @@ public final class VoucherStorage {
                  "DELETE FROM provouchers_stash WHERE expires_at IS NOT NULL AND expires_at <= ?")) {
             statement.setLong(1, now);
             return statement.executeUpdate();
-        }
-    }
-
-    /** How many still-live (unexpired at {@code now}) entries a player has waiting. */
-    public int countStash(UUID player, long now) throws SQLException {
-        try (Connection connection = provider.dataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                 "SELECT COUNT(*) FROM provouchers_stash WHERE player_uuid = ? "
-                     + "AND (expires_at IS NULL OR expires_at > ?)")) {
-            statement.setString(1, player.toString());
-            statement.setLong(2, now);
-            try (ResultSet result = statement.executeQuery()) {
-                return result.next() ? result.getInt(1) : 0;
-            }
         }
     }
 }
