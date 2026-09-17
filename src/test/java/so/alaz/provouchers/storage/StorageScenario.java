@@ -33,12 +33,26 @@ final class StorageScenario {
     private static void roundTrip(VoucherStorage storage) throws Exception {
         UUID player = UUID.randomUUID();
 
-        // Anti-dupe: the first record of a unique id sticks; a duplicate is rejected by the primary key.
+        // Anti-dupe: a claim is its unique id, player, and timestamp. The first record of an id sticks, and the
+        // primary key refuses any other claim of it, even the same player's at another time.
         String uid = UUID.randomUUID().toString();
+        long claimedAt = System.currentTimeMillis();
         assertThat(storage.isUsed(uid)).isFalse();
-        assertThat(storage.recordUse(uid, player)).isTrue();
+        assertThat(storage.recordUse(uid, player, claimedAt)).isTrue();
         assertThat(storage.isUsed(uid)).isTrue();
-        assertThat(storage.recordUse(uid, player)).isFalse();
+        assertThat(storage.recordUse(uid, UUID.randomUUID(), claimedAt)).isFalse();
+        assertThat(storage.recordUse(uid, player, claimedAt + 1)).isFalse();
+        // Repeating the exact claim fails on the primary key, and the read-back finds this claim: the same
+        // outcome as an insert that committed before the driver failed, so it counts as claimed.
+        assertThat(storage.recordUse(uid, player, claimedAt)).isTrue();
+
+        // A give-back removes only the exact claim, and repeating it removes nothing.
+        assertThat(storage.deleteUse(uid, UUID.randomUUID(), claimedAt)).isFalse();
+        assertThat(storage.deleteUse(uid, player, claimedAt + 1)).isFalse();
+        assertThat(storage.isUsed(uid)).isTrue();
+        assertThat(storage.deleteUse(uid, player, claimedAt)).isTrue();
+        assertThat(storage.isUsed(uid)).isFalse();
+        assertThat(storage.deleteUse(uid, player, claimedAt)).isFalse();
 
         // Code uses: reservations accumulate per player and in total.
         String code = "WELCOME";

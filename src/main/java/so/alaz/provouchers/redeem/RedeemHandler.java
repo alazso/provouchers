@@ -15,6 +15,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.listener.FireworkGuardListener;
+import so.alaz.provouchers.antidupe.ClaimOutcome;
 import so.alaz.provouchers.antidupe.DupeDetector;
 import so.alaz.provouchers.antidupe.StampStatus;
 import so.alaz.provouchers.antidupe.VoucherStamp;
@@ -234,8 +235,7 @@ public final class RedeemHandler {
                 Verdict verdict = verifyHeld(playerId, voucher, uid);
                 scheduler.entity(player,
                     () -> deliverHeld(player, slot, voucher, uid, sameItem, verdict, ticket),
-                    () -> abandon(playerId, voucher, verdict.stampClaimed() ? uid : null, verdict.reserved(),
-                        ticket));
+                    () -> abandon(playerId, voucher, verdict.claim(), verdict.reserved(), ticket));
             } catch (RuntimeException ex) {
                 inFlight.release(ticket);
                 throw ex;
@@ -246,11 +246,18 @@ public final class RedeemHandler {
     /**
      * The async verdict on a single item redeem, handed to the player's thread: the denial message key
      * when a use limit (or storage) refused it, the stamp status when the anti-dupe check refused it,
-     * and otherwise the uses reserved and whether the stamp was claimed, both to give back if the item
-     * is never delivered.
+     * and otherwise the uses reserved and the stamp claim made ({@code null} for an unstamped item),
+     * both to give back if the item is never delivered.
      */
     private record Verdict(@Nullable String denialKey, @Nullable StampStatus refusal, int reserved,
-                           boolean stampClaimed) {
+                           @Nullable Claim claim) {
+    }
+
+    /**
+     * A stamp claim a redeem made: the item's unique id and the epoch millis it was claimed at, which
+     * together with the player identify the claim, so only this redeem can give it back.
+     */
+    private record Claim(String uid, long claimedAt) {
     }
 
     /**
@@ -264,20 +271,23 @@ public final class RedeemHandler {
             ? reserveVoucherUses(player, voucher, 1)
             : new Reservation(0, null);
         if (reservation.denialKey() != null) {
-            return new Verdict(reservation.denialKey(), null, 0, false);
+            return new Verdict(reservation.denialKey(), null, 0, null);
         }
         if (uid == null) {
-            return new Verdict(null, null, reservation.reserved(), false);
+            return new Verdict(null, null, reservation.reserved(), null);
         }
         StampStatus status = dupeDetector.check(uid);
-        if (status == StampStatus.VALID && dupeDetector.claim(uid, player)) {
-            return new Verdict(null, null, reservation.reserved(), true);
+        if (status == StampStatus.VALID) {
+            Claim claim = new Claim(uid, System.currentTimeMillis());
+            if (dupeDetector.claim(uid, player, claim.claimedAt()) == ClaimOutcome.CLAIMED) {
+                return new Verdict(null, null, reservation.reserved(), claim);
+            }
         }
         // Give the use back before replying, so an immediate retry sees the true allowance.
         releaseUses(voucher.useKey(), player, reservation.reserved());
         // A lost claim race is unverifiable rather than a proven duplicate.
         StampStatus refusal = status == StampStatus.DUPLICATE ? StampStatus.DUPLICATE : StampStatus.UNKNOWN;
-        return new Verdict(null, refusal, 0, false);
+        return new Verdict(null, refusal, 0, null);
     }
 
     /**
@@ -303,8 +313,7 @@ public final class RedeemHandler {
             if (slot < 0) {
                 send(player, messages.get(player, "redeem.verify-failed"));
                 releaseLater = true;
-                abandon(player.getUniqueId(), voucher, verdict.stampClaimed() ? uid : null, verdict.reserved(),
-                    ticket);
+                abandon(player.getUniqueId(), voucher, verdict.claim(), verdict.reserved(), ticket);
                 return;
             }
             take(inventory, slot, 1);
@@ -324,17 +333,17 @@ public final class RedeemHandler {
      * only after the claim is gone, so a retry cannot find the stale claim and take the item for a
      * duplicate.
      */
-    private void abandon(UUID player, Voucher voucher, @Nullable String claimedUid, int reserved,
+    private void abandon(UUID player, Voucher voucher, @Nullable Claim claim, int reserved,
                          InFlightGuard.Ticket ticket) {
-        if (claimedUid == null && reserved <= 0) {
+        if (claim == null && reserved <= 0) {
             inFlight.release(ticket);
             return;
         }
         try {
             scheduler.asyncOrRun(() -> {
                 try {
-                    if (claimedUid != null) {
-                        dupeDetector.release(claimedUid, player);
+                    if (claim != null) {
+                        dupeDetector.release(claim.uid(), player, claim.claimedAt());
                     }
                     releaseUses(voucher.useKey(), player, reserved);
                 } finally {
