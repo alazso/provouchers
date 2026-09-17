@@ -48,8 +48,10 @@ import so.alaz.provouchers.cooldown.CooldownService;
 import so.alaz.provouchers.cooldown.CooldownTiers;
 import so.alaz.provouchers.gui.ConfirmGui;
 import so.alaz.provouchers.locale.Messages;
+import so.alaz.provouchers.platform.PendingSettlements;
 import so.alaz.provouchers.platform.Scheduler;
 import so.alaz.provouchers.platform.Sounds;
+import so.alaz.provouchers.platform.TaskGate;
 import so.alaz.provouchers.platform.Text;
 
 import java.sql.SQLException;
@@ -61,7 +63,6 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
 /**
@@ -80,6 +81,11 @@ import java.util.function.Predicate;
  * storage and leaves once the claim is delivered or given back, so no other click
  * on this server takes an unsettled claim for a duplicate. A claim give-back that
  * fails is retried with backoff, and the item is refused as unverifiable meanwhile.
+ *
+ * <p>Paper runs neither callback of a hop still scheduled when the plugin disables, and
+ * cancels the delayed give-back retries, so each hop and retry is tracked until it starts.
+ * While the plugin disables, {@link #settleForShutdown} stops admitting verifications, waits
+ * for the running ones, and settles what is still pending before storage closes.
  */
 public final class RedeemHandler {
 
@@ -124,6 +130,12 @@ public final class RedeemHandler {
     private final InFlightGuard inFlight = new InFlightGuard(IN_FLIGHT_LIFETIME_SECONDS);
     /** The stamp ids of unsettled item redeems, each owned by its redeem's in-flight ticket. */
     private final ClaimLedger ledger = new ClaimLedger();
+    /** Admits the async verifications of item and code redeems until the plugin disables. */
+    private final TaskGate verifications = new TaskGate();
+    /** Verified redeems handed to the player's thread that have neither delivered nor given back yet. */
+    private final PendingSettlements handOffs = new PendingSettlements();
+    /** Stamp claim give-backs waiting to retry, each given a last attempt if the plugin disables first. */
+    private final PendingSettlements claimRetries = new PendingSettlements();
     private final CooldownTiers cooldownTiers;
     /** The GUI confirm dialog, or {@code null} for the chat style. */
     @Nullable private final ConfirmGui confirmGui;
@@ -256,10 +268,20 @@ public final class RedeemHandler {
         UUID playerId = player.getUniqueId();
         try {
             scheduler.async(() -> {
-                Verdict verdict = verifyHeld(playerId, voucher, uid, ticket);
-                handOff(player,
-                    () -> deliverHeld(player, slot, voucher, uid, sameItem, verdict, ticket),
-                    () -> abandon(playerId, voucher, verdict.claim(), verdict.reserved(), ticket));
+                if (!verifications.enter()) {
+                    // The plugin is disabling and storage is about to close: verify nothing, so nothing is
+                    // reserved, claimed, or entered in the ledger.
+                    inFlight.release(ticket);
+                    return;
+                }
+                try {
+                    Verdict verdict = verifyHeld(playerId, voucher, uid, ticket);
+                    handOff(player,
+                        () -> deliverHeld(player, slot, voucher, uid, sameItem, verdict, ticket),
+                        () -> abandon(playerId, voucher, verdict.claim(), verdict.reserved(), ticket));
+                } finally {
+                    verifications.exit();
+                }
             });
         } catch (RuntimeException ex) {
             // The task never ran, so nothing was reserved, claimed, or entered in the ledger.
@@ -343,24 +365,26 @@ public final class RedeemHandler {
      * Hands an async step's result to the player's region thread: runs {@code deliver} there, or
      * {@code giveBack} when the player is gone or the plugin is disabling. Exactly one of the two runs,
      * even when scheduling itself throws: then {@code giveBack} runs here, unless a callback already
-     * started, before the failure propagates.
+     * started, before the failure propagates. The hand-off stays tracked until one of them starts, so when
+     * the plugin disables with the hop still scheduled (Paper then runs neither callback),
+     * {@link #settleForShutdown} runs {@code giveBack} instead.
      */
     private void handOff(Player player, Runnable deliver, Runnable giveBack) {
-        AtomicBoolean started = new AtomicBoolean();
+        PendingSettlements.Entry pending = handOffs.track(giveBack);
         try {
             scheduler.entity(player,
                 () -> {
-                    if (started.compareAndSet(false, true)) {
+                    if (pending.start()) {
                         deliver.run();
                     }
                 },
                 () -> {
-                    if (started.compareAndSet(false, true)) {
+                    if (pending.start()) {
                         giveBack.run();
                     }
                 });
         } catch (RuntimeException ex) {
-            if (started.compareAndSet(false, true)) {
+            if (pending.start()) {
                 giveBack.run();
             }
             throw ex;
@@ -454,8 +478,10 @@ public final class RedeemHandler {
      * while the plugin disables). Success, including finding the claim already gone, ends its ledger
      * entry. A storage failure keeps the entry, so this server refuses the item as unverifiable rather
      * than taking the leftover claim for a duplicate, and schedules the next attempt after the next delay
-     * in {@link #CLAIM_RELEASE_RETRY_DELAYS}. When none is left, or none can be scheduled because the
-     * plugin is disabling, the entry stays and a warning names the claim.
+     * in {@link #CLAIM_RELEASE_RETRY_DELAYS}. The retry stays tracked until it runs, so when the plugin
+     * disables first (Paper then cancels it), {@link #settleForShutdown} makes the last attempt instead.
+     * When no delay is left, or no retry can be scheduled because the plugin is disabling, the entry stays
+     * and a warning names the claim.
      */
     private void releaseClaim(UUID player, Voucher voucher, Claim claim, InFlightGuard.Ticket owner,
                               int failedAttempts) {
@@ -465,12 +491,21 @@ public final class RedeemHandler {
         }
         if (failedAttempts < CLAIM_RELEASE_RETRY_DELAYS.size()) {
             Duration delay = CLAIM_RELEASE_RETRY_DELAYS.get(failedAttempts);
+            PendingSettlements.Entry retry = claimRetries.track(
+                () -> releaseClaimAtShutdown(player, voucher, claim, owner));
             try {
-                scheduler.delayedAsync(() -> releaseClaim(player, voucher, claim, owner, failedAttempts + 1),
-                    delay.toMillis(), TimeUnit.MILLISECONDS);
+                scheduler.delayedAsync(() -> {
+                    if (retry.start()) {
+                        releaseClaim(player, voucher, claim, owner, failedAttempts + 1);
+                    }
+                }, delay.toMillis(), TimeUnit.MILLISECONDS);
                 return;
             } catch (RuntimeException ex) {
-                // Nothing can be scheduled while the plugin disables, so this attempt was the last.
+                // Nothing can be scheduled while the plugin disables, so this attempt was the last, unless the
+                // shutdown settlement already took the retry over, which then reports its own outcome.
+                if (!retry.start()) {
+                    return;
+                }
             }
         }
         logger.warn("Could not release the anti-dupe claim of voucher '{}' (uid {}) for player {} after {} "
@@ -478,6 +513,47 @@ public final class RedeemHandler {
                 + "afterwards it counts as already redeemed unless that uid's row is deleted from "
                 + "provouchers_used_vouchers.",
             voucher.id(), claim.uid(), player, failedAttempts + 1);
+    }
+
+    /**
+     * The last attempt at a stamp claim give-back whose retry was still waiting when the plugin disabled
+     * (the disabling thread). Success ends the claim's ledger entry. A failure leaves the claim in storage
+     * and logs a warning naming it, since the item then counts as already redeemed after a restart.
+     */
+    private void releaseClaimAtShutdown(UUID player, Voucher voucher, Claim claim, InFlightGuard.Ticket owner) {
+        if (dupeDetector.release(claim.uid(), player, claim.claimedAt())) {
+            ledger.end(claim.uid(), owner);
+            return;
+        }
+        logger.warn("Could not release the anti-dupe claim of voucher '{}' (uid {}) for player {}, claimed at "
+                + "{} (epoch millis), before shutdown. The claim row remains, so after a restart the item counts "
+                + "as already redeemed unless that row is deleted from provouchers_used_vouchers.",
+            voucher.id(), claim.uid(), player, claim.claimedAt());
+    }
+
+    /**
+     * Settles the redeems the plugin would otherwise lose by disabling. Call it from {@code onDisable},
+     * once the plugin is no longer enabled and before storage closes. Stops admitting verifications and
+     * waits up to {@code wait} for the running ones, which give back what they hold themselves since their
+     * hop to the player can no longer be scheduled. Then, on the calling thread, gives back every verified
+     * redeem whose hop was scheduled but never ran, and makes a last attempt at every claim give-back still
+     * waiting to retry. Logs a line only when something was settled or a verification was still running.
+     */
+    public void settleForShutdown(Duration wait) {
+        int running = verifications.close(wait);
+        int gaveBack = handOffs.settleAll(
+            ex -> logger.warn("Could not give back an undelivered redeem during shutdown", ex));
+        int retried = claimRetries.settleAll(
+            ex -> logger.warn("Could not retry a stamp claim give-back during shutdown", ex));
+        if (running > 0) {
+            logger.warn("Gave back {} undelivered redeem(s) and retried {} stamp claim give-back(s) during "
+                    + "shutdown, but {} redeem verification(s) were still running after {} ms. Each gives back "
+                    + "what it holds when it finishes, which fails once storage has closed.",
+                gaveBack, retried, running, wait.toMillis());
+        } else if (gaveBack > 0 || retried > 0) {
+            logger.info("Gave back {} undelivered redeem(s) and retried {} stamp claim give-back(s) during "
+                + "shutdown.", gaveBack, retried);
+        }
     }
 
     /**
@@ -773,33 +849,40 @@ public final class RedeemHandler {
         }
         UUID playerId = player.getUniqueId();
         scheduler.async(() -> {
-            String denialKey;
+            if (!verifications.enter()) {
+                return;   // the plugin is disabling and storage is about to close: reserve nothing
+            }
             try {
-                // One atomic reservation against both caps, so two players cannot share the last use.
-                UseReservation reservation = storage.reserveUses(code.code(), playerId, 1, code.usesPerPlayer(),
-                    code.hasGlobalLimit() ? code.maxUses() : VoucherStorage.UNCAPPED);
-                denialKey = reservation.reserved() > 0 ? null
-                    : reservation.limit() == UseLimit.PER_PLAYER ? "code.already-redeemed"
-                    : "code.global-limit";
-            } catch (SQLException | RuntimeException ex) {
-                // A storage error (or the pool not being open yet) leaves the use unverifiable.
-                denialKey = "code.verify-failed";
+                String denialKey;
+                try {
+                    // One atomic reservation against both caps, so two players cannot share the last use.
+                    UseReservation reservation = storage.reserveUses(code.code(), playerId, 1,
+                        code.usesPerPlayer(), code.hasGlobalLimit() ? code.maxUses() : VoucherStorage.UNCAPPED);
+                    denialKey = reservation.reserved() > 0 ? null
+                        : reservation.limit() == UseLimit.PER_PLAYER ? "code.already-redeemed"
+                        : "code.global-limit";
+                } catch (SQLException | RuntimeException ex) {
+                    // A storage error (or the pool not being open yet) leaves the use unverifiable.
+                    denialKey = "code.verify-failed";
+                }
+                if (denialKey != null) {
+                    String denial = denialKey;
+                    scheduler.entity(player, () -> send(player, messages.get(player, denial)));
+                    return;
+                }
+                // The use is reserved: grant it on the player's thread, or give it back if the player is gone.
+                String source = "code '" + code.code() + "'";
+                handOff(player, () -> {
+                    grant(player, source, code.rewards(), code.randomRewards(),
+                        argument, false, code.definedItems(), code.discordWebhooks());
+                    playEffects(player, source, code.effects());
+                    counters.recordCodeRedemption();
+                    new VoucherCodeRedeemEvent(player, code, argument).callEvent();
+                    send(player, messages.get(player, "code.redeemed"));
+                }, () -> scheduler.asyncOrRun(() -> releaseUses(code.code(), playerId, 1)));
+            } finally {
+                verifications.exit();
             }
-            if (denialKey != null) {
-                String denial = denialKey;
-                scheduler.entity(player, () -> send(player, messages.get(player, denial)));
-                return;
-            }
-            // The use is reserved: grant it on the player's thread, or give it back if the player is gone.
-            String source = "code '" + code.code() + "'";
-            handOff(player, () -> {
-                grant(player, source, code.rewards(), code.randomRewards(),
-                    argument, false, code.definedItems(), code.discordWebhooks());
-                playEffects(player, source, code.effects());
-                counters.recordCodeRedemption();
-                new VoucherCodeRedeemEvent(player, code, argument).callEvent();
-                send(player, messages.get(player, "code.redeemed"));
-            }, () -> scheduler.asyncOrRun(() -> releaseUses(code.code(), playerId, 1)));
         });
     }
 
@@ -894,10 +977,19 @@ public final class RedeemHandler {
         UUID playerId = player.getUniqueId();
         try {
             scheduler.async(() -> {
-                Reservation reservation = reserveVoucherUses(playerId, voucher, count);
-                handOff(player,
-                    () -> openReserved(player, slot, voucher, original, reservation, ticket),
-                    () -> abandon(playerId, voucher, null, reservation.reserved(), ticket));
+                if (!verifications.enter()) {
+                    // The plugin is disabling and storage is about to close: reserve nothing.
+                    inFlight.release(ticket);
+                    return;
+                }
+                try {
+                    Reservation reservation = reserveVoucherUses(playerId, voucher, count);
+                    handOff(player,
+                        () -> openReserved(player, slot, voucher, original, reservation, ticket),
+                        () -> abandon(playerId, voucher, null, reservation.reserved(), ticket));
+                } finally {
+                    verifications.exit();
+                }
             });
         } catch (RuntimeException ex) {
             // The task never ran, so nothing was reserved.
