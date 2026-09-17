@@ -67,4 +67,52 @@ class StorageSqliteTest {
     void stashDeliversClaimsAndRestoresExactlyOnSqlite(@TempDir Path dir) throws Exception {
         StashStorageScenario.deliverClaimAndRestore(StorageConfig.sqlite(dir.resolve("stash.db").toString()));
     }
+
+    @Test
+    void reservesTheLastUseOnceOnSqlite(@TempDir Path dir) throws Exception {
+        StorageConfig config = StorageConfig.sqlite(dir.resolve("data.db").toString());
+        UseReservationScenario.lastUseIsReservedOnce(config);
+    }
+
+    @Test
+    void holdsThePerPlayerCapUnderContentionOnSqlite(@TempDir Path dir) throws Exception {
+        StorageConfig config = StorageConfig.sqlite(dir.resolve("data.db").toString());
+        UseReservationScenario.perPlayerCapHoldsUnderContention(config);
+    }
+
+    @Test
+    void countsConcurrentUnlimitedReservationsExactlyOnSqlite(@TempDir Path dir) throws Exception {
+        StorageConfig config = StorageConfig.sqlite(dir.resolve("data.db").toString());
+        UseReservationScenario.unlimitedReservationsCountExactly(config);
+    }
+
+    @Test
+    void reservesTheRemainingAllowanceForABatchOnSqlite(@TempDir Path dir) throws Exception {
+        StorageConfig config = StorageConfig.sqlite(dir.resolve("data.db").toString());
+        UseReservationScenario.batchReservesTheRemainingAllowance(config);
+    }
+
+    @Test
+    void releasesUsesWithoutGoingNegativeOnSqlite(@TempDir Path dir) throws Exception {
+        StorageConfig config = StorageConfig.sqlite(dir.resolve("data.db").toString());
+        UseReservationScenario.releaseRestoresCapacityAndNeverGoesNegative(config);
+    }
+
+    @Test
+    void keepsTotalsConsistentWhenClearingUsesOnSqlite(@TempDir Path dir) throws Exception {
+        StorageConfig config = StorageConfig.sqlite(dir.resolve("data.db").toString());
+        UseReservationScenario.clearUsesKeepsTotalsConsistent(config);
+    }
+
+    @Test
+    void backfillsUseTotalsFromRecordedUsesOnSqlite(@TempDir Path dir) throws Exception {
+        StorageConfig config = StorageConfig.sqlite(dir.resolve("data.db").toString());
+        UseReservationScenario.backfillSumsRecordedUses(config);
+    }
+
+    @Test
+    void backfillsUseTotalsWhenUpgradingFromVersion4OnSqlite(@TempDir Path dir) throws Exception {
+        StorageConfig config = StorageConfig.sqlite(dir.resolve("data.db").toString());
+        UseReservationScenario.upgradeBackfillsTotals(config);
+    }
 }

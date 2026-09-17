@@ -40,10 +40,11 @@ final class StorageScenario {
         assertThat(storage.isUsed(uid)).isTrue();
         assertThat(storage.recordUse(uid, player)).isFalse();
 
-        // Code uses: increments accumulate per player and in total.
+        // Code uses: reservations accumulate per player and in total.
         String code = "WELCOME";
-        assertThat(storage.incrementCodeUse(code, player)).isEqualTo(1);
-        assertThat(storage.incrementCodeUse(code, player)).isEqualTo(2);
+        int uncapped = VoucherStorage.UNCAPPED;
+        assertThat(storage.reserveUses(code, player, 1, uncapped, uncapped).reserved()).isEqualTo(1);
+        assertThat(storage.reserveUses(code, player, 1, uncapped, uncapped).reserved()).isEqualTo(1);
         assertThat(storage.codeUsesByPlayer(code, player)).isEqualTo(2);
         assertThat(storage.codeUsesTotal(code)).isEqualTo(2L);
 

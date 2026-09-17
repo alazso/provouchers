@@ -1,5 +1,6 @@
 package so.alaz.provouchers.storage;
 
+import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.stash.StashEntry;
 import so.alaz.provouchers.stash.StashSource;
 
@@ -25,6 +26,15 @@ import java.util.concurrent.CompletableFuture;
  */
 public final class VoucherStorage {
 
+    /** A cap for {@link #reserveUses} that leaves the count unlimited. */
+    public static final int UNCAPPED = -1;
+
+    /**
+     * How many times in a row a use-count write retries after concurrent writers moved the count it
+     * read. Each retry means another write committed, so this only bounds pathological contention.
+     */
+    private static final int MAX_WRITE_ATTEMPTS = 32;
+
     private final StorageProvider provider;
 
     public VoucherStorage(StorageProvider provider) {
@@ -37,7 +47,8 @@ public final class VoucherStorage {
             .register(new InitialSchema())
             .register(new CooldownSchema())
             .register(new UsedVoucherSchema())
-            .register(new StashSchema());
+            .register(new StashSchema())
+            .register(new UseTotalsSchema());
         return provider.init().thenCompose(ignored -> provider.migrations().migrate())
             .thenApply(applied -> null);
     }
@@ -89,6 +100,22 @@ public final class VoucherStorage {
     }
 
     /**
+     * Removes a unique id recorded by {@link #recordUse} for {@code player}, making the item redeemable
+     * again. Used when a redemption that claimed the id is abandoned before its reward is delivered.
+     * Matching the player too means a stale release can never free an id another player claimed.
+     * Returns whether a row was removed.
+     */
+    public boolean deleteUse(String uid, UUID player) throws SQLException {
+        try (Connection connection = provider.dataSource().getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                 "DELETE FROM provouchers_used_vouchers WHERE uid = ? AND player_uuid = ?")) {
+            statement.setString(1, uid);
+            statement.setString(2, player.toString());
+            return statement.executeUpdate() > 0;
+        }
+    }
+
+    /**
      * How many times this player has redeemed this use key. A key is a code's literal
      * value, or {@code "voucher:<id>"} for an item voucher's use counters.
      */
@@ -100,88 +127,341 @@ public final class VoucherStorage {
 
     /** How many times this use key (a code, or {@code "voucher:<id>"}) was redeemed by anyone. */
     public long codeUsesTotal(String code) throws SQLException {
-        try (Connection connection = provider.dataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                 "SELECT COALESCE(SUM(uses), 0) FROM provouchers_code_uses WHERE code = ?")) {
-            statement.setString(1, code);
-            try (ResultSet result = statement.executeQuery()) {
-                return result.next() ? result.getLong(1) : 0L;
+        try (Connection connection = provider.dataSource().getConnection()) {
+            Long total = totalUses(connection, code);
+            return total != null ? total : 0L;
+        }
+    }
+
+    /** Which cap held a {@link UseReservation} below the requested count. */
+    public enum UseLimit {
+        /** Every requested use was reserved. */
+        NONE,
+        /** The player's own cap ran out. */
+        PER_PLAYER,
+        /** The global cap across all players ran out. */
+        GLOBAL
+    }
+
+    /**
+     * The outcome of {@link #reserveUses}: how many uses were reserved (zero when denied), and the cap
+     * that held the reservation below the request, or {@link UseLimit#NONE} when all were reserved.
+     */
+    public record UseReservation(int reserved, UseLimit limit) {
+    }
+
+    /**
+     * Atomically reserves up to {@code requested} uses of {@code key} for {@code player}: as many as
+     * both caps still allow, where a negative cap ({@link #UNCAPPED}) leaves that count unlimited. The
+     * player's count and the key's total move together in one transaction, or not at all.
+     *
+     * <p>Each update is conditional ({@code uses + n <= cap}), so the row lock the database takes for
+     * it settles a race: of two reservations for the last slot, the later one re-evaluates its condition
+     * against the earlier one's committed count and matches no row. A condition that fails after the
+     * allowance was read means a concurrent reservation, release, or clear moved it, so the transaction
+     * rolls back and the allowance is read again. Both rows are created beforehand in autocommit, so a
+     * duplicate insert from a concurrent first use fails on its own instead of aborting the transaction
+     * (as PostgreSQL would). Every writer locks a player's row before the key's total, so a
+     * reservation, release, or clear cannot deadlock another over that pair.
+     *
+     * <p>Blocking; call from an async context. Undo with {@link #releaseUses}.
+     */
+    public UseReservation reserveUses(String key, UUID player, int requested, int perPlayerCap, int globalCap)
+        throws SQLException {
+        if (requested < 1) {
+            throw new IllegalArgumentException("requested must be at least 1, was " + requested);
+        }
+        try (Connection connection = provider.dataSource().getConnection()) {
+            for (int attempt = 0; attempt < MAX_WRITE_ATTEMPTS; attempt++) {
+                long mine = ensurePlayerUses(connection, key, player);
+                long total = ensureTotalUses(connection, key);
+                long perPlayerLeft = perPlayerCap < 0 ? Long.MAX_VALUE : perPlayerCap - mine;
+                long globalLeft = globalCap < 0 ? Long.MAX_VALUE : globalCap - total;
+                int grant = (int) Math.max(0, Math.min(requested, Math.min(perPlayerLeft, globalLeft)));
+                UseLimit limit = perPlayerLeft < requested ? UseLimit.PER_PLAYER
+                    : globalLeft < requested ? UseLimit.GLOBAL
+                    : UseLimit.NONE;
+                if (grant == 0 || addUses(connection, key, player, grant, perPlayerCap, globalCap)) {
+                    return new UseReservation(grant, limit);
+                }
             }
+        }
+        throw contended("reserve", key);
+    }
+
+    /** Records one uncapped use of a code for a player and returns the player's new count. */
+    public int incrementCodeUse(String code, UUID player) throws SQLException {
+        reserveUses(code, player, 1, UNCAPPED, UNCAPPED);
+        return codeUsesByPlayer(code, player);
+    }
+
+    /**
+     * Gives back up to {@code count} uses of {@code key} reserved for {@code player}, taking the same
+     * amount off the key's total, and returns how many were released. Never takes a count below zero:
+     * if the player's uses were cleared in the meantime, only what is left is released.
+     *
+     * <p>Blocking; call from an async context.
+     */
+    public int releaseUses(String key, UUID player, int count) throws SQLException {
+        if (count < 1) {
+            return 0;
+        }
+        try (Connection connection = provider.dataSource().getConnection()) {
+            for (int attempt = 0; attempt < MAX_WRITE_ATTEMPTS; attempt++) {
+                Integer mine = playerUses(connection, key, player);
+                int release = mine == null ? 0 : Math.min(count, mine);
+                if (release == 0 || subtractUses(connection, key, player, release)) {
+                    return release;
+                }
+            }
+        }
+        throw contended("release", key);
+    }
+
+    /** Deletes every recorded use of this key (a code, or {@code "voucher:<id>"}) and its total. */
+    public void clearUses(String key) throws SQLException {
+        try (Connection connection = provider.dataSource().getConnection()) {
+            inTransaction(connection, () -> {
+                try (PreparedStatement statement = connection.prepareStatement(
+                    "DELETE FROM provouchers_code_uses WHERE code = ?")) {
+                    statement.setString(1, key);
+                    statement.executeUpdate();
+                }
+                try (PreparedStatement statement = connection.prepareStatement(
+                    "DELETE FROM provouchers_use_totals WHERE code = ?")) {
+                    statement.setString(1, key);
+                    statement.executeUpdate();
+                }
+                return true;
+            });
+        }
+    }
+
+    /** Deletes one player's recorded uses of this key, taking them off the key's total. */
+    public void clearUses(String key, UUID player) throws SQLException {
+        try (Connection connection = provider.dataSource().getConnection()) {
+            for (int attempt = 0; attempt < MAX_WRITE_ATTEMPTS; attempt++) {
+                Integer mine = playerUses(connection, key, player);
+                if (mine == null || deletePlayerUses(connection, key, player, mine)) {
+                    return;
+                }
+            }
+        }
+        throw contended("clear", key);
+    }
+
+    /**
+     * Adds {@code amount} to the player's count and the key's total in one transaction, each update
+     * guarded by its cap when capped. Returns {@code false}, with nothing changed, when either update
+     * matched no row: its cap no longer fits, or a concurrent clear deleted the row.
+     */
+    private static boolean addUses(Connection connection, String key, UUID player, int amount,
+                                   int perPlayerCap, int globalCap) throws SQLException {
+        return inTransaction(connection, () -> {
+            try (PreparedStatement statement = connection.prepareStatement(
+                "UPDATE provouchers_code_uses SET uses = uses + ?, updated_at = ? WHERE code = ? AND player_uuid = ?"
+                    + (perPlayerCap < 0 ? "" : " AND uses + ? <= ?"))) {
+                statement.setInt(1, amount);
+                statement.setLong(2, System.currentTimeMillis());
+                statement.setString(3, key);
+                statement.setString(4, player.toString());
+                if (perPlayerCap >= 0) {
+                    statement.setInt(5, amount);
+                    statement.setInt(6, perPlayerCap);
+                }
+                if (statement.executeUpdate() == 0) {
+                    return false;
+                }
+            }
+            try (PreparedStatement statement = connection.prepareStatement(
+                "UPDATE provouchers_use_totals SET uses = uses + ? WHERE code = ?"
+                    + (globalCap < 0 ? "" : " AND uses + ? <= ?"))) {
+                statement.setLong(1, amount);
+                statement.setString(2, key);
+                if (globalCap >= 0) {
+                    statement.setLong(3, amount);
+                    statement.setLong(4, globalCap);
+                }
+                return statement.executeUpdate() > 0;
+            }
+        });
+    }
+
+    /**
+     * Takes {@code amount} off the player's count and the key's total in one transaction. The player's
+     * update requires {@code uses >= amount} and returns {@code false}, with nothing changed, when a
+     * concurrent release or clear lowered the count after it was read.
+     */
+    private static boolean subtractUses(Connection connection, String key, UUID player, int amount)
+        throws SQLException {
+        return inTransaction(connection, () -> {
+            try (PreparedStatement statement = connection.prepareStatement(
+                "UPDATE provouchers_code_uses SET uses = uses - ?, updated_at = ? "
+                    + "WHERE code = ? AND player_uuid = ? AND uses >= ?")) {
+                statement.setInt(1, amount);
+                statement.setLong(2, System.currentTimeMillis());
+                statement.setString(3, key);
+                statement.setString(4, player.toString());
+                statement.setInt(5, amount);
+                if (statement.executeUpdate() == 0) {
+                    return false;
+                }
+            }
+            subtractTotal(connection, key, amount);
+            return true;
+        });
+    }
+
+    /**
+     * Deletes the player's row only while it still holds {@code uses}, taking that many off the total in
+     * the same transaction. Returns {@code false}, with nothing changed, when a concurrent writer moved
+     * the count after it was read.
+     */
+    private static boolean deletePlayerUses(Connection connection, String key, UUID player, int uses)
+        throws SQLException {
+        return inTransaction(connection, () -> {
+            try (PreparedStatement statement = connection.prepareStatement(
+                "DELETE FROM provouchers_code_uses WHERE code = ? AND player_uuid = ? AND uses = ?")) {
+                statement.setString(1, key);
+                statement.setString(2, player.toString());
+                statement.setInt(3, uses);
+                if (statement.executeUpdate() == 0) {
+                    return false;
+                }
+            }
+            subtractTotal(connection, key, uses);
+            return true;
+        });
+    }
+
+    /**
+     * Takes {@code amount} off the key's total, clamped at zero so a total that fell behind the player
+     * counts (for example one written by an older version sharing the database) never goes negative.
+     */
+    private static void subtractTotal(Connection connection, String key, long amount) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+            "UPDATE provouchers_use_totals SET uses = CASE WHEN uses >= ? THEN uses - ? ELSE 0 END "
+                + "WHERE code = ?")) {
+            statement.setLong(1, amount);
+            statement.setLong(2, amount);
+            statement.setString(3, key);
+            statement.executeUpdate();
         }
     }
 
     /**
-     * Increments a player's use count for a code by one and returns the new total.
-     * Uses a read-then-write within a transaction so it stays portable across all
-     * supported backends.
+     * The player's recorded uses of {@code key}, first inserting a zero row when there is none so the
+     * conditional update has a row to match. Runs in autocommit: a concurrent first use may insert the
+     * same row, and that duplicate is detected by reading again, like {@link #recordUse}.
      */
-    public int incrementCodeUse(String code, UUID player) throws SQLException {
-        try (Connection connection = provider.dataSource().getConnection()) {
-            boolean previousAutoCommit = connection.getAutoCommit();
-            connection.setAutoCommit(false);
-            try {
-                int current = codeUsesByPlayer(connection, code, player);
-                int next = current + 1;
-                String sql = current == 0
-                    ? "INSERT INTO provouchers_code_uses (code, player_uuid, uses, updated_at) "
-                        + "VALUES (?, ?, ?, ?)"
-                    : "UPDATE provouchers_code_uses SET uses = ?, updated_at = ? "
-                        + "WHERE code = ? AND player_uuid = ?";
-                try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                    if (current == 0) {
-                        statement.setString(1, code);
-                        statement.setString(2, player.toString());
-                        statement.setInt(3, next);
-                        statement.setLong(4, System.currentTimeMillis());
-                    } else {
-                        statement.setInt(1, next);
-                        statement.setLong(2, System.currentTimeMillis());
-                        statement.setString(3, code);
-                        statement.setString(4, player.toString());
-                    }
-                    statement.executeUpdate();
-                }
-                connection.commit();
-                return next;
-            } catch (SQLException ex) {
-                connection.rollback();
-                throw ex;
-            } finally {
-                connection.setAutoCommit(previousAutoCommit);
-            }
+    private static int ensurePlayerUses(Connection connection, String key, UUID player) throws SQLException {
+        Integer uses = playerUses(connection, key, player);
+        if (uses != null) {
+            return uses;
         }
-    }
-
-    /** Deletes every recorded use of this key (a code, or {@code "voucher:<id>"}). */
-    public void clearUses(String key) throws SQLException {
-        try (Connection connection = provider.dataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                 "DELETE FROM provouchers_code_uses WHERE code = ?")) {
-            statement.setString(1, key);
-            statement.executeUpdate();
-        }
-    }
-
-    /** Deletes one player's recorded uses of this key. */
-    public void clearUses(String key, UUID player) throws SQLException {
-        try (Connection connection = provider.dataSource().getConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                 "DELETE FROM provouchers_code_uses WHERE code = ? AND player_uuid = ?")) {
+        try (PreparedStatement statement = connection.prepareStatement(
+            "INSERT INTO provouchers_code_uses (code, player_uuid, uses, updated_at) VALUES (?, ?, 0, ?)")) {
             statement.setString(1, key);
             statement.setString(2, player.toString());
+            statement.setLong(3, System.currentTimeMillis());
             statement.executeUpdate();
+            return 0;
+        } catch (SQLException ex) {
+            Integer raced = playerUses(connection, key, player);
+            if (raced != null) {
+                return raced;
+            }
+            throw ex;
+        }
+    }
+
+    /** The key's total, first inserting a zero row when there is none; see {@link #ensurePlayerUses}. */
+    private static long ensureTotalUses(Connection connection, String key) throws SQLException {
+        Long total = totalUses(connection, key);
+        if (total != null) {
+            return total;
+        }
+        try (PreparedStatement statement = connection.prepareStatement(
+            "INSERT INTO provouchers_use_totals (code, uses) VALUES (?, 0)")) {
+            statement.setString(1, key);
+            statement.executeUpdate();
+            return 0L;
+        } catch (SQLException ex) {
+            Long raced = totalUses(connection, key);
+            if (raced != null) {
+                return raced;
+            }
+            throw ex;
         }
     }
 
     private int codeUsesByPlayer(Connection connection, String code, UUID player) throws SQLException {
+        Integer uses = playerUses(connection, code, player);
+        return uses != null ? uses : 0;
+    }
+
+    /** The player's recorded uses of {@code key}, or {@code null} when no row exists. */
+    @Nullable
+    private static Integer playerUses(Connection connection, String key, UUID player) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(
             "SELECT uses FROM provouchers_code_uses WHERE code = ? AND player_uuid = ?")) {
-            statement.setString(1, code);
+            statement.setString(1, key);
             statement.setString(2, player.toString());
             try (ResultSet result = statement.executeQuery()) {
-                return result.next() ? result.getInt(1) : 0;
+                return result.next() ? result.getInt(1) : null;
             }
         }
+    }
+
+    /** The key's total uses, or {@code null} when no row exists. */
+    @Nullable
+    private static Long totalUses(Connection connection, String key) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+            "SELECT uses FROM provouchers_use_totals WHERE code = ?")) {
+            statement.setString(1, key);
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next() ? result.getLong(1) : null;
+            }
+        }
+    }
+
+    /** A unit of transactional work: returns {@code true} to commit or {@code false} to roll back. */
+    @FunctionalInterface
+    private interface TransactionBody {
+        boolean run() throws SQLException;
+    }
+
+    /**
+     * Runs {@code body} in a transaction on {@code connection}, committing when it returns {@code true}
+     * and rolling back when it returns {@code false} or throws. Returns what {@code body} returned.
+     */
+    private static boolean inTransaction(Connection connection, TransactionBody body) throws SQLException {
+        boolean previousAutoCommit = connection.getAutoCommit();
+        connection.setAutoCommit(false);
+        try {
+            boolean commit = body.run();
+            if (commit) {
+                connection.commit();
+            } else {
+                connection.rollback();
+            }
+            return commit;
+        } catch (SQLException | RuntimeException ex) {
+            try {
+                connection.rollback();
+            } catch (SQLException rollbackFailure) {
+                ex.addSuppressed(rollbackFailure);
+            }
+            throw ex;
+        } finally {
+            connection.setAutoCommit(previousAutoCommit);
+        }
+    }
+
+    /** The failure raised when a use-count write keeps losing to concurrent writers. */
+    private static SQLException contended(String operation, String key) {
+        return new SQLException("Could not " + operation + " uses of '" + key + "': "
+            + MAX_WRITE_ATTEMPTS + " attempts in a row conflicted with concurrent writes");
     }
 
     /** Stores (or replaces) a player's cooldown expiry for a voucher, in epoch millis. */

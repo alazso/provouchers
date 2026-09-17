@@ -10,7 +10,8 @@ import java.util.UUID;
  * is a {@link StampStatus#DUPLICATE}; a storage error yields
  * {@link StampStatus#UNKNOWN} so callers can decide how strict to be.
  *
- * <p>{@link #check(String)} performs a blocking query and must run off the
+ * <p>{@link #check(String)}, {@link #claim(String, UUID)} and
+ * {@link #release(String, UUID)} perform blocking queries and must run off the
  * main and region threads.
  */
 public final class DupeDetector {
@@ -38,6 +39,19 @@ public final class DupeDetector {
     public boolean claim(String uid, UUID player) {
         try {
             return storage.recordUse(uid, player);
+        } catch (SQLException | RuntimeException ex) {
+            return false;
+        }
+    }
+
+    /**
+     * Undoes a successful {@link #claim} by {@code player}, so the item it was made for stays
+     * redeemable when its redemption is abandoned before delivery. Returns {@code false} if nothing
+     * was released, including on a storage failure, which leaves the id claimed.
+     */
+    public boolean release(String uid, UUID player) {
+        try {
+            return storage.deleteUse(uid, player);
         } catch (SQLException | RuntimeException ex) {
             return false;
         }

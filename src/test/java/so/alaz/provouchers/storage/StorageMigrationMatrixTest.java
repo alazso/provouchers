@@ -68,4 +68,25 @@ class StorageMigrationMatrixTest {
             POSTGRES.getHost(), POSTGRES.getFirstMappedPort(), POSTGRES.getDatabaseName(),
             POSTGRES.getUsername(), POSTGRES.getPassword(), 3, "test-postgres-stash"));
     }
+
+    @Test
+    void mysqlReservesUsesAtomically() throws Exception {
+        UseReservationScenario.runShared(StorageConfig.mysql(
+            MYSQL.getHost(), MYSQL.getFirstMappedPort(), MYSQL.getDatabaseName(),
+            MYSQL.getUsername(), MYSQL.getPassword(), 3, "test-mysql-uses"));
+    }
+
+    @Test
+    void mariadbReservesUsesAtomically() throws Exception {
+        UseReservationScenario.runShared(StorageConfig.mariadb(
+            MARIADB.getHost(), MARIADB.getFirstMappedPort(), MARIADB.getDatabaseName(),
+            MARIADB.getUsername(), MARIADB.getPassword(), 3, "test-mariadb-uses"));
+    }
+
+    @Test
+    void postgresReservesUsesAtomically() throws Exception {
+        UseReservationScenario.runShared(StorageConfig.postgres(
+            POSTGRES.getHost(), POSTGRES.getFirstMappedPort(), POSTGRES.getDatabaseName(),
+            POSTGRES.getUsername(), POSTGRES.getPassword(), 3, "test-postgres-uses"));
+    }
 }
