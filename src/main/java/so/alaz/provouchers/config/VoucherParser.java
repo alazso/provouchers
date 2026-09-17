@@ -7,6 +7,7 @@ import so.alaz.provouchers.reward.RewardLine;
 import so.alaz.provouchers.reward.RewardLineParser;
 import so.alaz.provouchers.reward.RewardSet;
 import so.alaz.provouchers.platform.ItemBuilder;
+import so.alaz.provouchers.platform.Sounds;
 import so.alaz.provouchers.util.Colors;
 import so.alaz.provouchers.util.Expiry;
 import so.alaz.provouchers.reward.RewardItemPayload;
@@ -127,7 +128,10 @@ public final class VoucherParser {
             soulbound.getBoolean("bind-on-pickup", true));
     }
 
-    /** Parses the optional {@code effects} block (sound, firework), or {@code null} when absent or empty. */
+    /**
+     * Parses the optional {@code effects} block (sound, firework), or {@code null} when absent or empty.
+     * A sound key that cannot be parsed is rejected here at load rather than failing at redeem.
+     */
     @Nullable
     private static VoucherEffects parseEffects(ConfigurationSection section, String id) {
         ConfigurationSection effects = section.getConfigurationSection("effects");
@@ -135,6 +139,10 @@ public final class VoucherParser {
             return null;
         }
         String sound = emptyToNull(effects.getString("sound", ""));
+        if (sound != null && !Sounds.isValid(sound)) {
+            throw new VoucherParseException(
+                "voucher '" + id + "': effects.sound '" + sound + "' is not a valid sound key");
+        }
         FireworkSpec firework = null;
         ConfigurationSection fireworkSection = effects.getConfigurationSection("firework");
         if (fireworkSection != null) {

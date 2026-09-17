@@ -289,6 +289,27 @@ class VoucherParserTest {
     }
 
     @Test
+    void upperCaseEffectsSoundKeyLoads() throws Exception {
+        YamlConfiguration config = yaml("""
+            item:
+              material: PAPER
+            effects:
+              sound: "minecraft:ENTITY.PLAYER.LEVELUP 1 1"
+            """);
+        // The spec is kept as written; the key is lower-cased when the sound plays.
+        assertThat(VoucherParser.parseVoucher(config, "fx").effects().sound())
+            .isEqualTo("minecraft:ENTITY.PLAYER.LEVELUP 1 1");
+    }
+
+    @Test
+    void invalidEffectsSoundKeyIsRejected() throws Exception {
+        YamlConfiguration config = yaml("item:\n  material: PAPER\neffects:\n  sound: \"bad$key 1 1\"\n");
+        assertThatThrownBy(() -> VoucherParser.parseVoucher(config, "bad"))
+            .isInstanceOf(VoucherParseException.class)
+            .hasMessageContaining("effects.sound");
+    }
+
+    @Test
     void missingItemSectionIsRejected() throws Exception {
         assertThatThrownBy(() -> VoucherParser.parseVoucher(yaml("display-name: x\n"), "bad"))
             .isInstanceOf(VoucherParseException.class)
@@ -424,5 +445,13 @@ class VoucherParserTest {
         YamlConfiguration config = yaml("code: X\nuses-per-player: 0\n");
         assertThatThrownBy(() -> VoucherParser.parseCode(config, "x"))
             .isInstanceOf(VoucherParseException.class);
+    }
+
+    @Test
+    void invalidCodeEffectsSoundKeyIsRejected() throws Exception {
+        YamlConfiguration config = yaml("code: X\neffects:\n  sound: \"bad$key\"\n");
+        assertThatThrownBy(() -> VoucherParser.parseCode(config, "x"))
+            .isInstanceOf(VoucherParseException.class)
+            .hasMessageContaining("effects.sound");
     }
 }
