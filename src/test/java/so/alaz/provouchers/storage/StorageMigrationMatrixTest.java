@@ -47,4 +47,25 @@ class StorageMigrationMatrixTest {
             POSTGRES.getHost(), POSTGRES.getFirstMappedPort(), POSTGRES.getDatabaseName(),
             POSTGRES.getUsername(), POSTGRES.getPassword(), 3, "test-postgres"));
     }
+
+    @Test
+    void mysqlStashDeliversClaimsAndRestoresExactly() throws Exception {
+        StashStorageScenario.deliverClaimAndRestore(StorageConfig.mysql(
+            MYSQL.getHost(), MYSQL.getFirstMappedPort(), MYSQL.getDatabaseName(),
+            MYSQL.getUsername(), MYSQL.getPassword(), 3, "test-mysql-stash"));
+    }
+
+    @Test
+    void mariadbStashDeliversClaimsAndRestoresExactly() throws Exception {
+        StashStorageScenario.deliverClaimAndRestore(StorageConfig.mariadb(
+            MARIADB.getHost(), MARIADB.getFirstMappedPort(), MARIADB.getDatabaseName(),
+            MARIADB.getUsername(), MARIADB.getPassword(), 3, "test-mariadb-stash"));
+    }
+
+    @Test
+    void postgresStashDeliversClaimsAndRestoresExactly() throws Exception {
+        StashStorageScenario.deliverClaimAndRestore(StorageConfig.postgres(
+            POSTGRES.getHost(), POSTGRES.getFirstMappedPort(), POSTGRES.getDatabaseName(),
+            POSTGRES.getUsername(), POSTGRES.getPassword(), 3, "test-postgres-stash"));
+    }
 }

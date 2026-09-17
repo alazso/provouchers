@@ -62,4 +62,9 @@ class StorageSqliteTest {
             provider.shutdown().get(30, TimeUnit.SECONDS);
         }
     }
+
+    @Test
+    void stashDeliversClaimsAndRestoresExactlyOnSqlite(@TempDir Path dir) throws Exception {
+        StashStorageScenario.deliverClaimAndRestore(StorageConfig.sqlite(dir.resolve("stash.db").toString()));
+    }
 }
