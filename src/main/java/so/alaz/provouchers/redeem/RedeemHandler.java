@@ -319,9 +319,10 @@ public final class RedeemHandler {
 
     /**
      * Gives back what an undelivered item redeem holds, its stamp claim and reserved uses, then releases
-     * its in-flight guard. The storage work runs on the async scheduler, so this is safe from a retired
-     * callback on any thread. The guard is released only after the claim is gone, so a retry cannot
-     * find the stale claim and take the item for a duplicate.
+     * its in-flight guard. The storage work runs on the async scheduler, or on the calling thread while
+     * the plugin disables, so this is safe from a retired callback on any thread. The guard is released
+     * only after the claim is gone, so a retry cannot find the stale claim and take the item for a
+     * duplicate.
      */
     private void abandon(UUID player, Voucher voucher, @Nullable String claimedUid, int reserved,
                          InFlightGuard.Ticket ticket) {
@@ -330,7 +331,7 @@ public final class RedeemHandler {
             return;
         }
         try {
-            scheduler.async(() -> {
+            scheduler.asyncOrRun(() -> {
                 try {
                     if (claimedUid != null) {
                         dupeDetector.release(claimedUid, player);
@@ -341,7 +342,7 @@ public final class RedeemHandler {
                 }
             });
         } catch (RuntimeException ex) {
-            // Nothing can be scheduled while the plugin disables; never leave the voucher blocked.
+            // The give-back could not be scheduled; never leave the voucher blocked.
             inFlight.release(ticket);
             throw ex;
         }
@@ -658,7 +659,7 @@ public final class RedeemHandler {
                 counters.recordCodeRedemption();
                 new VoucherCodeRedeemEvent(player, code, argument).callEvent();
                 send(player, messages.get(player, "code.redeemed"));
-            }, () -> scheduler.async(() -> releaseUses(code.code(), playerId, 1)));
+            }, () -> scheduler.asyncOrRun(() -> releaseUses(code.code(), playerId, 1)));
         });
     }
 
