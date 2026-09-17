@@ -8,9 +8,13 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -149,9 +153,61 @@ class StorageSqliteTest {
     }
 
     @Test
+    void retriesOpeningWhenAMigrationFailsOnce(@TempDir Path dir) throws Exception {
+        StorageProvider provider = new StorageProvider(StorageConfig.sqlite(dir.resolve("data.db").toString()));
+        VoucherStorage storage = new VoucherStorage(provider, List.of(Duration.ofMillis(10)));
+        AtomicInteger attempts = new AtomicInteger();
+        provider.migrations().register(new Migration() {
+            @Override
+            public int version() {
+                return 1_000;
+            }
+
+            @Override
+            public void up(Connection connection) throws SQLException {
+                if (attempts.incrementAndGet() == 1) {
+                    // As when another server sharing the database applied the same migration first.
+                    throw new SQLException("simulated concurrent migration");
+                }
+            }
+        });
+        try {
+            storage.init().get(60, TimeUnit.SECONDS);
+            assertThat(attempts).hasValue(2);
+            assertThat(storage.isReady()).isTrue();
+            assertThat(storage.isUsed("anything")).isFalse();
+        } finally {
+            storage.shutdown().get(30, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
+    void stopsRetryingWithoutReopeningOnceShutDown(@TempDir Path dir) throws Exception {
+        StorageProvider provider = new StorageProvider(StorageConfig.sqlite(dir.resolve("data.db").toString()));
+        VoucherStorage storage = new VoucherStorage(provider, List.of(Duration.ofMillis(200)));
+        provider.migrations().register(new Migration() {
+            @Override
+            public int version() {
+                return 1_000;
+            }
+
+            @Override
+            public void up(Connection connection) throws SQLException {
+                throw new SQLException("simulated failing migration");
+            }
+        });
+        CompletableFuture<Void> opening = storage.init();
+        storage.shutdown().get(30, TimeUnit.SECONDS);
+        assertThatThrownBy(() -> opening.get(60, TimeUnit.SECONDS)).isInstanceOf(ExecutionException.class);
+        assertThat(storage.isReady()).isFalse();
+        // The pool stays closed: no retry opened it again after the shutdown.
+        assertThatThrownBy(provider::dataSource).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
     void staysNotReadyWhenAMigrationFails(@TempDir Path dir) throws Exception {
         StorageProvider provider = new StorageProvider(StorageConfig.sqlite(dir.resolve("data.db").toString()));
-        VoucherStorage storage = new VoucherStorage(provider);
+        VoucherStorage storage = new VoucherStorage(provider, List.of(Duration.ofMillis(10), Duration.ofMillis(10)));
         try {
             provider.init().get(30, TimeUnit.SECONDS);
             try (Connection c = provider.dataSource().getConnection();

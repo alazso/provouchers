@@ -27,6 +27,9 @@ public final class StorageProvider {
     @Nullable
     private volatile HikariDataSource dataSource;
 
+    /** Set by {@link #shutdown()}; read and written only on the lifecycle thread. */
+    private boolean closed;
+
     public StorageProvider(StorageConfig config) {
         this.config = config;
         this.executor = Executors.newSingleThreadExecutor(runnable -> {
@@ -37,9 +40,15 @@ public final class StorageProvider {
         this.runner = new MigrationRunner(this, executor);
     }
 
-    /** Opens the connection pool (creating the SQLite file/dirs if needed). Idempotent. */
+    /**
+     * Opens the connection pool (creating the SQLite file/dirs if needed). Idempotent. Refused once
+     * {@link #shutdown()} has run, so a late retry cannot reopen a pool that was closed.
+     */
     public CompletableFuture<Void> init() {
         return CompletableFuture.runAsync(() -> {
+            if (closed) {
+                throw new IllegalStateException("StorageProvider was shut down");
+            }
             if (dataSource != null) {
                 return;
             }
@@ -64,6 +73,7 @@ public final class StorageProvider {
     /** Closes the pool and releases resources. Idempotent. */
     public CompletableFuture<Void> shutdown() {
         return CompletableFuture.runAsync(() -> {
+            closed = true;
             HikariDataSource current = dataSource;
             if (current != null) {
                 current.close();

@@ -9,12 +9,17 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 /**
  * Persistence gateway for ProVouchers, built on a {@link StorageProvider}. The
@@ -35,7 +40,15 @@ public final class VoucherStorage {
      */
     private static final int MAX_WRITE_ATTEMPTS = 32;
 
+    /**
+     * The delays before each retry of opening storage after a failed attempt, each lengthened by a random
+     * part of up to half its length so servers that failed together do not retry together.
+     */
+    private static final List<Duration> OPEN_RETRY_DELAYS = List.of(
+        Duration.ofSeconds(1), Duration.ofSeconds(2), Duration.ofSeconds(4), Duration.ofSeconds(8));
+
     private final StorageProvider provider;
+    private final List<Duration> openRetryDelays;
 
     /**
      * Set once every migration has applied, and cleared on shutdown. The pool opens before the
@@ -44,11 +57,26 @@ public final class VoucherStorage {
      */
     private volatile boolean ready;
 
+    /** Set on shutdown, so a pending retry of opening storage stops instead of reopening the pool. */
+    private volatile boolean closed;
+
     public VoucherStorage(StorageProvider provider) {
-        this.provider = provider;
+        this(provider, OPEN_RETRY_DELAYS);
     }
 
-    /** Opens the pool and applies pending migrations, then admits queries. */
+    /** Opens storage through {@code provider}, retrying a failed open after each of {@code openRetryDelays}. */
+    VoucherStorage(StorageProvider provider, List<Duration> openRetryDelays) {
+        this.provider = provider;
+        this.openRetryDelays = List.copyOf(openRetryDelays);
+    }
+
+    /**
+     * Opens the pool and applies pending migrations, then admits queries. A failed attempt is retried
+     * with backoff before the returned future fails: servers sharing a database that start together can
+     * apply the same migration at once, and the one that loses (a duplicate or a deadlock) then finds the
+     * other's work committed and skips it. A connection or lock error that clears quickly passes the same
+     * way.
+     */
     public CompletableFuture<Void> init() {
         provider.migrations()
             .register(new InitialSchema())
@@ -56,18 +84,38 @@ public final class VoucherStorage {
             .register(new UsedVoucherSchema())
             .register(new StashSchema())
             .register(new UseTotalsSchema());
-        return provider.init().thenCompose(ignored -> provider.migrations().migrate())
-            .thenApply(applied -> {
-                ready = true;
-                return null;
-            });
+        return open(0).thenApply(applied -> {
+            ready = true;
+            return null;
+        });
+    }
+
+    /** One attempt to open the pool and apply pending migrations, retried until the delays run out. */
+    private CompletableFuture<Integer> open(int failedAttempts) {
+        return provider.init()
+            .thenCompose(ignored -> provider.migrations().migrate())
+            .handle((applied, error) -> {
+                if (error == null) {
+                    return CompletableFuture.completedFuture(applied);
+                }
+                if (closed || failedAttempts >= openRetryDelays.size()) {
+                    return CompletableFuture.<Integer>failedFuture(error);
+                }
+                long delay = openRetryDelays.get(failedAttempts).toMillis();
+                long jittered = delay + ThreadLocalRandom.current().nextLong(delay / 2 + 1);
+                Executor later = CompletableFuture.delayedExecutor(jittered, TimeUnit.MILLISECONDS);
+                return CompletableFuture.runAsync(() -> { }, later).thenCompose(ignored -> open(failedAttempts + 1));
+            })
+            .thenCompose(Function.identity());
     }
 
     /**
      * Closes the pool, then refuses further queries. Queries are admitted until the close runs, so a
-     * give-back still finishing while the plugin disables is not refused before the pool is gone.
+     * give-back still finishing while the plugin disables is not refused before the pool is gone. A
+     * pending retry of opening storage stops.
      */
     public CompletableFuture<Void> shutdown() {
+        closed = true;
         return provider.shutdown().whenComplete((ignored, error) -> ready = false);
     }
 
