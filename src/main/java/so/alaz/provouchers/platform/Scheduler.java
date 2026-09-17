@@ -25,17 +25,25 @@ public final class Scheduler {
         Bukkit.getGlobalRegionScheduler().run(plugin, scheduled -> task.run());
     }
 
-    /** Runs on the region thread currently owning the entity. */
+    /**
+     * Runs on the region thread currently owning the entity. The task is silently dropped if the entity
+     * is gone, so use {@link #entity(Entity, Runnable, Runnable)} when state was already consumed.
+     */
     public void entity(Entity entity, Runnable task) {
         entity.getScheduler().run(plugin, scheduled -> task.run(), null);
     }
 
     /**
-     * Runs on the region thread owning the entity; if the entity has retired (e.g. the player logged
-     * out) before the task runs, {@code retired} runs instead so a side effect is never simply dropped.
+     * Runs on the region thread owning the entity, or runs {@code retired} instead when the task cannot:
+     * exactly one of the two runs, so a side effect is never simply dropped. Paper invokes
+     * {@code retired} if the entity retires (e.g. the player logged out) before the task runs, but
+     * invokes neither when the entity was already gone at scheduling time; then {@code retired} runs
+     * here, on the calling thread, so it must not assume a region thread.
      */
     public void entity(Entity entity, Runnable task, Runnable retired) {
-        entity.getScheduler().run(plugin, scheduled -> task.run(), retired);
+        if (entity.getScheduler().run(plugin, scheduled -> task.run(), retired) == null) {
+            retired.run();
+        }
     }
 
     /** Runs on a dedicated async thread, as soon as possible. */
