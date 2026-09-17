@@ -84,10 +84,19 @@ public final class ProVouchersPlugin extends JavaPlugin {
 
     private static final int MINIMUM_JAVA_FEATURE = 25;
 
+    /** How long disabling waits for the redeem verifications still touching storage, and again for Stash claims. */
+    private static final Duration SETTLE_WAIT = Duration.ofSeconds(3);
+
+    /** How long disabling waits for the storage pool to close. */
+    private static final long STORAGE_CLOSE_TIMEOUT_SECONDS = 10;
+
     private VoucherStorage storage;
     private Metrics metrics;
     private GuiManager guiManager;
     private DiscordWebhook discordWebhook;
+    private VoucherGiveService giveService;
+    private RedeemHandler redeemHandler;
+    private StashService stashService;
 
     @Override
     public void onEnable() {
@@ -132,7 +141,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
         RewardExecutor rewardExecutor = new RewardExecutor(
             scheduler, text, itemResolver, factory, hooks,
             getComponentLogger(), discordWebhook);
-        VoucherGiveService giveService = new VoucherGiveService(factory, scheduler, getComponentLogger());
+        giveService = new VoucherGiveService(factory, scheduler, getComponentLogger());
         PreviewGui previewGui = new PreviewGui(registry, factory, giveService,
             new VoucherAdminMenu(text), guiManager, scheduler,
             text);
@@ -143,7 +152,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
 
         MetricCounters counters = new MetricCounters();
 
-        RedeemHandler redeemHandler = new RedeemHandler(
+        redeemHandler = new RedeemHandler(
             registry,
             stamp,
             new DupeDetector(storage),
@@ -168,7 +177,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
         );
 
         Duration stashExpiry = Durations.parseOrNull(getConfig().getString("stash.expire-after", ""));
-        StashService stashService = new StashService(storage, registry, redeemHandler, scheduler, text,
+        stashService = new StashService(storage, registry, redeemHandler, scheduler, text,
             messages, getLogger(), counters, stashExpiry != null ? stashExpiry.toMillis() : 0L);
         boolean stashEnabled = getConfig().getBoolean("stash.enabled", true);
         if (stashEnabled) {
@@ -233,8 +242,20 @@ public final class ProVouchersPlugin extends JavaPlugin {
         if (metrics != null) {
             closeQuietly("stop metrics", metrics::shutdown);
         }
+        // Paper runs neither callback of a hop still scheduled now, so settle that work while storage is
+        // open. Gives go first, since an undelivered give is queued in the Stash.
+        if (giveService != null) {
+            closeQuietly("settle undelivered gives", giveService::settleForShutdown);
+        }
+        if (redeemHandler != null) {
+            closeQuietly("settle pending redeems", () -> redeemHandler.settleForShutdown(SETTLE_WAIT));
+        }
+        if (stashService != null) {
+            closeQuietly("settle pending Stash claims", () -> stashService.settleForShutdown(SETTLE_WAIT));
+        }
         if (storage != null) {
-            closeQuietly("close storage", storage::shutdown);
+            closeQuietly("close storage",
+                () -> storage.shutdown().get(STORAGE_CLOSE_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         }
         if (discordWebhook != null) {
             closeQuietly("close the webhook client", discordWebhook::close);
@@ -242,11 +263,20 @@ public final class ProVouchersPlugin extends JavaPlugin {
         getComponentLogger().info(text("ProVouchers disabled.", NamedTextColor.GOLD));
     }
 
+    /** One shutdown step, which may fail with any exception. */
+    @FunctionalInterface
+    private interface ShutdownStep {
+        void run() throws Exception;
+    }
+
     /** Runs a shutdown step, logging (not propagating) any failure so later steps still run. */
-    private void closeQuietly(String what, Runnable step) {
+    private void closeQuietly(String what, ShutdownStep step) {
         try {
             step.run();
         } catch (Throwable t) {
+            if (t instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             getComponentLogger().warn(text("ProVouchers: failed to " + what + " during shutdown: "
                 + t, NamedTextColor.RED));
         }
