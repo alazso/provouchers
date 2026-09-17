@@ -56,17 +56,8 @@ public final class SoulboundListener implements Listener {
             || event.getView().getTopInventory().getType() == InventoryType.CRAFTING) {
             return; // own inventory view; the item is not leaving the player
         }
-        boolean intoContainer =
-            // shift-click out of the player's inventory
-            (event.isShiftClick() && event.getClickedInventory() == event.getView().getBottomInventory()
-                && blocked(event.getCurrentItem()))
-            // placing the cursor item into the open container
-            || (event.getClickedInventory() == event.getView().getTopInventory()
-                && (blocked(event.getCursor())
-                    // number-key swap pulling a hotbar item into the container
-                    || (event.getHotbarButton() >= 0
-                        && blocked(player.getInventory().getItem(event.getHotbarButton())))));
-        if (intoContainer) {
+        // placed from the cursor, swapped in by a number key or the swap-offhand key, or shift-clicked across
+        if (VoucherStationListener.incomingItems(event).stream().anyMatch(this::blocked)) {
             event.setCancelled(true);
             warn(player, "soulbound.no-container");
         }
