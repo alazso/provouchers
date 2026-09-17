@@ -34,6 +34,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -45,7 +46,9 @@ import java.util.concurrent.ThreadLocalRandom;
  * MiniMessage and PlaceholderAPI are resolved by the text renderer.
  *
  * <p>Each reward is executed independently: a single failing reward is logged
- * with its source and never aborts the others.
+ * with its source and never aborts the others. A player command or a defined item
+ * still waiting for the player's thread when the player logs out is logged the
+ * same way, never dropped silently.
  */
 public final class RewardExecutor {
 
@@ -104,7 +107,9 @@ public final class RewardExecutor {
         switch (reward.type()) {
             case CONSOLE_COMMAND -> scheduler.global(() ->
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), payload));
-            case PLAYER_COMMAND -> scheduler.entity(player, () -> player.performCommand(payload));
+            case PLAYER_COMMAND -> scheduler.entity(player, () -> player.performCommand(payload),
+                () -> warn(source, reward.type().name().toLowerCase(), payload,
+                    "the player logged out before the command ran"));
             case MESSAGE -> player.sendMessage(text.render(payload, player));
             case BROADCAST -> {
                 Component message = text.render(payload, player);
@@ -118,7 +123,7 @@ public final class RewardExecutor {
             }
             case ACTIONBAR -> player.sendActionBar(text.render(payload, player));
             case SOUND -> Sounds.play(player, payload);
-            case ITEM -> giveItem(player, payload, definedItems);
+            case ITEM -> giveItem(player, source, payload, definedItems);
             case CURRENCY -> applyCurrency(player, payload);
             case XP -> giveXp(player, payload);
             case GROUP -> applyGroup(player, source, payload);
@@ -156,16 +161,23 @@ public final class RewardExecutor {
             reason -> warn(source, "discord", payload, reason));
     }
 
-    private void giveItem(Player player, String payload, Map<String, DefinedItem> definedItems) {
+    private void giveItem(Player player, String source, String payload, Map<String, DefinedItem> definedItems) {
         RewardItemPayload spec = RewardItemPayload.parse(payload);
         if (spec.isDefinedRef()) {
             DefinedItem defined = definedItems.get(spec.definedName());
             if (defined == null) {
                 throw new IllegalArgumentException("no defined item named '" + spec.definedName() + "'");
             }
-            // Skull-based items may resolve off-thread; deliver on the player's region thread.
-            factory.createDefinedItem(defined, spec.resolveAmount(), player).thenAccept(item ->
-                scheduler.entity(player, () -> Items.giveOrDrop(player, item)));
+            // Skull-based items may resolve off-thread; deliver on the player's region thread. A failed
+            // build, or a logout before delivery, is logged here because it happens after this call returns.
+            factory.createDefinedItem(defined, spec.resolveAmount(), player)
+                .thenAccept(item -> scheduler.entity(player, () -> Items.giveOrDrop(player, item),
+                    () -> warn(source, "item", payload,
+                        "the item was not delivered because the player logged out")))
+                .exceptionally(error -> {
+                    warn(source, "item", payload, reason(error));
+                    return null;
+                });
             return;
         }
         Items.giveOrDrop(player, items.give(spec.reference(), spec.resolveAmount()));
@@ -243,6 +255,13 @@ public final class RewardExecutor {
 
     private void warn(String source, String type, String payload, String reason) {
         logger.warn("Reward '{}: {}' in {} failed: {}", type, payload, source, reason);
+    }
+
+    /** Why a future failed: its underlying exception's message, or that exception's type when it has none. */
+    private static String reason(Throwable error) {
+        Throwable cause = error instanceof CompletionException && error.getCause() != null
+            ? error.getCause() : error;
+        return cause.getMessage() != null ? cause.getMessage() : cause.getClass().getSimpleName();
     }
 
 }
