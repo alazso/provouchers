@@ -35,6 +35,25 @@ All notable changes to ProVouchers are documented here. This project follows
   cooldowns have loaded. Until they load, vouchers with a cooldown reply that they
   could not be verified and loading retries; while storage is unavailable, those
   vouchers stay unavailable rather than ignoring stored cooldowns.
+- Use limits (`max-uses` and `uses-per-player`) on vouchers and codes are reserved
+  in storage before any reward is granted, so players redeeming at the same moment,
+  on one server or on several sharing a database, can no longer exceed a limit, and
+  simultaneous uses are no longer undercounted.
+- Logging out while a voucher or code is being verified no longer uses it up
+  without a reward. An item voucher stays in the inventory until its reward is
+  delivered, and a redeem that cannot be delivered gives back its use and does not
+  mark a stamped voucher as redeemed.
+- Redeeming several copies of a voucher in quick succession can no longer grant
+  extra rewards before its cooldown or use limit applies: while one redeem of a
+  voucher is being verified, further clicks on that voucher are ignored.
+
+### Migration
+- Use limits are counted in a new `provouchers_use_totals` table, created and
+  filled from the recorded uses on first start.
+- Update every server that shares a database at the same time. An older version
+  running alongside this one does not count uses in the new table, so global limits
+  could be exceeded, and it can multiply Stash deliveries, because this version
+  stores each delivery as its own row.
 
 ## [1.4.0] - 2026-06-15
 
