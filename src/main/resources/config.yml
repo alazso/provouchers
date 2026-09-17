@@ -86,6 +86,6 @@ stash:
   overflow: drop             # when a give does not fit: drop the items, or stash them
 
 metrics:
-  # Submit anonymous usage statistics (bStats and FastStats).
+  # Submit pseudonymous usage statistics (bStats and FastStats).
   # Set to false to opt out entirely.
   enabled: true
