@@ -37,11 +37,18 @@ public final class VoucherStorage {
 
     private final StorageProvider provider;
 
+    /**
+     * Set once every migration has applied, and cleared on shutdown. The pool opens before the
+     * migrations run, so queries wait for this instead: a query against a half-migrated schema could
+     * write rows a migration is about to create (a use total the backfill then collides with).
+     */
+    private volatile boolean ready;
+
     public VoucherStorage(StorageProvider provider) {
         this.provider = provider;
     }
 
-    /** Opens the pool and applies pending migrations. */
+    /** Opens the pool and applies pending migrations, then admits queries. */
     public CompletableFuture<Void> init() {
         provider.migrations()
             .register(new InitialSchema())
@@ -50,27 +57,38 @@ public final class VoucherStorage {
             .register(new StashSchema())
             .register(new UseTotalsSchema());
         return provider.init().thenCompose(ignored -> provider.migrations().migrate())
-            .thenApply(applied -> null);
+            .thenApply(applied -> {
+                ready = true;
+                return null;
+            });
     }
 
-    /** Closes the pool. */
+    /** Refuses further queries and closes the pool. */
     public CompletableFuture<Void> shutdown() {
+        ready = false;
         return provider.shutdown();
     }
 
-    /** Whether the connection pool is open (storage initialised without error). Non-blocking. */
+    /**
+     * Whether storage is open and fully migrated, so queries are admitted. Non-blocking. Stays
+     * {@code false} when opening or a migration failed, which leaves every query refused.
+     */
     public boolean isReady() {
-        try {
-            provider.dataSource();
-            return true;
-        } catch (IllegalStateException ex) {
-            return false;
+        return ready;
+    }
+
+    /** A pooled connection, refused with an {@link SQLException} until storage is ready. */
+    private Connection connection() throws SQLException {
+        if (!ready) {
+            throw new SQLException("ProVouchers storage is not ready: it is still opening, failed to open, "
+                + "or has shut down");
         }
+        return provider.dataSource().getConnection();
     }
 
     /** Whether a voucher item's unique id has already been redeemed. */
     public boolean isUsed(String uid) throws SQLException {
-        try (Connection connection = provider.dataSource().getConnection();
+        try (Connection connection = connection();
              PreparedStatement statement = connection.prepareStatement(
                  "SELECT 1 FROM provouchers_used_vouchers WHERE uid = ?")) {
             statement.setString(1, uid);
@@ -82,7 +100,7 @@ public final class VoucherStorage {
 
     /** Records a unique id as redeemed. Returns {@code false} if it was already present. */
     public boolean recordUse(String uid, UUID player) throws SQLException {
-        try (Connection connection = provider.dataSource().getConnection();
+        try (Connection connection = connection();
              PreparedStatement statement = connection.prepareStatement(
                  "INSERT INTO provouchers_used_vouchers (uid, player_uuid, redeemed_at) "
                      + "VALUES (?, ?, ?)")) {
@@ -106,7 +124,7 @@ public final class VoucherStorage {
      * Returns whether a row was removed.
      */
     public boolean deleteUse(String uid, UUID player) throws SQLException {
-        try (Connection connection = provider.dataSource().getConnection();
+        try (Connection connection = connection();
              PreparedStatement statement = connection.prepareStatement(
                  "DELETE FROM provouchers_used_vouchers WHERE uid = ? AND player_uuid = ?")) {
             statement.setString(1, uid);
@@ -120,14 +138,14 @@ public final class VoucherStorage {
      * value, or {@code "voucher:<id>"} for an item voucher's use counters.
      */
     public int codeUsesByPlayer(String code, UUID player) throws SQLException {
-        try (Connection connection = provider.dataSource().getConnection()) {
+        try (Connection connection = connection()) {
             return codeUsesByPlayer(connection, code, player);
         }
     }
 
     /** How many times this use key (a code, or {@code "voucher:<id>"}) was redeemed by anyone. */
     public long codeUsesTotal(String code) throws SQLException {
-        try (Connection connection = provider.dataSource().getConnection()) {
+        try (Connection connection = connection()) {
             Long total = totalUses(connection, code);
             return total != null ? total : 0L;
         }
@@ -171,7 +189,7 @@ public final class VoucherStorage {
         if (requested < 1) {
             throw new IllegalArgumentException("requested must be at least 1, was " + requested);
         }
-        try (Connection connection = provider.dataSource().getConnection()) {
+        try (Connection connection = connection()) {
             for (int attempt = 0; attempt < MAX_WRITE_ATTEMPTS; attempt++) {
                 long mine = ensurePlayerUses(connection, key, player);
                 long total = ensureTotalUses(connection, key);
@@ -200,7 +218,7 @@ public final class VoucherStorage {
         if (count < 1) {
             return 0;
         }
-        try (Connection connection = provider.dataSource().getConnection()) {
+        try (Connection connection = connection()) {
             for (int attempt = 0; attempt < MAX_WRITE_ATTEMPTS; attempt++) {
                 Integer mine = playerUses(connection, key, player);
                 int release = mine == null ? 0 : Math.min(count, mine);
@@ -214,7 +232,7 @@ public final class VoucherStorage {
 
     /** Deletes every recorded use of this key (a code, or {@code "voucher:<id>"}) and its total. */
     public void clearUses(String key) throws SQLException {
-        try (Connection connection = provider.dataSource().getConnection()) {
+        try (Connection connection = connection()) {
             inTransaction(connection, () -> {
                 try (PreparedStatement statement = connection.prepareStatement(
                     "DELETE FROM provouchers_code_uses WHERE code = ?")) {
@@ -233,7 +251,7 @@ public final class VoucherStorage {
 
     /** Deletes one player's recorded uses of this key, taking them off the key's total. */
     public void clearUses(String key, UUID player) throws SQLException {
-        try (Connection connection = provider.dataSource().getConnection()) {
+        try (Connection connection = connection()) {
             for (int attempt = 0; attempt < MAX_WRITE_ATTEMPTS; attempt++) {
                 Integer mine = playerUses(connection, key, player);
                 if (mine == null || deletePlayerUses(connection, key, player, mine)) {
@@ -460,7 +478,7 @@ public final class VoucherStorage {
 
     /** Stores (or replaces) a player's cooldown expiry for a voucher, in epoch millis. */
     public void setCooldown(UUID player, String voucherId, long expiresAt) throws SQLException {
-        try (Connection connection = provider.dataSource().getConnection()) {
+        try (Connection connection = connection()) {
             int updated;
             try (PreparedStatement statement = connection.prepareStatement(
                 "UPDATE provouchers_cooldowns SET expires_at = ? WHERE player_uuid = ? "
@@ -486,7 +504,7 @@ public final class VoucherStorage {
     /** A player's still-active cooldowns: voucher id to expiry epoch millis (after {@code now}). */
     public Map<String, Long> activeCooldowns(UUID player, long now) throws SQLException {
         Map<String, Long> cooldowns = new HashMap<>();
-        try (Connection connection = provider.dataSource().getConnection();
+        try (Connection connection = connection();
              PreparedStatement statement = connection.prepareStatement(
                  "SELECT voucher_id, expires_at FROM provouchers_cooldowns WHERE player_uuid = ? "
                      + "AND expires_at > ?")) {
@@ -507,7 +525,7 @@ public final class VoucherStorage {
      * inflate one another and a row still holds the amount it was read with when a claim removes it.
      */
     public void addStash(StashEntry entry) throws SQLException {
-        try (Connection connection = provider.dataSource().getConnection();
+        try (Connection connection = connection();
              PreparedStatement statement = connection.prepareStatement(
                  "INSERT INTO provouchers_stash "
                      + "(id, player_uuid, voucher_id, amount, arg, source, created_at, expires_at) "
@@ -551,7 +569,7 @@ public final class VoucherStorage {
     }
 
     private boolean hasStash(UUID id) throws SQLException {
-        try (Connection connection = provider.dataSource().getConnection();
+        try (Connection connection = connection();
              PreparedStatement statement = connection.prepareStatement(
                  "SELECT 1 FROM provouchers_stash WHERE id = ?")) {
             statement.setString(1, id.toString());
@@ -564,7 +582,7 @@ public final class VoucherStorage {
     /** A player's still-live (unexpired at {@code now}) stash entries, oldest first. */
     public List<StashEntry> listStash(UUID player, long now) throws SQLException {
         List<StashEntry> entries = new ArrayList<>();
-        try (Connection connection = provider.dataSource().getConnection();
+        try (Connection connection = connection();
              PreparedStatement statement = connection.prepareStatement(
                  "SELECT id, voucher_id, amount, arg, source, created_at, expires_at "
                      + "FROM provouchers_stash WHERE player_uuid = ? "
@@ -595,7 +613,7 @@ public final class VoucherStorage {
      * delivery into after it was read, so the stale amount is never granted for the larger row.
      */
     public boolean claimStash(StashEntry entry) throws SQLException {
-        try (Connection connection = provider.dataSource().getConnection();
+        try (Connection connection = connection();
              PreparedStatement statement = connection.prepareStatement(
                  "DELETE FROM provouchers_stash WHERE id = ? AND amount = ?")) {
             statement.setString(1, entry.id().toString());
@@ -606,7 +624,7 @@ public final class VoucherStorage {
 
     /** Removes every entry that has expired at or before {@code now}. Returns the count pruned. */
     public int pruneExpiredStash(long now) throws SQLException {
-        try (Connection connection = provider.dataSource().getConnection();
+        try (Connection connection = connection();
              PreparedStatement statement = connection.prepareStatement(
                  "DELETE FROM provouchers_stash WHERE expires_at IS NOT NULL AND expires_at <= ?")) {
             statement.setLong(1, now);

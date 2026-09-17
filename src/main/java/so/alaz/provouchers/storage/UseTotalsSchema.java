@@ -9,6 +9,11 @@ import java.sql.Statement;
  * global cap can be reserved with one conditional update on a single row instead of summing every
  * player's count, which cannot be made atomic portably. The total is backfilled from the per-player
  * counts already recorded, so existing caps carry over unchanged.
+ *
+ * <p>The backfill replaces whatever the table holds. MySQL and MariaDB commit a {@code CREATE TABLE}
+ * on their own, so a backfill that failed or was interrupted leaves the table behind, and servers
+ * sharing a database can start this migration together; either way the next run recomputes every
+ * total instead of failing on rows that are already there.
  */
 public final class UseTotalsSchema implements Migration {
 
@@ -26,6 +31,7 @@ public final class UseTotalsSchema implements Migration {
                     uses BIGINT NOT NULL,
                     PRIMARY KEY (code)
                 )""");
+            statement.executeUpdate("DELETE FROM provouchers_use_totals");
             statement.executeUpdate(
                 "INSERT INTO provouchers_use_totals (code, uses) "
                     + "SELECT code, SUM(uses) FROM provouchers_code_uses GROUP BY code");
