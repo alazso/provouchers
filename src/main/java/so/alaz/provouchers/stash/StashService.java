@@ -4,7 +4,9 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.locale.Messages;
 import so.alaz.provouchers.metrics.MetricCounters;
+import so.alaz.provouchers.platform.PendingSettlements;
 import so.alaz.provouchers.platform.Scheduler;
+import so.alaz.provouchers.platform.TaskGate;
 import so.alaz.provouchers.platform.Text;
 import so.alaz.provouchers.redeem.RedeemHandler;
 import so.alaz.provouchers.storage.VoucherStorage;
@@ -12,6 +14,7 @@ import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.provouchers.voucher.VoucherRegistry;
 
 import java.sql.SQLException;
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -29,6 +32,10 @@ import java.util.logging.Logger;
  * one delete by id each, and runs the voucher through {@link RedeemHandler}'s claim path (conditions,
  * grant, effects) for only the rows it removed, so a row is granted at most once even under a double
  * click or two sessions, and a row that could not be granted is restored exactly as it was.
+ *
+ * <p>Paper runs neither callback of a hop still scheduled when the plugin disables, so a claim's hop to
+ * the player is tracked until it starts. While the plugin disables, {@link #settleForShutdown} stops
+ * claims from removing further rows and restores the rows of every claim whose hop never ran.
  */
 public final class StashService {
 
@@ -42,6 +49,10 @@ public final class StashService {
     private final MetricCounters counters;
     /** Default lifetime for new entries in millis, or {@code 0} to never expire. */
     private final long defaultExpiryMillis;
+    /** Admits the async row removals of claims until the plugin disables. */
+    private final TaskGate removals = new TaskGate();
+    /** Removed rows handed to the player's thread that have neither been granted nor restored yet. */
+    private final PendingSettlements handOffs = new PendingSettlements();
 
     public StashService(VoucherStorage storage, VoucherRegistry registry, RedeemHandler redeemHandler,
                         Scheduler scheduler, Text text, Messages messages, Logger logger,
@@ -121,9 +132,9 @@ public final class StashService {
      * atomically <em>first</em>, so its conditions and the pre-redeem event run only when this call removed
      * at least one, and exactly the sum of the removed rows is granted on the player's thread: a row
      * another claim took is not granted twice, and a row queued after the menu was built is not touched.
-     * If the voucher's conditions now fail, or the player logs out before the grant, exactly the removed
-     * rows are restored so the reward is never lost. {@code onDone} (a GUI refresh) runs on the player's
-     * thread.
+     * If the voucher's conditions now fail, or the player logs out or the plugin disables before the
+     * grant, exactly the removed rows are restored so the reward is never lost. Once the plugin is settling
+     * for shutdown, a claim removes no rows. {@code onDone} (a GUI refresh) runs on the player's thread.
      */
     public void claim(Player player, StashCard card, Runnable onDone) {
         Voucher voucher = registry.getVoucher(card.voucherId()).orElse(null);
@@ -140,23 +151,39 @@ public final class StashService {
             return;
         }
         scheduler.async(() -> {
-            StashCard taken = take(card);
-            if (taken == null) {
-                scheduler.entity(player, () -> {
-                    text.send(player, messages.get(player, "stash.already-claimed"));
-                    onDone.run();
-                });
-                return;
+            if (!removals.enter()) {
+                return;   // the plugin is disabling and storage is about to close: remove no rows
             }
-            // Exactly one of these runs, so every removed row is either granted or restored, once.
-            scheduler.entity(player,
-                () -> {
-                    if (grantOrRestore(player, voucher, taken)) {
-                        text.send(player, messages.get(player, "stash.claimed", "voucher", voucher.id()));
-                    }
-                    onDone.run();
-                },
-                () -> restore(taken));     // the player left before the grant: put these rows back
+            try {
+                StashCard taken = take(card);
+                if (taken == null) {
+                    scheduler.entity(player, () -> {
+                        text.send(player, messages.get(player, "stash.already-claimed"));
+                        onDone.run();
+                    });
+                    return;
+                }
+                // Exactly one of these runs, or the shutdown settlement restores the rows when neither can, so
+                // every removed row is either granted or restored, once.
+                PendingSettlements.Entry pending = handOffs.track(() -> restore(taken));
+                scheduler.entity(player,
+                    () -> {
+                        if (!pending.start()) {
+                            return;   // the shutdown settlement restored these rows
+                        }
+                        if (grantOrRestore(player, voucher, taken)) {
+                            text.send(player, messages.get(player, "stash.claimed", "voucher", voucher.id()));
+                        }
+                        onDone.run();
+                    },
+                    () -> {
+                        if (pending.start()) {
+                            restore(taken);     // the player left before the grant: put these rows back
+                        }
+                    });
+            } finally {
+                removals.exit();
+            }
         });
     }
 
@@ -277,20 +304,53 @@ public final class StashService {
         StashCard claiming = card;
         Voucher claimingVoucher = voucher;
         scheduler.async(() -> {
-            StashCard taken = take(claiming);
-            scheduler.entity(player,
-                () -> {
-                    if (taken != null && grantOrRestore(player, claimingVoucher, taken)) {
-                        granted[0]++;
-                    }
-                    claimAllStep(player, queue, granted, onDone);
-                },
-                () -> {
-                    // The player left mid-claim-all: put back only the rows this step removed, if any.
-                    if (taken != null) {
-                        restore(taken);
-                    }
-                });
+            if (!removals.enter()) {
+                return;   // the plugin is disabling and storage is about to close: stop the run here
+            }
+            try {
+                StashCard taken = take(claiming);
+                // Only removed rows need settling: with none, a hop that never runs just ends the run.
+                PendingSettlements.Entry pending = taken != null ? handOffs.track(() -> restore(taken)) : null;
+                scheduler.entity(player,
+                    () -> {
+                        if (pending != null && !pending.start()) {
+                            return;   // the shutdown settlement restored these rows
+                        }
+                        if (taken != null && grantOrRestore(player, claimingVoucher, taken)) {
+                            granted[0]++;
+                        }
+                        claimAllStep(player, queue, granted, onDone);
+                    },
+                    () -> {
+                        // The player left mid-claim-all: put back only the rows this step removed, if any.
+                        if (pending != null && pending.start()) {
+                            restore(taken);
+                        }
+                    });
+            } finally {
+                removals.exit();
+            }
         });
+    }
+
+    /**
+     * Restores the rows of every claim the plugin would otherwise lose by disabling. Call it from
+     * {@code onDisable}, once the plugin is no longer enabled and before storage closes. Stops claims from
+     * removing further rows and waits up to {@code wait} for the removals already running, whose claims
+     * restore their own rows since their hop to the player can no longer be scheduled. Then restores, on
+     * the calling thread, the rows of every claim whose hop was scheduled but never ran. Logs a line only
+     * when rows were restored or a removal was still running; a row that fails to restore is logged too.
+     */
+    public void settleForShutdown(Duration wait) {
+        int running = removals.close(wait);
+        int restored = handOffs.settleAll(ex -> logger.log(Level.WARNING,
+            "Failed to restore the rows of an unfinished stash claim during shutdown", ex));
+        if (running > 0) {
+            logger.warning("Restored the rows of " + restored + " unfinished stash claim(s) during shutdown, but "
+                + running + " claim(s) were still removing rows after " + wait.toMillis() + " ms. Each restores "
+                + "its rows when it finishes, which fails once storage has closed.");
+        } else if (restored > 0) {
+            logger.info("Restored the rows of " + restored + " unfinished stash claim(s) during shutdown.");
+        }
     }
 }
