@@ -20,9 +20,11 @@ All notable changes to ProVouchers are documented here. This project follows
 - `effects.sound` keys are checked at `/voucher reload`: a key that is not a valid
   sound key fails its voucher or code file instead of failing at redeem, and
   upper-case keys now play.
-- Storage takes queries only once its schema upgrades have finished. If an upgrade
-  fails at startup, everything that needs storage stays unavailable until it is
-  fixed, instead of running against a half-upgraded database.
+- Storage takes queries only once its schema upgrades have finished. Opening
+  storage is retried a few times over about 15 seconds, so servers sharing a
+  database that start together both come up. If it still fails, everything that
+  needs storage stays unavailable until it is fixed, instead of running against a
+  half-upgraded database.
 - Updated FastStats to 0.30.1.
 
 ### Fixed
@@ -61,6 +63,9 @@ All notable changes to ProVouchers are documented here. This project follows
   out are logged.
 - A redeem effect that fails, such as a sound that cannot play, no longer stops the
   rest of a batch open or Stash claim from being granted.
+- Redeems, Stash claims, and gives still in progress when the server stops are
+  settled before storage closes: uses and anti-dupe claims are given back, Stash
+  entries are put back, and undelivered gives are queued in the Stash.
 
 ### Migration
 - Use limits are counted in a new `provouchers_use_totals` table, created and
