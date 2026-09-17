@@ -63,10 +63,12 @@ public final class VoucherStorage {
             });
     }
 
-    /** Refuses further queries and closes the pool. */
+    /**
+     * Closes the pool, then refuses further queries. Queries are admitted until the close runs, so a
+     * give-back still finishing while the plugin disables is not refused before the pool is gone.
+     */
     public CompletableFuture<Void> shutdown() {
-        ready = false;
-        return provider.shutdown();
+        return provider.shutdown().whenComplete((ignored, error) -> ready = false);
     }
 
     /**

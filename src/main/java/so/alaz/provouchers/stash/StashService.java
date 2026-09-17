@@ -60,7 +60,9 @@ public final class StashService {
     /**
      * Queues {@code amount} copies of {@code voucherId} in {@code player}'s stash off the calling
      * thread. The optional {@code arg} is passed to the voucher's rewards as {@code %arg%} on claim.
-     * Each call inserts its own row, so concurrent deliveries never interfere.
+     * Each call inserts its own row, so concurrent deliveries never interfere. While the plugin disables
+     * the insert runs on the calling thread instead, so a give that could not be delivered is still
+     * queued, or its failure logged.
      */
     public void stash(UUID player, String voucherId, int amount, @Nullable String arg, StashSource source) {
         long now = System.currentTimeMillis();
@@ -68,7 +70,7 @@ public final class StashService {
         // The arg column is VARCHAR(255); cap it here so an over-long argument cannot fail the insert.
         String capped = arg != null && arg.length() > 255 ? arg.substring(0, 255) : arg;
         StashEntry entry = new StashEntry(UUID.randomUUID(), player, voucherId, amount, capped, source, now, expiresAt);
-        scheduler.async(() -> {
+        scheduler.asyncOrRun(() -> {
             try {
                 storage.addStash(entry);
                 counters.recordStashed(amount);
