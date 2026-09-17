@@ -189,12 +189,6 @@ public final class VoucherStorage {
         throw contended("reserve", key);
     }
 
-    /** Records one uncapped use of a code for a player and returns the player's new count. */
-    public int incrementCodeUse(String code, UUID player) throws SQLException {
-        reserveUses(code, player, 1, UNCAPPED, UNCAPPED);
-        return codeUsesByPlayer(code, player);
-    }
-
     /**
      * Gives back up to {@code count} uses of {@code key} reserved for {@code player}, taking the same
      * amount off the key's total, and returns how many were released. Never takes a count below zero:

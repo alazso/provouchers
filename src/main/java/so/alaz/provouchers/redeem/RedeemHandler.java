@@ -9,6 +9,7 @@ import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -27,6 +28,8 @@ import so.alaz.provouchers.reward.RewardSelection;
 import so.alaz.provouchers.reward.RewardSet;
 import so.alaz.provouchers.reward.WebhookSpec;
 import so.alaz.provouchers.storage.VoucherStorage;
+import so.alaz.provouchers.storage.VoucherStorage.UseLimit;
+import so.alaz.provouchers.storage.VoucherStorage.UseReservation;
 import so.alaz.provouchers.voucher.DefinedItem;
 import so.alaz.provouchers.voucher.FireworkSpec;
 import so.alaz.provouchers.voucher.Voucher;
@@ -43,7 +46,6 @@ import so.alaz.provouchers.cooldown.CooldownService;
 import so.alaz.provouchers.cooldown.CooldownTiers;
 import so.alaz.provouchers.gui.ConfirmGui;
 import so.alaz.provouchers.locale.Messages;
-import so.alaz.provouchers.platform.Items;
 import so.alaz.provouchers.platform.Scheduler;
 import so.alaz.provouchers.platform.Sounds;
 import so.alaz.provouchers.platform.Text;
@@ -53,15 +55,32 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Predicate;
 
 /**
  * The redemption pipeline shared by item vouchers and codes. Synchronous checks
  * (existence, expiry, game mode, cooldown, conditions) run on the caller's thread;
- * persistent checks (duplicate stamps, code-use limits) run on the async
- * scheduler, then control hops back to the player's region to grant rewards.
+ * persistent checks run on the async scheduler, where use limits are reserved
+ * atomically in storage and duplicate stamps are claimed, then control hops back
+ * to the player's region to grant rewards.
+ *
+ * <p>An item voucher stays in the inventory until that hop: only then is it
+ * located and removed, so a refusal needs no refund. A redeem that cannot be
+ * delivered (the player logged out, or moved the item away) gives back its
+ * reserved uses and stamp claim instead of consuming them.
  */
 public final class RedeemHandler {
+
+    /** How long an unreleased in-flight redeem blocks its voucher, as a safety net against a missed release. */
+    private static final long IN_FLIGHT_LIFETIME_SECONDS = 60;
+
+    /**
+     * The raw {@link PlayerInventory} index of the off hand, per its slot contract (0-8 hotbar,
+     * 9-35 storage, 36-39 armor, 40 off hand).
+     */
+    private static final int OFF_HAND_SLOT = 40;
 
     private final VoucherRegistry registry;
     private final VoucherStamp stamp;
@@ -80,6 +99,8 @@ public final class RedeemHandler {
     private final boolean notifyEnabled;
     private final boolean batchQuiet;
     private final ConfirmationTracker confirmations;
+    /** One item redeem at a time per player and voucher, held from the click until it settles. */
+    private final InFlightGuard inFlight = new InFlightGuard(IN_FLIGHT_LIFETIME_SECONDS);
     private final CooldownTiers cooldownTiers;
     /** The GUI confirm dialog, or {@code null} for the chat style. */
     @Nullable private final ConfirmGui confirmGui;
@@ -186,79 +207,189 @@ public final class RedeemHandler {
             return;
         }
 
-        ItemStack consumed = consumeOne(player, hand, inHand);
-        String uid = readUid(consumed);
-        if (uid == null && !voucher.hasUseLimits()) {
-            // Stackable, unlimited voucher: nothing persistent to check, commit on the current thread.
-            completeVoucherRedeem(player, voucher, null, false, true);
+        // A second click while this voucher is mid-redeem is ignored: the first settles the cooldown and
+        // limits it would otherwise race past. Taken even on the synchronous path, so an unstamped copy
+        // cannot slip past a stamped one still being verified.
+        InFlightGuard.Ticket ticket = inFlight.acquire(player.getUniqueId(), voucher.id());
+        if (ticket == null) {
             return;
         }
+        String uid = stamp.uid(meta);
+        if (uid == null && !voucher.hasUseLimits()) {
+            // Stackable, unlimited voucher: nothing persistent to check, commit on the current thread.
+            try {
+                consumeOne(player, hand, inHand);
+                completeVoucherRedeem(player, voucher, null, false);
+            } finally {
+                inFlight.release(ticket);
+            }
+            return;
+        }
+        int slot = handSlot(player.getInventory(), hand);
+        ItemStack original = inHand.asOne();
+        Predicate<ItemStack> sameItem = uid != null ? item -> uid.equals(readUid(item)) : original::isSimilar;
+        UUID playerId = player.getUniqueId();
         scheduler.async(() -> {
-            // Limits are checked before the unique id is claimed, so a limit denial never
-            // burns the item's id and the refunded item stays redeemable.
-            String useDenial = voucher.hasUseLimits() ? useDenial(player, voucher, 1) : null;
-            StampStatus status = useDenial == null && uid != null ? dupeDetector.check(uid) : null;
-            boolean dupeAllowed = uid == null
-                || (status == StampStatus.VALID && dupeDetector.claim(uid, player.getUniqueId()));
-            scheduler.entity(player, () -> {
-                if (useDenial != null) {
-                    send(player, useDenial);
-                    refund(player, consumed);
-                    return;
-                }
-                if (!dupeAllowed) {
-                    handleRejectedItem(player, voucher, consumed, status);
-                    return;
-                }
-                completeVoucherRedeem(player, voucher, uid, false, true);
-            });
+            try {
+                Verdict verdict = verifyHeld(playerId, voucher, uid);
+                scheduler.entity(player,
+                    () -> deliverHeld(player, slot, voucher, uid, sameItem, verdict, ticket),
+                    () -> abandon(playerId, voucher, verdict.stampClaimed() ? uid : null, verdict.reserved(),
+                        ticket));
+            } catch (RuntimeException ex) {
+                inFlight.release(ticket);
+                throw ex;
+            }
         });
     }
 
     /**
-     * The remaining per-player and global allowance, read from storage once (async
-     * context). Limits are checked before commit and recorded after, so simultaneous
-     * redeems can briefly exceed a cap by the in-flight count.
+     * The async verdict on a single item redeem, handed to the player's thread: the denial message key
+     * when a use limit (or storage) refused it, the stamp status when the anti-dupe check refused it,
+     * and otherwise the uses reserved and whether the stamp was claimed, both to give back if the item
+     * is never delivered.
      */
-    private record Allowance(long perPlayer, long global) {
-        long remaining() {
-            return Math.max(0, Math.min(perPlayer, global));
-        }
+    private record Verdict(@Nullable String denialKey, @Nullable StampStatus refusal, int reserved,
+                           boolean stampClaimed) {
     }
 
-    private Allowance readAllowance(Player player, Voucher voucher) throws SQLException {
-        String key = voucher.useKey();
-        long perPlayer = voucher.hasPerPlayerLimit()
-            ? voucher.usesPerPlayer() - storage.codeUsesByPlayer(key, player.getUniqueId())
-            : Long.MAX_VALUE;
-        long global = voucher.hasGlobalLimit()
-            ? voucher.maxUses() - storage.codeUsesTotal(key)
-            : Long.MAX_VALUE;
-        return new Allowance(perPlayer, global);
+    /**
+     * Verifies a single item redeem (async context): reserves the use when the voucher has limits, then
+     * checks and claims the item's stamp, giving the use back if the stamp is refused. The use is
+     * reserved first so a limit denial never burns the item's id. Never throws: a storage failure
+     * becomes a denial.
+     */
+    private Verdict verifyHeld(UUID player, Voucher voucher, @Nullable String uid) {
+        Reservation reservation = voucher.hasUseLimits()
+            ? reserveVoucherUses(player, voucher, 1)
+            : new Reservation(0, null);
+        if (reservation.denialKey() != null) {
+            return new Verdict(reservation.denialKey(), null, 0, false);
+        }
+        if (uid == null) {
+            return new Verdict(null, null, reservation.reserved(), false);
+        }
+        StampStatus status = dupeDetector.check(uid);
+        if (status == StampStatus.VALID && dupeDetector.claim(uid, player)) {
+            return new Verdict(null, null, reservation.reserved(), true);
+        }
+        // Give the use back before replying, so an immediate retry sees the true allowance.
+        releaseUses(voucher.useKey(), player, reservation.reserved());
+        // A lost claim race is unverifiable rather than a proven duplicate.
+        StampStatus refusal = status == StampStatus.DUPLICATE ? StampStatus.DUPLICATE : StampStatus.UNKNOWN;
+        return new Verdict(null, refusal, 0, false);
     }
 
-    /** The denial message for an allowance short of {@code requested}, or {@code null} when it fits. */
-    @Nullable
-    private String denialFor(Player player, Allowance allowance, int requested) {
-        if (allowance.perPlayer() < requested) {
-            return messages.get(player, "redeem.use-limit");
-        }
-        if (allowance.global() < requested) {
-            return messages.get(player, "redeem.global-limit");
-        }
-        return null;
-    }
-
-    /** One-shot limit check (async context): the denial message, or {@code null} when allowed. */
-    @Nullable
-    private String useDenial(Player player, Voucher voucher, int requested) {
+    /**
+     * The player-thread half of a single item redeem. Replies to a refusal; otherwise locates the verified
+     * item (the preferred slot first, then anywhere in the inventory), removes exactly one, and commits the
+     * redeem. An item that left the inventory meanwhile (dropped, stored, or on the cursor) is not
+     * redeemed, and the reserved use and stamp claim are given back.
+     */
+    private void deliverHeld(Player player, int preferredSlot, Voucher voucher, @Nullable String uid,
+                             Predicate<ItemStack> sameItem, Verdict verdict, InFlightGuard.Ticket ticket) {
+        boolean releaseLater = false;
         try {
-            return denialFor(player, readAllowance(player, voucher), requested);
-        } catch (SQLException | RuntimeException ex) {
-            return messages.get(player, "redeem.verify-failed");
+            if (verdict.denialKey() != null) {
+                send(player, messages.get(player, verdict.denialKey()));
+                return;
+            }
+            PlayerInventory inventory = player.getInventory();
+            if (verdict.refusal() != null) {
+                handleRejectedItem(player, inventory, preferredSlot, voucher, sameItem, verdict.refusal());
+                return;
+            }
+            int slot = locate(inventory, preferredSlot, sameItem);
+            if (slot < 0) {
+                send(player, messages.get(player, "redeem.verify-failed"));
+                releaseLater = true;
+                abandon(player.getUniqueId(), voucher, verdict.stampClaimed() ? uid : null, verdict.reserved(),
+                    ticket);
+                return;
+            }
+            take(inventory, slot, 1);
+            // The use was recorded by the reservation, so committing records nothing further.
+            completeVoucherRedeem(player, voucher, uid, false);
+        } finally {
+            if (!releaseLater) {
+                inFlight.release(ticket);
+            }
         }
     }
 
+    /**
+     * Gives back what an undelivered item redeem holds, its stamp claim and reserved uses, then releases
+     * its in-flight guard. The storage work runs on the async scheduler, so this is safe from a retired
+     * callback on any thread. The guard is released only after the claim is gone, so a retry cannot
+     * find the stale claim and take the item for a duplicate.
+     */
+    private void abandon(UUID player, Voucher voucher, @Nullable String claimedUid, int reserved,
+                         InFlightGuard.Ticket ticket) {
+        if (claimedUid == null && reserved <= 0) {
+            inFlight.release(ticket);
+            return;
+        }
+        try {
+            scheduler.async(() -> {
+                try {
+                    if (claimedUid != null) {
+                        dupeDetector.release(claimedUid, player);
+                    }
+                    releaseUses(voucher.useKey(), player, reserved);
+                } finally {
+                    inFlight.release(ticket);
+                }
+            });
+        } catch (RuntimeException ex) {
+            // Nothing can be scheduled while the plugin disables; never leave the voucher blocked.
+            inFlight.release(ticket);
+            throw ex;
+        }
+    }
+
+    /**
+     * Uses reserved for an item redeem, and the denial message key for any shortfall ({@code null} when
+     * every requested use fit). The reservation is atomic in storage, taken before anything is granted,
+     * so concurrent redeems (on this server or another sharing the database) cannot exceed a cap.
+     */
+    private record Reservation(int reserved, @Nullable String denialKey) {
+    }
+
+    /**
+     * Reserves up to {@code requested} uses of a limited voucher (async context). A shortfall carries
+     * {@code redeem.use-limit} when the player's own cap ran out, else {@code redeem.global-limit}; a
+     * storage failure reserves nothing and carries {@code redeem.verify-failed}.
+     */
+    private Reservation reserveVoucherUses(UUID player, Voucher voucher, int requested) {
+        try {
+            UseReservation result = storage.reserveUses(voucher.useKey(), player, requested,
+                voucher.hasPerPlayerLimit() ? voucher.usesPerPlayer() : VoucherStorage.UNCAPPED,
+                voucher.hasGlobalLimit() ? voucher.maxUses() : VoucherStorage.UNCAPPED);
+            String denialKey = switch (result.limit()) {
+                case NONE -> null;
+                case PER_PLAYER -> "redeem.use-limit";
+                case GLOBAL -> "redeem.global-limit";
+            };
+            return new Reservation(result.reserved(), denialKey);
+        } catch (SQLException | RuntimeException ex) {
+            return new Reservation(0, "redeem.verify-failed");
+        }
+    }
+
+    /**
+     * Gives back reserved uses (async context). Best-effort: if storage fails the uses stay counted,
+     * which can cost the player a use but never grants an extra reward.
+     */
+    private void releaseUses(String key, UUID player, int count) {
+        if (count <= 0) {
+            return;
+        }
+        try {
+            storage.releaseUses(key, player, count);
+        } catch (SQLException | RuntimeException ignored) {
+            // The uses stay reserved: a lost use, never an extra reward.
+        }
+    }
 
     /**
      * The source-agnostic gates a voucher redemption must pass before it commits:
@@ -322,11 +453,10 @@ public final class RedeemHandler {
      * Commits a successful voucher redemption: applies the cooldown, grants the
      * rewards, records the metric, and fires {@link VoucherRedeemEvent}. The
      * {@code uid} is the redeemed item's unique id, or {@code null} for a stackable
-     * voucher. Batch open passes {@code recordUse=false} and records the whole batch
-     * in one write instead.
+     * voucher. Any use limit was already reserved before the item was taken, so
+     * nothing is recorded here.
      */
-    private void completeVoucherRedeem(Player player, Voucher voucher, @Nullable String uid, boolean quiet,
-                                       boolean recordUse) {
+    private void completeVoucherRedeem(Player player, Voucher voucher, @Nullable String uid, boolean quiet) {
         if (voucher.cooldownSeconds() > 0) {
             long effective = (long) Math.ceil(
                 voucher.cooldownSeconds() * cooldownTiers.multiplier(player::hasPermission));
@@ -335,9 +465,6 @@ public final class RedeemHandler {
             }
         }
         grantRewards(player, voucher, uid, null, quiet);
-        if (recordUse && voucher.hasUseLimits()) {
-            recordVoucherUse(player, voucher, 1);
-        }
     }
 
     /**
@@ -388,19 +515,6 @@ public final class RedeemHandler {
         counters.recordStashClaim(amount);
     }
 
-    /** Best-effort persistent use count: a storage failure loses the count but never the reward. */
-    private void recordVoucherUse(Player player, Voucher voucher, int count) {
-        scheduler.async(() -> {
-            try {
-                for (int i = 0; i < count; i++) {
-                    storage.incrementCodeUse(voucher.useKey(), player.getUniqueId());
-                }
-            } catch (SQLException | RuntimeException ignored) {
-                // The redemption already committed; the counter is advisory.
-            }
-        });
-    }
-
     /**
      * Plays the voucher's optional redeem effects (sound, firework) to the player.
      * Suppressed for quiet redemptions (such as batch open) so a whole stack does not spam them.
@@ -438,20 +552,31 @@ public final class RedeemHandler {
         }
     }
 
-    /** Handles a physical voucher that failed the duplicate check: warns, notifies, and refunds. */
-    private void handleRejectedItem(Player player, Voucher voucher, ItemStack consumed, StampStatus status) {
-        if (status == StampStatus.DUPLICATE) {
-            counters.recordDuplicateBlocked();
-            send(player, messages.get(player, "redeem.already-redeemed"));
-            notifyStaff("staff.duplicate-alert", "player", player.getName(), "voucher", voucher.id(),
-                "world", player.getWorld().getName());
-            if (!removeOnDiscovery) {
-                applyWarningLore(consumed);
-                refund(player, consumed);
-            }
-        } else {
+    /**
+     * Handles a stamped voucher the anti-dupe check refused. A duplicate is reported, then removed (or
+     * marked with the warning lore) wherever it now is in the inventory; an unverifiable stamp or a lost
+     * claim race leaves the item untouched to retry.
+     */
+    private void handleRejectedItem(Player player, PlayerInventory inventory, int preferredSlot, Voucher voucher,
+                                    Predicate<ItemStack> sameItem, StampStatus status) {
+        if (status != StampStatus.DUPLICATE) {
             send(player, messages.get(player, "redeem.verify-failed"));
-            refund(player, consumed);
+            return;
+        }
+        counters.recordDuplicateBlocked();
+        send(player, messages.get(player, "redeem.already-redeemed"));
+        notifyStaff("staff.duplicate-alert", "player", player.getName(), "voucher", voucher.id(),
+            "world", player.getWorld().getName());
+        int slot = locate(inventory, preferredSlot, sameItem);
+        if (slot < 0) {
+            return;
+        }
+        if (removeOnDiscovery) {
+            take(inventory, slot, 1);
+        } else {
+            ItemStack duplicate = inventory.getItem(slot);
+            applyWarningLore(duplicate);
+            inventory.setItem(slot, duplicate);
         }
     }
 
@@ -506,39 +631,34 @@ public final class RedeemHandler {
         if (!new VoucherCodePreRedeemEvent(player, code, argument).callEvent()) {
             return;
         }
+        UUID playerId = player.getUniqueId();
         scheduler.async(() -> {
-            boolean allowed = true;
-            String denyMessage = null;
+            String denialKey;
             try {
-                int mine = storage.codeUsesByPlayer(code.code(), player.getUniqueId());
-                if (mine >= code.usesPerPlayer()) {
-                    allowed = false;
-                    denyMessage = messages.get(player, "code.already-redeemed");
-                } else if (code.hasGlobalLimit() && storage.codeUsesTotal(code.code()) >= code.maxUses()) {
-                    allowed = false;
-                    denyMessage = messages.get(player, "code.global-limit");
-                } else {
-                    storage.incrementCodeUse(code.code(), player.getUniqueId());
-                }
+                // One atomic reservation against both caps, so two players cannot share the last use.
+                UseReservation reservation = storage.reserveUses(code.code(), playerId, 1, code.usesPerPlayer(),
+                    code.hasGlobalLimit() ? code.maxUses() : VoucherStorage.UNCAPPED);
+                denialKey = reservation.reserved() > 0 ? null
+                    : reservation.limit() == UseLimit.PER_PLAYER ? "code.already-redeemed"
+                    : "code.global-limit";
             } catch (SQLException | RuntimeException ex) {
                 // A storage error (or the pool not being open yet) leaves the use unverifiable.
-                allowed = false;
-                denyMessage = messages.get(player, "code.verify-failed");
+                denialKey = "code.verify-failed";
             }
-            boolean finalAllowed = allowed;
-            String finalDeny = denyMessage;
+            if (denialKey != null) {
+                String denial = denialKey;
+                scheduler.entity(player, () -> send(player, messages.get(player, denial)));
+                return;
+            }
+            // The use is reserved: grant it on the player's thread, or give it back if the player is gone.
             scheduler.entity(player, () -> {
-                if (!finalAllowed) {
-                    send(player, finalDeny);
-                    return;
-                }
                 grant(player, "code '" + code.code() + "'", code.rewards(), code.randomRewards(),
                     argument, false, code.definedItems(), code.discordWebhooks());
                 playEffects(player, code.effects());
                 counters.recordCodeRedemption();
                 new VoucherCodeRedeemEvent(player, code, argument).callEvent();
                 send(player, messages.get(player, "code.redeemed"));
-            });
+            }, () -> scheduler.async(() -> releaseUses(code.code(), playerId, 1)));
         });
     }
 
@@ -561,8 +681,7 @@ public final class RedeemHandler {
         return Conditions.testAll(built, ConditionContext.of(player, messages));
     }
 
-    private ItemStack consumeOne(Player player, EquipmentSlot hand, ItemStack inHand) {
-        ItemStack single = inHand.asOne();
+    private void consumeOne(Player player, EquipmentSlot hand, ItemStack inHand) {
         int amount = inHand.getAmount();
         if (amount <= 1) {
             player.getInventory().setItem(hand, null);
@@ -570,61 +689,121 @@ public final class RedeemHandler {
             inHand.setAmount(amount - 1);
             player.getInventory().setItem(hand, inHand);
         }
-        return single;
+    }
+
+    /** The raw inventory index of {@code hand}'s slot. */
+    private static int handSlot(PlayerInventory inventory, EquipmentSlot hand) {
+        return hand == EquipmentSlot.OFF_HAND ? OFF_HAND_SLOT : inventory.getHeldItemSlot();
+    }
+
+    /**
+     * The inventory index of a stack that {@code matches}, checking {@code preferredSlot} first and then
+     * every slot, or {@code -1} when no slot holds one.
+     */
+    private static int locate(PlayerInventory inventory, int preferredSlot, Predicate<ItemStack> matches) {
+        if (holdsMatch(inventory, preferredSlot, matches)) {
+            return preferredSlot;
+        }
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            if (slot != preferredSlot && holdsMatch(inventory, slot, matches)) {
+                return slot;
+            }
+        }
+        return -1;
+    }
+
+    private static boolean holdsMatch(PlayerInventory inventory, int slot, Predicate<ItemStack> matches) {
+        ItemStack item = inventory.getItem(slot);
+        return item != null && !item.getType().isAir() && matches.test(item);
+    }
+
+    /** Removes {@code amount} items from the stack in {@code slot}, emptying the slot when none remain. */
+    private static void take(PlayerInventory inventory, int slot, int amount) {
+        ItemStack stack = inventory.getItem(slot);
+        if (stack == null) {
+            return;
+        }
+        if (stack.getAmount() <= amount) {
+            inventory.setItem(slot, null);
+        } else {
+            stack.setAmount(stack.getAmount() - amount);
+            inventory.setItem(slot, stack);
+        }
     }
 
     /**
      * Redeems every item in a stack at once. Only reached for batch-open vouchers,
      * which are validated to be stackable (no per-item id) with no cooldown. With use
-     * limits configured, the batch is capped at the remaining allowance and the
-     * unredeemed items are refunded.
+     * limits configured, as many uses as the limits allow are reserved first and the
+     * stack is left in the hand until the reservation is back on the player's thread.
      */
     private void openWholeStack(Player player, EquipmentSlot hand, ItemStack inHand, Voucher voucher) {
         int count = inHand.getAmount();
-        ItemStack single = inHand.asOne();
-        player.getInventory().setItem(hand, null);
         if (!voucher.hasUseLimits()) {
+            player.getInventory().setItem(hand, null);
             redeemBatch(player, voucher, count);
             return;
         }
+        InFlightGuard.Ticket ticket = inFlight.acquire(player.getUniqueId(), voucher.id());
+        if (ticket == null) {
+            return;
+        }
+        int slot = handSlot(player.getInventory(), hand);
+        ItemStack original = inHand.asOne();
+        UUID playerId = player.getUniqueId();
         scheduler.async(() -> {
-            int allowed;
-            String denial;
             try {
-                Allowance allowance = readAllowance(player, voucher);
-                allowed = (int) Math.min(count, allowance.remaining());
-                denial = allowed < count ? denialFor(player, allowance, count) : null;
-            } catch (SQLException | RuntimeException ex) {
-                allowed = 0;
-                denial = messages.get(player, "redeem.verify-failed");
+                Reservation reservation = reserveVoucherUses(playerId, voucher, count);
+                scheduler.entity(player,
+                    () -> openReserved(player, slot, voucher, original, reservation, ticket),
+                    () -> abandon(playerId, voucher, null, reservation.reserved(), ticket));
+            } catch (RuntimeException ex) {
+                inFlight.release(ticket);
+                throw ex;
             }
-            int finalAllowed = allowed;
-            String finalDenial = denial;
-            scheduler.entity(player, () -> {
-                if (finalAllowed > 0) {
-                    redeemBatch(player, voucher, finalAllowed);
-                }
-                if (finalAllowed < count) {
-                    refund(player, single.asQuantity(count - finalAllowed));
-                    send(player, finalDenial);
-                }
-            });
         });
+    }
+
+    /**
+     * The player-thread half of a limited batch open: redeems as many reserved uses as the matching stack
+     * still in the redeeming hand's slot covers, taking exactly that many items, gives back any reserved
+     * use left over, and replies to a shortfall. Items the limits did not cover stay in the stack.
+     */
+    private void openReserved(Player player, int slot, Voucher voucher, ItemStack original,
+                              Reservation reservation, InFlightGuard.Ticket ticket) {
+        boolean releaseLater = false;
+        try {
+            PlayerInventory inventory = player.getInventory();
+            // Re-read: the stack may have been moved, split, or topped up since the click.
+            ItemStack held = inventory.getItem(slot);
+            int present = held != null && held.isSimilar(original) ? held.getAmount() : 0;
+            int opened = Math.min(reservation.reserved(), present);
+            if (opened > 0) {
+                take(inventory, slot, opened);
+                redeemBatch(player, voucher, opened);
+            }
+            if (reservation.denialKey() != null) {
+                send(player, messages.get(player, reservation.denialKey()));
+            } else if (opened == 0) {
+                send(player, messages.get(player, "redeem.verify-failed"));
+            }
+            int unused = reservation.reserved() - opened;
+            if (unused > 0) {
+                releaseLater = true;
+                abandon(player.getUniqueId(), voucher, null, unused, ticket);
+            }
+        } finally {
+            if (!releaseLater) {
+                inFlight.release(ticket);
+            }
+        }
     }
 
     private void redeemBatch(Player player, Voucher voucher, int count) {
         for (int i = 0; i < count; i++) {
-            completeVoucherRedeem(player, voucher, null, batchQuiet, false);
-        }
-        // One persistent write for the whole batch instead of one task per item.
-        if (voucher.hasUseLimits()) {
-            recordVoucherUse(player, voucher, count);
+            completeVoucherRedeem(player, voucher, null, batchQuiet);
         }
         send(player, messages.get(player, "redeem.opened", "count", count, "voucher", voucher.id()));
-    }
-
-    private void refund(Player player, ItemStack item) {
-        Items.giveOrDrop(player, item);
     }
 
     private void notifyStaff(String key, Object... placeholders) {
