@@ -10,8 +10,9 @@ import java.util.function.LongSupplier;
 /**
  * Admits one redemption at a time per player and voucher. An item redeem that verifies persistent
  * state (use limits, the anti-dupe stamp) off the player's thread holds a ticket from the click until
- * it is delivered or given back, so a second click in that window, even on a distinct stamped copy,
- * is refused instead of passing the cooldown and limit checks the first has not settled yet.
+ * it is delivered, or until its first attempt to give back what it held has finished, so a second click
+ * in that window, even on a distinct stamped copy, is refused instead of passing the cooldown and limit
+ * checks the first has not settled yet.
  *
  * <p>Thread-safe: a ticket is taken on the player's thread and may be released from any thread. A
  * ticket older than the lifetime no longer blocks, so a release that never happens can delay a

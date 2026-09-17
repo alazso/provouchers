@@ -53,12 +53,15 @@ import so.alaz.provouchers.platform.Sounds;
 import so.alaz.provouchers.platform.Text;
 
 import java.sql.SQLException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
 /**
@@ -72,11 +75,26 @@ import java.util.function.Predicate;
  * located and removed, so a refusal needs no refund. A redeem that cannot be
  * delivered (the player logged out, or moved the item away) gives back its
  * reserved uses and stamp claim instead of consuming them.
+ *
+ * <p>A stamped item's id enters a {@link ClaimLedger} before its redeem touches
+ * storage and leaves once the claim is delivered or given back, so no other click
+ * on this server takes an unsettled claim for a duplicate. A claim give-back that
+ * fails is retried with backoff, and the item is refused as unverifiable meanwhile.
  */
 public final class RedeemHandler {
 
-    /** How long an unreleased in-flight redeem blocks its voucher, as a safety net against a missed release. */
-    private static final long IN_FLIGHT_LIFETIME_SECONDS = 60;
+    /**
+     * How long an unreleased in-flight redeem blocks its voucher: a safety net against a missed release,
+     * sized above the slowest realistic verification, including waits for a pooled connection.
+     */
+    private static final long IN_FLIGHT_LIFETIME_SECONDS = 300;
+
+    /**
+     * The delays before each retry of a stamp claim give-back that failed. When the last retry fails too,
+     * the claim stays in storage and its id in the ledger, with a warning.
+     */
+    private static final List<Duration> CLAIM_RELEASE_RETRY_DELAYS = List.of(
+        Duration.ofSeconds(5), Duration.ofSeconds(30), Duration.ofMinutes(2), Duration.ofMinutes(10));
 
     /**
      * The raw {@link PlayerInventory} index of the off hand, per its slot contract (0-8 hotbar,
@@ -104,6 +122,8 @@ public final class RedeemHandler {
     private final ConfirmationTracker confirmations;
     /** One item redeem at a time per player and voucher, held from the click until it settles. */
     private final InFlightGuard inFlight = new InFlightGuard(IN_FLIGHT_LIFETIME_SECONDS);
+    /** The stamp ids of unsettled item redeems, each owned by its redeem's in-flight ticket. */
+    private final ClaimLedger ledger = new ClaimLedger();
     private final CooldownTiers cooldownTiers;
     /** The GUI confirm dialog, or {@code null} for the chat style. */
     @Nullable private final ConfirmGui confirmGui;
@@ -234,17 +254,18 @@ public final class RedeemHandler {
         ItemStack original = inHand.asOne();
         Predicate<ItemStack> sameItem = uid != null ? item -> uid.equals(readUid(item)) : original::isSimilar;
         UUID playerId = player.getUniqueId();
-        scheduler.async(() -> {
-            try {
-                Verdict verdict = verifyHeld(playerId, voucher, uid);
-                scheduler.entity(player,
+        try {
+            scheduler.async(() -> {
+                Verdict verdict = verifyHeld(playerId, voucher, uid, ticket);
+                handOff(player,
                     () -> deliverHeld(player, slot, voucher, uid, sameItem, verdict, ticket),
                     () -> abandon(playerId, voucher, verdict.claim(), verdict.reserved(), ticket));
-            } catch (RuntimeException ex) {
-                inFlight.release(ticket);
-                throw ex;
-            }
-        });
+            });
+        } catch (RuntimeException ex) {
+            // The task never ran, so nothing was reserved, claimed, or entered in the ledger.
+            inFlight.release(ticket);
+            throw ex;
+        }
     }
 
     /**
@@ -265,16 +286,30 @@ public final class RedeemHandler {
     }
 
     /**
-     * Verifies a single item redeem (async context): reserves the use when the voucher has limits, then
-     * checks and claims the item's stamp, giving the use back if the stamp is refused. The use is
-     * reserved first so a limit denial never burns the item's id. Never throws: a storage failure
-     * becomes a denial.
+     * Verifies a single item redeem (async context). A stamped item's id first enters the claim ledger
+     * for {@code ticket}; while another redeem of the same item holds it, this one is refused as
+     * unverifiable with nothing reserved. Then the use is reserved when the voucher has limits, and the
+     * item's stamp is checked and claimed. The use is reserved first so a limit denial never burns the
+     * item's id, and it is given back when the stamp is refused.
+     *
+     * <p>A successful claim keeps its ledger entry until the redeem is delivered or given back. Every
+     * refusal ends the entry, except a claim whose outcome is unknown: it may have been stored, so it is
+     * given back like an undelivered claim, and that give-back ends the entry once it settles. A click
+     * never releases a claim it did not make. Never throws: a storage failure becomes a denial or refusal.
      */
-    private Verdict verifyHeld(UUID player, Voucher voucher, @Nullable String uid) {
+    private Verdict verifyHeld(UUID player, Voucher voucher, @Nullable String uid, InFlightGuard.Ticket ticket) {
+        if (uid != null && !ledger.begin(uid, ticket)) {
+            // An earlier redeem of this item has not settled its claim, which a check now would take for a
+            // duplicate.
+            return new Verdict(null, StampStatus.UNKNOWN, 0, null);
+        }
         Reservation reservation = voucher.hasUseLimits()
             ? reserveVoucherUses(player, voucher, 1)
             : new Reservation(0, null);
         if (reservation.denialKey() != null) {
+            if (uid != null) {
+                ledger.end(uid, ticket);
+            }
             return new Verdict(reservation.denialKey(), null, 0, null);
         }
         if (uid == null) {
@@ -283,26 +318,71 @@ public final class RedeemHandler {
         StampStatus status = dupeDetector.check(uid);
         if (status == StampStatus.VALID) {
             Claim claim = new Claim(uid, System.currentTimeMillis());
-            if (dupeDetector.claim(uid, player, claim.claimedAt()) == ClaimOutcome.CLAIMED) {
+            ClaimOutcome outcome = dupeDetector.claim(uid, player, claim.claimedAt());
+            if (outcome == ClaimOutcome.CLAIMED) {
                 return new Verdict(null, null, reservation.reserved(), claim);
             }
+            // Give the use back before replying, so an immediate retry sees the true allowance.
+            releaseUses(voucher.useKey(), player, reservation.reserved());
+            if (outcome == ClaimOutcome.UNKNOWN) {
+                // The claim may have been stored: give it back, which ends the entry once it settles.
+                releaseClaim(player, voucher, claim, ticket, 0);
+            } else {
+                ledger.end(uid, ticket);
+            }
+            // A lost claim race, like a claim that may not have been stored, is unverifiable rather than a
+            // proven duplicate.
+            return new Verdict(null, StampStatus.UNKNOWN, 0, null);
         }
-        // Give the use back before replying, so an immediate retry sees the true allowance.
         releaseUses(voucher.useKey(), player, reservation.reserved());
-        // A lost claim race is unverifiable rather than a proven duplicate.
-        StampStatus refusal = status == StampStatus.DUPLICATE ? StampStatus.DUPLICATE : StampStatus.UNKNOWN;
-        return new Verdict(null, refusal, 0, null);
+        ledger.end(uid, ticket);
+        return new Verdict(null, status, 0, null);
     }
 
     /**
-     * The player-thread half of a single item redeem. Replies to a refusal; otherwise locates the verified
-     * item (the preferred slot first, then anywhere in the inventory), removes exactly one, and commits the
-     * redeem. An item that left the inventory meanwhile (dropped, stored, or on the cursor) is not
-     * redeemed, and the reserved use and stamp claim are given back.
+     * Hands an async step's result to the player's region thread: runs {@code deliver} there, or
+     * {@code giveBack} when the player is gone or the plugin is disabling. Exactly one of the two runs,
+     * even when scheduling itself throws: then {@code giveBack} runs here, unless a callback already
+     * started, before the failure propagates.
+     */
+    private void handOff(Player player, Runnable deliver, Runnable giveBack) {
+        AtomicBoolean started = new AtomicBoolean();
+        try {
+            scheduler.entity(player,
+                () -> {
+                    if (started.compareAndSet(false, true)) {
+                        deliver.run();
+                    }
+                },
+                () -> {
+                    if (started.compareAndSet(false, true)) {
+                        giveBack.run();
+                    }
+                });
+        } catch (RuntimeException ex) {
+            if (started.compareAndSet(false, true)) {
+                giveBack.run();
+            }
+            throw ex;
+        }
+    }
+
+    /**
+     * The player-thread half of a single item redeem. Replies to a denial or refusal; otherwise locates the
+     * verified item (the preferred slot first, then anywhere in the inventory), removes exactly one, and
+     * commits the redeem. An item that left the inventory meanwhile (dropped, stored, or on the cursor) is
+     * not redeemed, and the reserved use and stamp claim are given back.
+     *
+     * <p>How the redeem settles is decided before each step that can throw, and runs in a finally. Until
+     * the item is taken, it settles by giving back whatever the verdict holds, which for a denial or
+     * refusal only releases the guard. Once the item is taken the claim stands, so it settles by ending the
+     * claim's ledger entry and releasing the guard. A failing reply or reward therefore never leaks a
+     * claim or reserved use, and never gives one back after delivery.
      */
     private void deliverHeld(Player player, int preferredSlot, Voucher voucher, @Nullable String uid,
                              Predicate<ItemStack> sameItem, Verdict verdict, InFlightGuard.Ticket ticket) {
-        boolean releaseLater = false;
+        UUID playerId = player.getUniqueId();
+        Runnable settle = () -> abandon(playerId, voucher, verdict.claim(), verdict.reserved(), ticket);
         try {
             if (verdict.denialKey() != null) {
                 send(player, messages.get(player, verdict.denialKey()));
@@ -316,26 +396,33 @@ public final class RedeemHandler {
             int slot = locate(inventory, preferredSlot, sameItem);
             if (slot < 0) {
                 send(player, messages.get(player, "redeem.verify-failed"));
-                releaseLater = true;
-                abandon(player.getUniqueId(), voucher, verdict.claim(), verdict.reserved(), ticket);
                 return;
             }
             take(inventory, slot, 1);
+            settle = () -> {
+                if (verdict.claim() != null) {
+                    ledger.end(verdict.claim().uid(), ticket);
+                }
+                inFlight.release(ticket);
+            };
             // The use was recorded by the reservation, so committing records nothing further.
             completeVoucherRedeem(player, voucher, uid, false);
         } finally {
-            if (!releaseLater) {
-                inFlight.release(ticket);
-            }
+            settle.run();
         }
     }
 
     /**
-     * Gives back what an undelivered item redeem holds, its stamp claim and reserved uses, then releases
-     * its in-flight guard. The storage work runs on the async scheduler, or on the calling thread while
-     * the plugin disables, so this is safe from a retired callback on any thread. The guard is released
-     * only after the claim is gone, so a retry cannot find the stale claim and take the item for a
-     * duplicate.
+     * Gives back what an undelivered redeem holds, its stamp claim and reserved uses, then releases its
+     * in-flight guard, which is all it does when the redeem holds neither. The storage work runs on the
+     * async scheduler, or on the calling thread while the plugin disables, so this is safe from a retired
+     * callback on any thread.
+     *
+     * <p>The guard is released once the first attempt to give the claim back has finished. The claim's id
+     * stays in the ledger until an attempt succeeds, so a retry meanwhile is refused as unverifiable
+     * instead of finding the leftover claim and taking the item for a duplicate. Reserved uses are given
+     * back once and never retried: repeating a release that did commit would take off a use the player
+     * really made.
      */
     private void abandon(UUID player, Voucher voucher, @Nullable Claim claim, int reserved,
                          InFlightGuard.Ticket ticket) {
@@ -347,7 +434,7 @@ public final class RedeemHandler {
             scheduler.asyncOrRun(() -> {
                 try {
                     if (claim != null) {
-                        dupeDetector.release(claim.uid(), player, claim.claimedAt());
+                        releaseClaim(player, voucher, claim, ticket, 0);
                     }
                     releaseUses(voucher.useKey(), player, reserved);
                 } finally {
@@ -355,10 +442,42 @@ public final class RedeemHandler {
                 }
             });
         } catch (RuntimeException ex) {
-            // The give-back could not be scheduled; never leave the voucher blocked.
+            // Never leave the voucher blocked, even when the give-back could not run. A claim that was not
+            // given back keeps its ledger entry, so the item is refused as unverifiable, not as a duplicate.
             inFlight.release(ticket);
             throw ex;
         }
+    }
+
+    /**
+     * One attempt to give back a stamp claim that was not delivered (async context, or the calling thread
+     * while the plugin disables). Success, including finding the claim already gone, ends its ledger
+     * entry. A storage failure keeps the entry, so this server refuses the item as unverifiable rather
+     * than taking the leftover claim for a duplicate, and schedules the next attempt after the next delay
+     * in {@link #CLAIM_RELEASE_RETRY_DELAYS}. When none is left, or none can be scheduled because the
+     * plugin is disabling, the entry stays and a warning names the claim.
+     */
+    private void releaseClaim(UUID player, Voucher voucher, Claim claim, InFlightGuard.Ticket owner,
+                              int failedAttempts) {
+        if (dupeDetector.release(claim.uid(), player, claim.claimedAt())) {
+            ledger.end(claim.uid(), owner);
+            return;
+        }
+        if (failedAttempts < CLAIM_RELEASE_RETRY_DELAYS.size()) {
+            Duration delay = CLAIM_RELEASE_RETRY_DELAYS.get(failedAttempts);
+            try {
+                scheduler.delayedAsync(() -> releaseClaim(player, voucher, claim, owner, failedAttempts + 1),
+                    delay.toMillis(), TimeUnit.MILLISECONDS);
+                return;
+            } catch (RuntimeException ex) {
+                // Nothing can be scheduled while the plugin disables, so this attempt was the last.
+            }
+        }
+        logger.warn("Could not release the anti-dupe claim of voucher '{}' (uid {}) for player {} after {} "
+                + "attempt(s). This server refuses that item as unverifiable until it restarts, and "
+                + "afterwards it counts as already redeemed unless that uid's row is deleted from "
+                + "provouchers_used_vouchers.",
+            voucher.id(), claim.uid(), player, failedAttempts + 1);
     }
 
     /**
@@ -575,8 +694,8 @@ public final class RedeemHandler {
 
     /**
      * Handles a stamped voucher the anti-dupe check refused. A duplicate is reported, then removed (or
-     * marked with the warning lore) wherever it now is in the inventory; an unverifiable stamp or a lost
-     * claim race leaves the item untouched to retry.
+     * marked with the warning lore) wherever it now is in the inventory; an unverifiable stamp, a lost
+     * claim race, or an earlier redeem of the item still settling leaves the item untouched to retry.
      */
     private void handleRejectedItem(Player player, PlayerInventory inventory, int preferredSlot, Voucher voucher,
                                     Predicate<ItemStack> sameItem, StampStatus status) {
@@ -673,7 +792,7 @@ public final class RedeemHandler {
             }
             // The use is reserved: grant it on the player's thread, or give it back if the player is gone.
             String source = "code '" + code.code() + "'";
-            scheduler.entity(player, () -> {
+            handOff(player, () -> {
                 grant(player, source, code.rewards(), code.randomRewards(),
                     argument, false, code.definedItems(), code.discordWebhooks());
                 playEffects(player, source, code.effects());
@@ -773,27 +892,31 @@ public final class RedeemHandler {
         int slot = handSlot(player.getInventory(), hand);
         ItemStack original = inHand.asOne();
         UUID playerId = player.getUniqueId();
-        scheduler.async(() -> {
-            try {
+        try {
+            scheduler.async(() -> {
                 Reservation reservation = reserveVoucherUses(playerId, voucher, count);
-                scheduler.entity(player,
+                handOff(player,
                     () -> openReserved(player, slot, voucher, original, reservation, ticket),
                     () -> abandon(playerId, voucher, null, reservation.reserved(), ticket));
-            } catch (RuntimeException ex) {
-                inFlight.release(ticket);
-                throw ex;
-            }
-        });
+            });
+        } catch (RuntimeException ex) {
+            // The task never ran, so nothing was reserved.
+            inFlight.release(ticket);
+            throw ex;
+        }
     }
 
     /**
      * The player-thread half of a limited batch open: redeems as many reserved uses as the matching stack
      * still in the redeeming hand's slot covers, taking exactly that many items, gives back any reserved
      * use left over, and replies to a shortfall. Items the limits did not cover stay in the stack.
+     *
+     * <p>A reserved use counts as unused until its item is taken, and the unused ones are given back (or,
+     * with none, just the guard released) in a finally, so a failing reward or reply cannot leak them.
      */
     private void openReserved(Player player, int slot, Voucher voucher, ItemStack original,
                               Reservation reservation, InFlightGuard.Ticket ticket) {
-        boolean releaseLater = false;
+        int unused = reservation.reserved();
         try {
             PlayerInventory inventory = player.getInventory();
             // Re-read: the stack may have been moved, split, or topped up since the click.
@@ -802,6 +925,7 @@ public final class RedeemHandler {
             int opened = Math.min(reservation.reserved(), present);
             if (opened > 0) {
                 take(inventory, slot, opened);
+                unused -= opened;
                 redeemBatch(player, voucher, opened);
             }
             if (reservation.denialKey() != null) {
@@ -809,15 +933,8 @@ public final class RedeemHandler {
             } else if (opened == 0) {
                 send(player, messages.get(player, "redeem.verify-failed"));
             }
-            int unused = reservation.reserved() - opened;
-            if (unused > 0) {
-                releaseLater = true;
-                abandon(player.getUniqueId(), voucher, null, unused, ticket);
-            }
         } finally {
-            if (!releaseLater) {
-                inFlight.release(ticket);
-            }
+            abandon(player.getUniqueId(), voucher, null, unused, ticket);
         }
     }
 
