@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
  * <p>Checks fail closed until that load succeeds: {@link #ensureLoaded} tells a redeem
  * whether a player's in-memory cooldowns can be trusted yet, and a failed load is retried
  * with backoff while the player stays online. Writes are best-effort: if one fails, the
- * cooldown still holds in memory until the player leaves.
+ * cooldown still holds in memory on this server until it restarts.
  */
 public final class CooldownService {
 
@@ -80,14 +80,13 @@ public final class CooldownService {
     }
 
     /**
-     * Drops a player's loaded cooldowns (call on quit): their readiness, their in-memory entries, and
-     * any load still running. Their next join loads again from storage, which another server sharing
-     * the database may have updated in the meantime.
+     * Marks a player's cooldowns as needing a reload (call on quit) and stops any load still running.
+     * Their in-memory entries stay, so a cooldown whose write has not reached storage survives a quick
+     * rejoin; the next join loads again from storage (which another server sharing the database may have
+     * updated) and merges, keeping the later expiry.
      */
     public void unload(UUID player) {
-        String prefix = player + ":";
-        readiness.forget(player, () ->
-            memory.removeIf(key -> key instanceof String id && id.startsWith(prefix)));
+        readiness.forget(player);
     }
 
     /** One load attempt (async context). A failure schedules the next attempt while the load is current. */

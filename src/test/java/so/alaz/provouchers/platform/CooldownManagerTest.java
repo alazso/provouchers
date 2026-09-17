@@ -36,15 +36,4 @@ class CooldownManagerTest {
         assertThat(manager.isOnCooldown("daily")).isTrue();
         assertThat(manager.isOnCooldown("weekly")).isFalse();
     }
-
-    @Test
-    void removeIfClearsOnlyMatchingKeys() {
-        manager.setMillis("p1:daily", HOUR);
-        manager.setMillis("p1:weekly", HOUR);
-        manager.setMillis("p2:daily", HOUR);
-        manager.removeIf(key -> key.toString().startsWith("p1:"));
-        assertThat(manager.isOnCooldown("p1:daily")).isFalse();
-        assertThat(manager.isOnCooldown("p1:weekly")).isFalse();
-        assertThat(manager.isOnCooldown("p2:daily")).isTrue();
-    }
 }

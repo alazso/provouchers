@@ -75,7 +75,7 @@ class CooldownReadinessTest {
     void forgettingAPlayerStopsTheirRetries() {
         CooldownReadiness.Load load = readiness.begin(player);
         assertThat(readiness.fail(load)).isNotNull();                     // a retry is pending
-        readiness.forget(player, () -> { });                              // the player quits
+        readiness.forget(player);                                         // the player quits
 
         assertThat(readiness.isCurrent(load)).isFalse();                  // the retry sees this and stops
         assertThat(readiness.fail(load)).isNull();
@@ -88,7 +88,7 @@ class CooldownReadinessTest {
     @Test
     void lateResultFromBeforeAQuitIsDiscardedAfterRejoin() {
         CooldownReadiness.Load before = readiness.begin(player);
-        readiness.forget(player, () -> { });                              // quit while the query runs
+        readiness.forget(player);                                         // quit while the query runs
         CooldownReadiness.Load after = readiness.begin(player);           // rejoin starts a new load
         assertThat(after).isNotNull().isNotSameAs(before);
 
@@ -104,11 +104,9 @@ class CooldownReadinessTest {
     }
 
     @Test
-    void forgetClearsReadinessAndRunsTheClear() {
+    void forgetClearsReadiness() {
         readiness.succeed(readiness.begin(player), () -> { });
-        AtomicBoolean cleared = new AtomicBoolean();
-        readiness.forget(player, () -> cleared.set(true));
-        assertThat(cleared).isTrue();
+        readiness.forget(player);
         assertThat(readiness.isReady(player)).isFalse();
         assertThat(readiness.begin(player)).isNotNull();                  // the next join loads again
     }
@@ -120,7 +118,7 @@ class CooldownReadinessTest {
         CooldownReadiness.Load otherLoad = readiness.begin(other);
         assertThat(readiness.isReady(other)).isFalse();
 
-        readiness.forget(player, () -> { });
+        readiness.forget(player);
         assertThat(readiness.isCurrent(otherLoad)).isTrue();
         assertThat(readiness.succeed(otherLoad, () -> { })).isTrue();
         assertThat(readiness.isReady(other)).isTrue();

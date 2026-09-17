@@ -15,8 +15,8 @@ import java.util.UUID;
  * failed attempt after a doubling delay, up to {@link #MAX_ATTEMPTS} attempts. Forgetting a player (on
  * quit) ends their load, so a pending retry or a late result is discarded, even after they rejoin.
  *
- * <p>Thread-safe: every operation holds this tracker's lock, including the callbacks passed to
- * {@link #succeed} and {@link #forget}, so a merge and a quit never interleave.
+ * <p>Thread-safe: every operation holds this tracker's lock, including the merge passed to
+ * {@link #succeed}, so a merge and a quit never interleave.
  */
 final class CooldownReadiness {
 
@@ -98,11 +98,10 @@ final class CooldownReadiness {
         return retryDelay(load.failures);
     }
 
-    /** Forgets the player (on quit): ends any load, clears their readiness, then runs {@code clear}. */
-    synchronized void forget(UUID player, Runnable clear) {
+    /** Forgets the player (on quit): ends any load and clears their readiness. */
+    synchronized void forget(UUID player) {
         loading.remove(player);
         ready.remove(player);
-        clear.run();
     }
 
     /** The delay before the retry after {@code failures} failed attempts: 2s, then 4s, 8s, and so on. */
