@@ -17,6 +17,12 @@ All notable changes to ProVouchers are documented here. This project follows
 - Activity metrics (redemptions, blocked duplicates, condition denials, Stash
   activity) report the count since the previous report instead of a running
   session total, so they no longer climb with server uptime.
+- `effects.sound` keys are checked at `/voucher reload`: a key that is not a valid
+  sound key fails its voucher or code file instead of failing at redeem, and
+  upper-case keys now play.
+- Storage takes queries only once its schema upgrades have finished. If an upgrade
+  fails at startup, everything that needs storage stays unavailable until it is
+  fixed, instead of running against a half-upgraded database.
 - Updated FastStats to 0.30.1.
 
 ### Fixed
@@ -46,6 +52,15 @@ All notable changes to ProVouchers are documented here. This project follows
 - Redeeming several copies of a voucher in quick succession can no longer grant
   extra rewards before its cooldown or use limit applies: while one redeem of a
   voucher is being verified, further clicks on that voucher are ignored.
+- A stamped voucher is no longer removed as a duplicate when storage failed while
+  its unfinished redeem was being undone. Undoing it is retried, and until it
+  succeeds the voucher replies that it could not be verified.
+- A voucher given to a player who logs out before it arrives is queued in their
+  Stash, or logged when the Stash is disabled, instead of being lost. Player command
+  and `item: @name` rewards that could not be delivered because the player logged
+  out are logged.
+- A redeem effect that fails, such as a sound that cannot play, no longer stops the
+  rest of a batch open or Stash claim from being granted.
 
 ### Migration
 - Use limits are counted in a new `provouchers_use_totals` table, created and
