@@ -4,6 +4,18 @@ All notable changes to ProVouchers are documented here. This project follows
 [Semantic Versioning](https://semver.org). Releases before 0.5.0 are listed on the
 [GitHub releases](https://github.com/alazso/provouchers/releases) page.
 
+## [Unreleased]
+
+### Added
+- `command-aliases` in `config.yml` sets the extra names for `/voucher` (default
+  `pv` and `vouchers`), so a server can drop `/pv` when another plugin such as
+  PlayerVaults uses it. `[]` registers none; `/voucher` itself always works.
+
+### Changed
+- Aliases for `/voucher` and `/stash` are trimmed and lower-cased; blank entries,
+  entries containing spaces, and duplicates are ignored.
+- Updated FastStats to 0.27.0.
+
 ## [1.4.0] - 2026-06-15
 
 ### Added

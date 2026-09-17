@@ -143,11 +143,12 @@ public final class VoucherCommand {
         this.stashService = stashService;
     }
 
-    /** Builds and registers the command for {@code plugin}. Call during {@code onEnable}. */
-    public void register(Plugin plugin) {
+    /** Builds and registers {@code /voucher} (with {@code aliases}) for {@code plugin}. Call during {@code onEnable}. */
+    public void register(Plugin plugin, List<String> aliases) {
         this.plugin = plugin;
+        List<String> names = CommandAliases.normalize(aliases, "voucher");
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
-            event.registrar().register(buildTree(), "ProVouchers command", List.of("pv", "vouchers")));
+            event.registrar().register(buildTree(), "ProVouchers command", names));
     }
 
     private LiteralCommandNode<CommandSourceStack> buildTree() {

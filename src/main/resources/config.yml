@@ -1,5 +1,9 @@
 # ProVouchers configuration.
 
+# Extra names for /voucher. Remove any that clash with another plugin (PlayerVaults also
+# uses /pv); an empty list [] registers none. /voucher itself always works. Needs a restart.
+command-aliases: [ pv, vouchers ]
+
 locale:
   # Language for plugin messages. ProVouchers ships English (lang/en.yml). To translate,
   # copy it to lang/<code>.yml (e.g. lang/de.yml), translate the values, and either set

@@ -34,8 +34,9 @@ public final class StashCommand {
 
     /** Registers {@code /stash} (with {@code aliases}) for {@code plugin}. Call during {@code onEnable}. */
     public void register(Plugin plugin, List<String> aliases) {
+        List<String> names = CommandAliases.normalize(aliases, "stash");
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
-            event.registrar().register(buildTree(), "Open your Stash of claimable rewards", aliases));
+            event.registrar().register(buildTree(), "Open your Stash of claimable rewards", names));
     }
 
     private LiteralCommandNode<CommandSourceStack> buildTree() {

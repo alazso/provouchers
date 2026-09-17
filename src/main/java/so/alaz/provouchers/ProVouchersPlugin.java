@@ -209,7 +209,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
             new CrazyVouchersMigrator(getDataFolder(), registry));
         new VoucherCommand(registry, giveService, redeemHandler, configManager, previewGui, text,
             messages, diagnostics, storage, scheduler, fromhandGui, migrationService, stashService)
-            .register(this);
+            .register(this, getConfig().getStringList("command-aliases"));
 
         getServer().getServicesManager().register(VoucherService.class,
             new VoucherServiceImpl(registry, giveService, stashService), this,
