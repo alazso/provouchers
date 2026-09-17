@@ -8,20 +8,24 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Per-player, per-voucher cooldowns that survive restarts. An in-memory
  * {@link CooldownManager} answers the fast synchronous checks during a redeem,
  * while the same data is persisted to storage and re-loaded when a player joins.
  *
- * <p>Persistence is best-effort: if a storage write or read fails, the cooldown
- * still works in memory for the current session.
+ * <p>Checks fail closed until that load succeeds: {@link #ensureLoaded} tells a redeem
+ * whether a player's in-memory cooldowns can be trusted yet, and a failed load is retried
+ * with backoff while the player stays online. Writes are best-effort: if one fails, the
+ * cooldown still holds in memory until the player leaves.
  */
 public final class CooldownService {
 
     private final CooldownManager memory;
     private final VoucherStorage storage;
     private final Scheduler scheduler;
+    private final CooldownReadiness readiness = new CooldownReadiness();
 
     public CooldownService(CooldownManager memory, VoucherStorage storage, Scheduler scheduler) {
         this.memory = memory;
@@ -53,23 +57,59 @@ public final class CooldownService {
         });
     }
 
-    /** Loads a player's stored cooldowns into memory (call on join). */
+    /**
+     * Whether the player's stored cooldowns are loaded, so {@link #isOnCooldown} can be trusted for
+     * them. When they are not, starts a load unless one is already running, so a redeem made after a
+     * load ran out of attempts tries storage again.
+     */
+    public boolean ensureLoaded(UUID player) {
+        hydrate(player);
+        return readiness.isReady(player);
+    }
+
+    /**
+     * Loads a player's stored cooldowns into memory (call on join), unless they are loaded or a load
+     * is already running. A failed attempt is retried with backoff until one succeeds, the attempts
+     * run out, or the player leaves.
+     */
     public void hydrate(UUID player) {
-        scheduler.async(() -> {
-            long now = System.currentTimeMillis();
-            Map<String, Long> active;
-            try {
-                active = storage.activeCooldowns(player, now);
-            } catch (SQLException | RuntimeException ex) {
-                return;
+        CooldownReadiness.Load load = readiness.begin(player);
+        if (load != null) {
+            scheduler.async(() -> attemptLoad(load));
+        }
+    }
+
+    /**
+     * Drops a player's loaded cooldowns (call on quit): their readiness, their in-memory entries, and
+     * any load still running. Their next join loads again from storage, which another server sharing
+     * the database may have updated in the meantime.
+     */
+    public void unload(UUID player) {
+        String prefix = player + ":";
+        readiness.forget(player, () ->
+            memory.removeIf(key -> key instanceof String id && id.startsWith(prefix)));
+    }
+
+    /** One load attempt (async context). A failure schedules the next attempt while the load is current. */
+    private void attemptLoad(CooldownReadiness.Load load) {
+        if (!readiness.isCurrent(load)) {
+            return; // The player left, so a pending retry stops here.
+        }
+        UUID player = load.player();
+        long now = System.currentTimeMillis();
+        Map<String, Long> active;
+        try {
+            active = storage.activeCooldowns(player, now);
+        } catch (SQLException | RuntimeException ex) {
+            Duration delay = readiness.fail(load);
+            if (delay != null) {
+                scheduler.delayedAsync(() -> attemptLoad(load), delay.toMillis(), TimeUnit.MILLISECONDS);
             }
-            active.forEach((voucherId, expiresAt) -> {
-                long remaining = expiresAt - now;
-                if (remaining > 0) {
-                    memory.setMillis(key(player, voucherId), remaining);
-                }
-            });
-        });
+            return;
+        }
+        // Extend rather than set, so a cooldown applied during the load is never shortened.
+        readiness.succeed(load, () -> active.forEach((voucherId, expiresAt) ->
+            memory.extendMillis(key(player, voucherId), expiresAt - now)));
     }
 
     private static String key(UUID player, String voucherId) {
