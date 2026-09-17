@@ -12,8 +12,10 @@ import java.sql.Statement;
  *
  * <p>The backfill replaces whatever the table holds. MySQL and MariaDB commit a {@code CREATE TABLE}
  * on their own, so a backfill that failed or was interrupted leaves the table behind, and servers
- * sharing a database can start this migration together; either way the next run recomputes every
- * total instead of failing on rows that are already there.
+ * sharing a database can start this migration together, one of them failing on the other's work;
+ * either way the next run (the retry {@link VoucherStorage#init()} makes, or a later start) recomputes
+ * every total, or skips the migration once the other server has recorded it, instead of failing on
+ * rows that are already there.
  */
 public final class UseTotalsSchema implements Migration {
 
