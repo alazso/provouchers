@@ -155,6 +155,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
             cooldowns,
             conditionRegistry,
             counters,
+            getComponentLogger(),
             loadCooldownTiers(),
             "gui".equalsIgnoreCase(getConfig().getString("redeem.confirm-style", "chat"))
                 ? new ConfirmGui(factory, guiManager, scheduler, text) : null,

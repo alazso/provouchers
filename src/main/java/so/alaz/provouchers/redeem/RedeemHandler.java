@@ -2,6 +2,7 @@ package so.alaz.provouchers.redeem;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.FireworkEffect;
 import org.bukkit.GameMode;
@@ -94,6 +95,7 @@ public final class RedeemHandler {
     private final CooldownService cooldowns;
     private final ConditionRegistry conditions;
     private final MetricCounters counters;
+    private final ComponentLogger logger;
     private final boolean removeOnDiscovery;
     private final boolean warningEnabled;
     private final String warningText;
@@ -118,6 +120,7 @@ public final class RedeemHandler {
         CooldownService cooldowns,
         ConditionRegistry conditions,
         MetricCounters counters,
+        ComponentLogger logger,
         CooldownTiers cooldownTiers,
         @Nullable ConfirmGui confirmGui,
         boolean removeOnDiscovery,
@@ -138,6 +141,7 @@ public final class RedeemHandler {
         this.cooldowns = cooldowns;
         this.conditions = conditions;
         this.counters = counters;
+        this.logger = logger;
         this.cooldownTiers = cooldownTiers;
         this.confirmGui = confirmGui;
         this.removeOnDiscovery = removeOnDiscovery;
@@ -484,10 +488,11 @@ public final class RedeemHandler {
      */
     private void grantRewards(Player player, Voucher voucher, @Nullable String uid, @Nullable String arg,
                               boolean quiet) {
-        grant(player, "voucher '" + voucher.id() + "'", voucher.rewards(), voucher.randomRewards(), arg, quiet,
+        String source = "voucher '" + voucher.id() + "'";
+        grant(player, source, voucher.rewards(), voucher.randomRewards(), arg, quiet,
             voucher.definedItems(), voucher.discordWebhooks());
         if (!quiet) {
-            playEffects(player, voucher.effects());
+            playEffects(player, source, voucher.effects());
         }
         counters.recordVoucherRedemption();
         new VoucherRedeemEvent(player, voucher, uid).callEvent();
@@ -526,18 +531,24 @@ public final class RedeemHandler {
     }
 
     /**
-     * Plays the voucher's optional redeem effects (sound, firework) to the player.
+     * Plays the voucher's or code's optional redeem effects (sound, firework) to the player.
      * Suppressed for quiet redemptions (such as batch open) so a whole stack does not spam them.
+     * A failing effect (such as an invalid sound key) is logged against {@code source} and skipped,
+     * so it never aborts the grant, metric, and event around it.
      */
-    private void playEffects(Player player, @Nullable VoucherEffects effects) {
+    private void playEffects(Player player, String source, @Nullable VoucherEffects effects) {
         if (effects == null) {
             return;
         }
-        if (effects.sound() != null && !effects.sound().isBlank()) {
-            Sounds.play(player, effects.sound());
-        }
-        if (effects.firework() != null) {
-            spawnFirework(player, effects.firework());
+        try {
+            if (effects.sound() != null && !effects.sound().isBlank()) {
+                Sounds.play(player, effects.sound());
+            }
+            if (effects.firework() != null) {
+                spawnFirework(player, effects.firework());
+            }
+        } catch (RuntimeException ex) {
+            logger.warn("Redeem effects of {} failed: {}", source, ex.getMessage());
         }
     }
 
@@ -661,10 +672,11 @@ public final class RedeemHandler {
                 return;
             }
             // The use is reserved: grant it on the player's thread, or give it back if the player is gone.
+            String source = "code '" + code.code() + "'";
             scheduler.entity(player, () -> {
-                grant(player, "code '" + code.code() + "'", code.rewards(), code.randomRewards(),
+                grant(player, source, code.rewards(), code.randomRewards(),
                     argument, false, code.definedItems(), code.discordWebhooks());
-                playEffects(player, code.effects());
+                playEffects(player, source, code.effects());
                 counters.recordCodeRedemption();
                 new VoucherCodeRedeemEvent(player, code, argument).callEvent();
                 send(player, messages.get(player, "code.redeemed"));
