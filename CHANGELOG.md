@@ -19,6 +19,23 @@ All notable changes to ProVouchers are documented here. This project follows
   session total, so they no longer climb with server uptime.
 - Updated FastStats to 0.30.1.
 
+### Fixed
+- Stash: claiming a card no longer deletes vouchers delivered after the menu was
+  opened. Each delivery is stored on its own and the menu combines matching ones
+  into one card, so a claim takes exactly the deliveries on that card.
+- Stash: concurrent deliveries of the same voucher no longer multiply later
+  deliveries.
+- Stash: a claim interrupted by a logout restores its rewards, including a logout
+  while the claim is still reaching storage, and Claim all no longer restores
+  rewards that another claim already took.
+- Soulbound and crafting-station protection now also block number-key swaps,
+  offhand swaps, and bundle placement into containers and stations.
+- Cooldowns can no longer be skipped by redeeming right after joining, or after
+  moving between servers that share a database, before the player's stored
+  cooldowns have loaded. Until they load, vouchers with a cooldown reply that they
+  could not be verified and loading retries; while storage is unavailable, those
+  vouchers stay unavailable rather than ignoring stored cooldowns.
+
 ## [1.4.0] - 2026-06-15
 
 ### Added
