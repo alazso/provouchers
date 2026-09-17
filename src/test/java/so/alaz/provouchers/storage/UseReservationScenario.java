@@ -48,6 +48,7 @@ final class UseReservationScenario {
         releaseRestoresCapacityAndNeverGoesNegative(config);
         clearUsesKeepsTotalsConsistent(config);
         backfillSumsRecordedUses(config);
+        backfillRerunReplacesExistingTotals(config);
     }
 
     /** Many players racing for a key with {@code max-uses: 1}: exactly one reserves it. */
@@ -243,6 +244,32 @@ final class UseReservationScenario {
                 try (Statement statement = connection.createStatement()) {
                     statement.executeUpdate("DROP TABLE provouchers_use_totals");
                 }
+                connection.setAutoCommit(false);   // as the migration runner applies it
+                new UseTotalsSchema().up(connection);
+                connection.commit();
+                connection.setAutoCommit(true);
+            }
+
+            assertBackfilled(storage, busy, single);
+        });
+    }
+
+    /**
+     * Running the version 5 migration again over totals that already exist, as after a backfill that
+     * failed once MySQL or MariaDB had committed its table, or when two servers migrate together,
+     * recomputes every total from the recorded uses instead of failing on the rows already there.
+     */
+    static void backfillRerunReplacesExistingTotals(StorageConfig config) throws Exception {
+        withStorage(config, (storage, provider) -> {
+            String busy = uniqueKey();
+            String single = uniqueKey();
+            recordUsesDirectly(provider, busy, UUID.randomUUID(), 2);
+            recordUsesDirectly(provider, busy, UUID.randomUUID(), 3);
+            recordUsesDirectly(provider, single, UUID.randomUUID(), 1);
+            // A stale total left in the table before the rerun, which would collide with the backfill.
+            execute(provider, "INSERT INTO provouchers_use_totals (code, uses) VALUES (?, 0)", busy);
+
+            try (Connection connection = provider.dataSource().getConnection()) {
                 connection.setAutoCommit(false);   // as the migration runner applies it
                 new UseTotalsSchema().up(connection);
                 connection.commit();
