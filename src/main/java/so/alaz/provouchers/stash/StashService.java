@@ -210,11 +210,12 @@ public final class StashService {
     /**
      * Re-inserts removed rows exactly as they were read, so a reward is never lost when a grant could not
      * complete. The primary key keeps a row from being restored twice, and a restore never changes an
-     * amount. The work hops to the async scheduler, so this is safe from any thread, including a retired
-     * callback that runs off the region thread.
+     * amount. The work hops to the async scheduler, or runs on the calling thread while the plugin
+     * disables so the rows are not lost, so this is safe from any thread, including a retired callback
+     * that runs off the region thread.
      */
     private void restore(StashCard taken) {
-        scheduler.async(() -> {
+        scheduler.asyncOrRun(() -> {
             for (StashEntry entry : taken.entries()) {
                 try {
                     storage.restoreStash(entry);
