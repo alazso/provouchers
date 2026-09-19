@@ -9,13 +9,12 @@ import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.api.Voucher;
 
 /**
- * Fired after an item voucher has been successfully redeemed: the item was
- * consumed, the duplicate check passed, and rewards were granted. Not cancellable;
- * this is a post-commit notification.
+ * Fired after a voucher has been redeemed and its rewards granted: once per item, and
+ * once per copy granted by a Stash claim. Not cancellable.
  *
  * <p>Fired on the redeeming player's region thread. The {@code uid} identifies the
- * exact item that was redeemed, for auditing; it is {@code null} for a stackable
- * (non-anti-dupe) voucher.
+ * exact item that was redeemed; it is {@code null} for a stackable (non-anti-dupe)
+ * voucher and for a Stash claim.
  */
 @ApiStatus.AvailableSince("0.4.0")
 public class VoucherRedeemEvent extends Event {
@@ -43,7 +42,7 @@ public class VoucherRedeemEvent extends Event {
         return voucher;
     }
 
-    /** The redeemed item's unique id, or {@code null} for a stackable (non-anti-dupe) voucher. */
+    /** The redeemed item's unique id, or {@code null} for a stackable (non-anti-dupe) voucher or a Stash claim. */
     @Nullable
     public String getUid() {
         return uid;

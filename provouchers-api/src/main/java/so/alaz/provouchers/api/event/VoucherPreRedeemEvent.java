@@ -9,8 +9,10 @@ import org.jetbrains.annotations.NotNull;
 import so.alaz.provouchers.api.Voucher;
 
 /**
- * Fired synchronously before an item voucher is redeemed, after ProVouchers' own
- * checks pass and before the item is consumed. Cancel it to veto the redemption.
+ * Fired before a voucher is redeemed, once its synchronous checks (expiry, game mode,
+ * cooldown, conditions) pass and before its use limits and anti-dupe stamp are verified.
+ * Cancel it to veto the redemption. Also fired before a Stash claim is granted;
+ * cancelling it returns the claimed entries to the Stash.
  *
  * <p>Fired on the redeeming player's region thread.
  */
