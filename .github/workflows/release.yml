@@ -128,8 +128,8 @@ jobs:
             gh release create "$TAG" --title "v${VERSION}" --generate-notes "$STAGING"/*
           fi
 
-      # Ordered before Modrinth: mc-publish has failed on a post-upload call after the
-      # version was already live, and that must not block the Maven publish.
+      # Runs before the Modrinth step so a failing mc-publish step cannot block the
+      # Maven publish.
       - name: Publish to repo.alaz.so
         if: steps.published.outputs.skip != 'true' && (github.event_name == 'push' || inputs.dry_run != true)
         env:

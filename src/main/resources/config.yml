@@ -7,9 +7,9 @@ command-aliases: [ pv, vouchers ]
 locale:
   # Language for plugin messages. ProVouchers ships English (lang/en.yml). To translate,
   # copy it to lang/<code>.yml (e.g. lang/de.yml), translate the values, and either set
-  # "default" to that code or leave per-player on. Missing keys fall back to English, so a
-  # partial translation never shows a blank line. Editing a lang file is picked up by
-  # /voucher reload; changing the settings below needs a server restart.
+  # "default" to that code or leave per-player on. Missing keys fall back to English.
+  # Editing a lang file is picked up by /voucher reload; changing the settings below
+  # needs a server restart.
   default: en
   # When true, each player sees messages in their Minecraft client language if a matching
   # lang/<code>.yml exists, otherwise the default above. Console always uses the default.
@@ -47,7 +47,7 @@ anti-dupe:
 
 redeem:
   # Left-click a held voucher to preview its rewards in a GUI.
-  # Experimental and incomplete: off by default for now.
+  # Experimental; off by default.
   left-click-preview: false
   # When batch-opening a stack (shift-right-click), suppress the per-item reward
   # feedback (messages, titles, sounds) and show one summary line instead of many.

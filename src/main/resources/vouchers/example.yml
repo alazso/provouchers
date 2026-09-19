@@ -77,7 +77,7 @@ stackable: true                   # false = anti-dupe: each copy tracked, never 
 # Sound keys: https://minecraft.wiki/w/Sounds.json
 # effects:
 #   sound: "minecraft:entity.player.levelup 1 1"   # key [volume] [pitch]
-#   firework:                       # a harmless celebratory burst at the player
+#   firework:                       # a burst at the player that deals no damage
 #     colors: [ YELLOW, "#FF8A00" ] # named colors or #RRGGBB hex
 #     fade: [ RED ]                 # optional fade colors
 #     type: BALL                    # BALL | BALL_LARGE | STAR | BURST | CREEPER
