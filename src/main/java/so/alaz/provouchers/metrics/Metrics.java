@@ -5,7 +5,7 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * A live metrics submission, returned by {@link MetricsBuilder#start()}. Wraps the started bStats
- * metrics and/or FastStats context. Shut it down on plugin disable.
+ * metrics and/or FastStats context. {@link #shutdown()} must be called on plugin disable.
  */
 public final class Metrics {
 
@@ -30,7 +30,6 @@ public final class Metrics {
             try {
                 fastStats.shutdown();
             } catch (RuntimeException ignored) {
-                // As above.
             }
         }
     }

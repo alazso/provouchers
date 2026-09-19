@@ -12,9 +12,8 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 /**
- * Posts messages to Discord webhooks over HTTP. One shared, non-blocking client serves the whole
- * plugin; a failure is reported to a callback rather than thrown, so it never aborts a redemption or
- * stalls the calling thread. The client (and its executor) is closed on plugin disable.
+ * Posts messages to Discord webhooks over HTTP, asynchronously, through one client shared by the
+ * plugin. Failures are reported to the caller's callback, not thrown.
  */
 public final class DiscordWebhook {
 

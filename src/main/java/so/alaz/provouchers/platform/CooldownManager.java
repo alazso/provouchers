@@ -4,9 +4,8 @@ import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Tracks keyed cooldowns against the system clock. Keys are any object with sensible
- * {@code equals}/{@code hashCode} - typically a composite of player UUID and voucher id.
- * Thread-safe.
+ * Tracks keyed cooldowns against the system clock. A key is any object compared by
+ * {@code equals}/{@code hashCode}, typically a composite of player UUID and voucher id. Thread-safe.
  */
 public final class CooldownManager {
 
@@ -31,7 +30,6 @@ public final class CooldownManager {
         }
     }
 
-    /** Whether the key is currently on cooldown. */
     public boolean isOnCooldown(Object key) {
         return remainingMillis(key) > 0;
     }

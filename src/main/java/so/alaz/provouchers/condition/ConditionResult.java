@@ -16,7 +16,6 @@ public final class ConditionResult {
         this.message = message;
     }
 
-    /** A passing result. */
     public static ConditionResult pass() {
         return PASS;
     }

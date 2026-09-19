@@ -14,12 +14,9 @@ import java.util.List;
  * Renders MiniMessage strings (RGB, gradients, PlaceholderAPI, MiniPlaceholders) into
  * Adventure {@link Component}s.
  *
- * <p>Resolution order is fixed and load-bearing: PlaceholderAPI placeholders are resolved
- * <em>first</em>, then the result is parsed as MiniMessage. Doing it the other way round lets
- * placeholder output be reinterpreted as markup (the CrazyCrates #878 class of bug).
- * MiniPlaceholders' component-safe tags are added as MiniMessage resolvers. Both integrations
- * are soft: when their plugin is absent the pass is skipped and plain MiniMessage parsing
- * proceeds unchanged.
+ * <p>The resolution order must be kept: PlaceholderAPI placeholders are resolved <em>first</em>,
+ * then the result is parsed as MiniMessage, with MiniPlaceholders' component-safe tags added as
+ * resolvers. Both integrations are optional: when a plugin is absent, its pass is skipped.
  */
 public final class Text {
 
@@ -28,7 +25,7 @@ public final class Text {
     private final boolean miniPlaceholdersAvailable =
         Classes.present("io.github.miniplaceholders.api.MiniPlaceholders", getClass());
 
-    /** Parses the input as MiniMessage with no placeholder resolution. */
+    /** Parses the input as MiniMessage, without PlaceholderAPI resolution. */
     public Component render(String input) {
         return deserialize(applyPlaceholders(input, null));
     }
@@ -41,38 +38,30 @@ public final class Text {
         return deserialize(applyPlaceholders(input, viewer));
     }
 
-    /** Renders each line via {@link #render(String, Player)}. */
     public List<Component> render(List<String> lines, @Nullable Player viewer) {
         return lines.stream().map(line -> render(line, viewer)).toList();
     }
 
-    /** Renders {@code miniMessage} for the player and sends it as a chat message. */
     public void send(Player player, String miniMessage) {
         player.sendMessage(render(miniMessage, player));
     }
 
     /**
-     * Resolves PlaceholderAPI placeholders in the input against the viewer <em>without</em>
-     * MiniMessage parsing, returning the raw resolved string. Returns the input unchanged when PAPI
-     * is absent or the viewer is null. Useful for comparing placeholder output (e.g. the papi
-     * condition).
+     * Resolves PlaceholderAPI placeholders in the input against the viewer, without MiniMessage
+     * parsing. Returns the input unchanged when PAPI is absent or throws, or the viewer is null.
      */
     public String resolve(String input, @Nullable Player viewer) {
         return applyPlaceholders(input, viewer);
     }
 
-    /**
-     * Renders the input (PlaceholderAPI then MiniMessage) and flattens it to plain text, dropping all
-     * formatting. Used for destinations that show plain text, such as a Discord webhook.
-     */
+    /** Renders the input (PlaceholderAPI, then MiniMessage) and flattens it to plain text. */
     public String plain(String input, @Nullable Player viewer) {
         return PlainTextComponentSerializer.plainText().serialize(render(input, viewer));
     }
 
     /**
-     * Parses already-resolved text as MiniMessage, adding MiniPlaceholders' component-safe
-     * resolvers when installed. If a MiniPlaceholders expansion throws, it falls back to parsing
-     * without them, so a misbehaving provider can never break rendering.
+     * Parses already-resolved text as MiniMessage with MiniPlaceholders' resolvers when installed,
+     * falling back to parsing without them if an expansion throws.
      */
     private Component deserialize(String resolved) {
         TagResolver miniPlaceholders = miniPlaceholderResolver();
@@ -87,9 +76,9 @@ public final class Text {
     }
 
     /**
-     * MiniPlaceholders' resolver covering global and audience placeholders, resolved fresh per
-     * render so expansions registered late are picked up. {@code null} (and harmless) when
-     * MiniPlaceholders is absent or the provider misbehaves while building the resolver.
+     * MiniPlaceholders' resolver for global and audience placeholders, built per render so
+     * expansions registered later are included. {@code null} when MiniPlaceholders is absent or
+     * throws while building it.
      */
     @Nullable
     private TagResolver miniPlaceholderResolver() {
@@ -103,13 +92,12 @@ public final class Text {
         }
     }
 
-    /** PAPI first, then MiniMessage - the order is the whole point (CrazyCrates #878). */
     private String applyPlaceholders(String input, @Nullable Player viewer) {
         if (viewer == null || !papiAvailable) {
             return input;
         }
         try {
-            // Fail-safe: a misbehaving PlaceholderAPI (or expansion) must not break rendering.
+            // A throwing PlaceholderAPI expansion must not break rendering.
             return me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(viewer, input);
         } catch (RuntimeException ex) {
             return input;

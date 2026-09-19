@@ -27,7 +27,7 @@ class TaskGateTest {
         assertThat(gate.close(Duration.ZERO)).isZero();
         assertThat(gate.enter()).isFalse();
         assertThat(gate.enter()).isFalse();
-        assertThat(gate.close(Duration.ZERO)).isZero();                 // a refused entry leaves nothing running
+        assertThat(gate.close(Duration.ZERO)).isZero();
     }
 
     @Test
@@ -45,7 +45,7 @@ class TaskGateTest {
             Future<Integer> closing = pool.submit(() -> gate.close(Duration.ofSeconds(30)));
 
             Thread.sleep(50);
-            assertThat(closing.isDone()).isFalse();                     // still waiting for the task
+            assertThat(closing.isDone()).isFalse();
             finish.countDown();
             task.get(30, TimeUnit.SECONDS);
             assertThat(closing.get(30, TimeUnit.SECONDS)).isZero();
@@ -57,7 +57,7 @@ class TaskGateTest {
     @Test
     void closeGivesUpAfterTheWait() {
         TaskGate gate = new TaskGate();
-        assertThat(gate.enter()).isTrue();                              // never exits, as when storage hangs
+        assertThat(gate.enter()).isTrue();
         assertThat(gate.enter()).isTrue();
 
         long started = System.nanoTime();
@@ -112,12 +112,12 @@ class TaskGateTest {
             start.await(30, TimeUnit.SECONDS);
             long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
             while (admitted.get() < 1_000 && System.nanoTime() < deadline) {
-                Thread.sleep(1);                                        // let the workers enter and exit a while
+                Thread.sleep(1);
             }
             assertThat(gate.close(Duration.ofSeconds(30))).isZero();
             closed.set(true);
             for (Future<?> run : runs) {
-                run.get(30, TimeUnit.SECONDS);                          // every worker is refused and stops
+                run.get(30, TimeUnit.SECONDS);
             }
             assertThat(admitted.get()).isGreaterThanOrEqualTo(1_000);
             assertThat(admittedAfterClose).isFalse();

@@ -19,7 +19,7 @@ final class CounterMark {
         this.total = total;
     }
 
-    /** The increase since the previous call, advancing the mark now. For a provider with no success callback. */
+    /** The increase since the previous call, advancing the mark on read, for bStats (no success callback). */
     long takeDelta() {
         long value = total.getAsLong();
         return Math.max(0L, value - reported.getAndSet(value));

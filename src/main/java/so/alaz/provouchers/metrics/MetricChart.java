@@ -7,9 +7,8 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 /**
- * A provider-agnostic custom metric. Build one with the factory methods; the builder routes it to
- * the matching native chart on each enabled backend (bStats chart / FastStats metric), so the same
- * definition reports to both.
+ * A provider-agnostic custom metric. {@link MetricsBuilder} routes it to the matching native chart
+ * on each enabled backend (bStats chart / FastStats metric), so one definition reports to both.
  */
 public final class MetricChart {
 
@@ -58,7 +57,7 @@ public final class MetricChart {
     /**
      * An event count backed by a monotonically increasing {@code total} (bStats SingleLineChart /
      * FastStats number metric). Each provider reports the increase since its own last report, so the
-     * charts show activity per interval rather than a running total that climbs with uptime.
+     * charts show activity per interval.
      */
     public static MetricChart counter(String id, LongSupplier total) {
         return new MetricChart(id, Type.COUNTER, null, null, null, null, total);

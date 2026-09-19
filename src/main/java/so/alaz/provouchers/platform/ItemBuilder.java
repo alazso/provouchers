@@ -13,9 +13,8 @@ import java.util.Base64;
 import java.util.List;
 
 /**
- * Fluent {@link ItemStack} builder with Adventure names and lore. Display name and lore have
- * the default italic styling stripped (the usual menu-item expectation). {@link #build()}
- * requires a running server (item meta).
+ * Fluent {@link ItemStack} builder with Adventure names and lore, both with the default italic
+ * styling removed. {@link #build()} requires a running server (item meta).
  */
 public final class ItemBuilder {
 
@@ -74,13 +73,12 @@ public final class ItemBuilder {
     }
 
     /**
-     * The reference scheme for a full-fidelity item: {@code serialized:<base64>}. Unlike a material
-     * or a {@code provider:id} reference, this carries the entire item (enchants, name, lore, model
-     * data, attributes, components, and any other NBT), so it round-trips exactly.
+     * Prefix of a full-fidelity item reference, {@code serialized:<base64>}, which carries the entire
+     * item (enchants, name, lore, model data, attributes, components, and any other NBT) and
+     * round-trips exactly.
      */
     public static final String SERIALIZED_PREFIX = "serialized:";
 
-    /** Whether the reference is a {@link #SERIALIZED_PREFIX serialized} item reference. */
     public static boolean isSerialized(String reference) {
         return reference.startsWith(SERIALIZED_PREFIX);
     }
@@ -91,8 +89,8 @@ public final class ItemBuilder {
     }
 
     /**
-     * Rebuilds the exact item from a {@code serialized:<base64>} reference, or {@code null} if it is
-     * malformed or was written for an incompatible server version (the caller then degrades).
+     * Rebuilds the exact item from a {@code serialized:<base64>} reference, or returns {@code null} if
+     * it is malformed or was written for an incompatible server version.
      */
     @Nullable
     public static ItemStack deserialize(String reference) {

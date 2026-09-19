@@ -14,8 +14,7 @@ import java.util.Set;
 
 /**
  * The hook-backed built-in conditions (economy, rank, region) and their registration. Each resolves
- * its provider per evaluation through the {@link HookRegistry}, so a provider that is missing or
- * goes away denies gracefully instead of throwing.
+ * its provider through the {@link HookRegistry} on every evaluation and denies when it is missing.
  */
 final class HookConditions {
 
@@ -31,7 +30,7 @@ final class HookConditions {
             new Region(lowerSet(section.getStringList("regions")), section.getString("deny"), text, hooks));
     }
 
-    /** Passes if the player can afford the amount. Denies gracefully without an economy provider. */
+    /** Passes if the player can afford the amount. Denies without an economy provider. */
     static final class Economy extends BuiltinConditions.Base {
         private final double amount;
         private final HookRegistry hooks;

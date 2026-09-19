@@ -8,8 +8,9 @@ import java.time.Duration;
 /**
  * Group lookups and permission writes, backing the group/permission rewards and the rank
  * condition. Plain permission checks go through Bukkit directly and are not part of this hook.
- * The write operations hit the permission store, so call them off the main thread; returning
- * {@code false} means "not changed / not supported".
+ * The write operations block on the permission store and must run off the main thread; they
+ * return {@code true} only when the data changed and was saved, and {@code false} when nothing
+ * changed or the operation is not supported.
  */
 public interface PermissionHook extends Hook {
 
@@ -20,16 +21,13 @@ public interface PermissionHook extends Hook {
     /** All groups the player inherits, or empty if unknown. */
     java.util.List<String> groups(Player player);
 
-    /** Adds the player to the group permanently. Returns {@code true} if the data changed and saved. */
+    /** Adds the player to the group permanently. */
     boolean addGroup(Player player, String group);
 
-    /** Adds the player to the group for a duration (an expiring membership). */
     boolean addTempGroup(Player player, String group, Duration duration);
 
-    /** Removes the player from the group. */
     boolean removeGroup(Player player, String group);
 
-    /** Sets a permission node on the player to a value. */
     boolean setPermission(Player player, String node, boolean value);
 
     /** Clears any directly-set node permission from the player. */

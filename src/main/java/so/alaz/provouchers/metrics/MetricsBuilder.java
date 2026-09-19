@@ -17,9 +17,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Accumulates provider ids and charts, then on {@link #start()} initializes each enabled backend.
- * Backend init is wrapped so a failure (bad id, network, missing context) disables that provider
- * without taking down plugin enable. Charts are routed to every enabled provider.
+ * Accumulates provider ids and charts, then on {@link #start()} initializes each enabled backend and
+ * routes every chart to it. A backend that fails to start (bad id, network, missing context) is
+ * logged and skipped without failing plugin enable.
  */
 public final class MetricsBuilder {
 

@@ -63,7 +63,6 @@ class MetricCountersTest {
         MetricCounters counters = new MetricCounters();
         counters.recordVoucherRedemption();
         assertThat(counters.totalRedemptions()).isEqualTo(1);
-        // Reading again must not drain the counter: both metric providers poll it.
         assertThat(counters.totalRedemptions()).isEqualTo(1);
         assertThat(counters.voucherRedemptions()).isEqualTo(1);
     }

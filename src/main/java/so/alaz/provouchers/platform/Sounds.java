@@ -9,7 +9,7 @@ import java.util.Locale;
 /**
  * Plays a sound from its config form, {@code "key [volume] [pitch]"}, shared by the
  * {@code sound:} reward and a voucher's {@code effects.sound}. The key is read in lower
- * case, since Minecraft keys are lower case by definition.
+ * case, since Minecraft keys are lower case.
  */
 public final class Sounds {
 
@@ -36,12 +36,10 @@ public final class Sounds {
         return parts.length == 0 || parts[0].isEmpty() || Key.parseable(key(parts[0]));
     }
 
-    /** The key token in lower case. */
     private static String key(String token) {
         return token.toLowerCase(Locale.ROOT);
     }
 
-    /** A volume or pitch token, defaulting to {@code 1} when it is not a number. */
     private static float parseFloat(String value) {
         try {
             return Float.parseFloat(value);

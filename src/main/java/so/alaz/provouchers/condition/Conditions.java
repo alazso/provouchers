@@ -9,8 +9,8 @@ public final class Conditions {
     }
 
     /**
-     * Tests the conditions with AND semantics, returning the first failure (so its message can be
-     * shown), or a passing result if all pass (or the list is empty).
+     * Tests the conditions in order with AND semantics, returning the first failure, or a passing
+     * result if all pass or the list is empty.
      */
     public static ConditionResult testAll(List<Condition> conditions, ConditionContext context) {
         for (Condition condition : conditions) {

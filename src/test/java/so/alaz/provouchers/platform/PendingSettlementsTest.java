@@ -23,9 +23,9 @@ class PendingSettlementsTest {
         PendingSettlements.Entry deliveredEntry = settlements.track(delivered::incrementAndGet);
         settlements.track(settled::incrementAndGet);
 
-        assertThat(deliveredEntry.start()).isTrue();                    // its callback ran first
+        assertThat(deliveredEntry.start()).isTrue();
         assertThat(settlements.settleAll(ex -> { })).isEqualTo(1);
-        assertThat(delivered).hasValue(0);                              // a started entry never settles
+        assertThat(delivered).hasValue(0);
         assertThat(settled).hasValue(1);
     }
 
@@ -34,7 +34,7 @@ class PendingSettlementsTest {
         PendingSettlements settlements = new PendingSettlements();
         PendingSettlements.Entry entry = settlements.track(() -> { });
         assertThat(entry.start()).isTrue();
-        assertThat(entry.start()).isFalse();                            // the other callback loses
+        assertThat(entry.start()).isFalse();
         assertThat(settlements.settleAll(ex -> { })).isZero();
     }
 
@@ -45,7 +45,7 @@ class PendingSettlementsTest {
         PendingSettlements.Entry entry = settlements.track(settled::incrementAndGet);
 
         assertThat(settlements.settleAll(ex -> { })).isEqualTo(1);
-        assertThat(entry.start()).isFalse();                            // a late callback does nothing
+        assertThat(entry.start()).isFalse();
         assertThat(settlements.settleAll(ex -> { })).isZero();
         assertThat(settled).hasValue(1);
     }
@@ -72,7 +72,7 @@ class PendingSettlementsTest {
         AtomicInteger settled = new AtomicInteger();
         Runnable same = settled::incrementAndGet;
         settlements.track(same);
-        settlements.track(same);                                        // entries compare by identity
+        settlements.track(same);
 
         assertThat(settlements.settleAll(ex -> { })).isEqualTo(2);
         assertThat(settled).hasValue(2);
@@ -113,7 +113,7 @@ class PendingSettlementsTest {
             }
             assertThat(settling.get(30, TimeUnit.SECONDS)).isEqualTo(settled.get());
             assertThat(delivered.get() + settled.get()).isEqualTo(entries);
-            assertThat(settlements.settleAll(ex -> { })).isZero();     // nothing left pending
+            assertThat(settlements.settleAll(ex -> { })).isZero();
         } finally {
             pool.shutdownNow();
         }

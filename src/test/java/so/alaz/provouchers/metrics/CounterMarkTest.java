@@ -33,7 +33,7 @@ class CounterMarkTest {
     @Test
     void uncommittedReadKeepsTheCountForTheNextReport() {
         total.set(5);
-        mark.peekDelta();   // the submission failed, so nothing commits
+        mark.peekDelta();
         total.set(9);
         assertThat(mark.peekDelta()).isEqualTo(9);
         mark.commit();
@@ -43,12 +43,12 @@ class CounterMarkTest {
     @Test
     void readOnAnotherThreadIsNotCommittedByThisThread() throws InterruptedException {
         total.set(5);
-        mark.peekDelta();   // this thread's submission reads 5
+        mark.peekDelta();
         total.set(9);
-        Thread errorReport = new Thread(mark::peekDelta);   // an error report reads 9 meanwhile
+        Thread errorReport = new Thread(mark::peekDelta);
         errorReport.start();
         errorReport.join();
-        mark.commit();      // the accepted submission sent 5, so only 5 is consumed
+        mark.commit();
         assertThat(mark.peekDelta()).isEqualTo(4);
     }
 
@@ -70,7 +70,7 @@ class CounterMarkTest {
         });
         other.start();
         other.join();
-        mark.commit();      // the older read of 5 must not undo the commit of 10
+        mark.commit();
         assertThat(mark.peekDelta()).isZero();
     }
 }

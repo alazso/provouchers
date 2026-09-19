@@ -7,9 +7,9 @@ import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.platform.Classes;
 
 /**
- * Vault-backed {@link EconomyHook}. Resolves the economy provider Vault registered in Bukkit's
- * services manager, so any Vault-compatible economy works. Lookups are guarded and wrapped, so a
- * missing Vault, or Vault present with no economy plugin behind it, degrades to unavailable/no-op.
+ * Vault-backed {@link EconomyHook}, using the economy provider registered with Bukkit's services
+ * manager. Lookups are guarded and wrapped, so a missing Vault, or Vault with no economy plugin
+ * behind it, degrades to unavailable/no-op.
  */
 public final class VaultEconomyHook implements EconomyHook {
 

@@ -10,12 +10,9 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Head Database (Arcaniax) as an {@link ItemHook}: its {@code getItemHead(id)} returns a finished
- * head item, which is exactly the {@link #createItem} contract, so HDB heads flow through the same
- * custom-item path as ItemsAdder/Oraxen/Nexo. {@link #createItem} accepts an optional {@code hdb:}/
- * {@code headdatabase:} prefix so an explicitly-qualified id routes here. Heads resolve once HDB
- * finishes loading its database (shortly after startup); before then lookups simply return
- * {@code null}.
+ * Head Database (Arcaniax) as an {@link ItemHook}. {@link #createItem} accepts a bare HDB id or one
+ * prefixed with {@code hdb:} or {@code headdatabase:}, and returns {@code null} until HDB has loaded
+ * its database, shortly after startup.
  */
 public final class HeadDatabaseItemHook implements ItemHook {
 
@@ -39,8 +36,8 @@ public final class HeadDatabaseItemHook implements ItemHook {
         try {
             String head = headId(id);
             HeadDatabaseAPI api = new HeadDatabaseAPI();
-            // Verify the id belongs to HDB first, so an unknown or foreign id returns null rather
-            // than a placeholder head that would hijack cross-provider item resolution.
+            // getItemHead returns a placeholder head for an unknown id, which would stop the other
+            // item providers from resolving it.
             return api.isHead(head) ? api.getItemHead(head) : null;
         } catch (Throwable ignored) {
             return null;

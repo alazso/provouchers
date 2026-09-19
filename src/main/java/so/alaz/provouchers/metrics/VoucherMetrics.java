@@ -22,25 +22,20 @@ import java.util.function.Supplier;
  * Wires ProVouchers usage metrics through the bundled bStats and FastStats providers
  * (shaded and relocated into the plugin jar).
  *
- * <p>The bStats id and FastStats token below identify ProVouchers itself (one per
- * plugin, set by the author), not the server. A provider is only enabled once its
- * credential is filled in, and the whole feature respects {@code metrics.enabled}
- * in {@code config.yml}.
+ * <p>The bStats id and FastStats token identify ProVouchers itself, not the server. A
+ * provider is enabled only when its credential is set, and nothing starts when
+ * {@code metrics.enabled} is false in {@code config.yml}.
  *
- * <p>Every chart is provider-agnostic: each {@link MetricChart} routes to the native
- * chart on each enabled backend, so a single declaration reports to both. Charts split
- * into config-shape snapshots (read from the registry on each poll) and runtime activity
- * (read from {@link MetricCounters}, which the redeem pipeline feeds).
+ * <p>Charts cover config shape, read from the registry on each poll, and runtime activity,
+ * read from {@link MetricCounters}.
  */
 public final class VoucherMetrics {
 
-    /** ProVouchers' bStats service id. */
     private static final int BSTATS_ID = 31826;
 
-    /** ProVouchers' FastStats project token. */
     private static final String FASTSTATS_TOKEN = "48a6198b8f241382cb9989b18d039776";
 
-    /** Optional integrations whose presence on the server we report adoption of. */
+    /** Optional integrations reported in {@code active_integrations} when enabled on the server. */
     private static final List<String> INTEGRATIONS = List.of(
         "Vault", "PlaceholderAPI", "MiniPlaceholders", "WorldGuard", "LuckPerms",
         "Oraxen", "ItemsAdder", "Nexo", "HeadDatabase");
@@ -119,7 +114,6 @@ public final class VoucherMetrics {
         return active;
     }
 
-    /** A privacy-friendly size bucket so the pie shows a distribution, not raw counts. */
     private static String bucket(int count) {
         if (count <= 0) {
             return "0";
@@ -298,7 +292,6 @@ public final class VoucherMetrics {
         return "stash".equalsIgnoreCase(plugin.getConfig().getString("stash.overflow", "drop")) ? "stash" : "drop";
     }
 
-    /** Whether a default Stash expiry is configured. */
     private static boolean usesStashExpiry(JavaPlugin plugin) {
         return !plugin.getConfig().getString("stash.expire-after", "").isBlank();
     }

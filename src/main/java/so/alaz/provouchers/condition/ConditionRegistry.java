@@ -14,9 +14,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Maps condition {@code type} keys to {@link ConditionFactory}s and builds {@link Condition}s from
- * config. All built-ins are registered on construction: the hook-free ones (permission, world,
- * gamemode, exp, expiry, papi, playerstat) and the hook-backed ones (economy, rank, region), which
- * resolve their provider per evaluation and deny gracefully when it is missing.
+ * config. All built-ins are registered on construction; the hook-backed ones (economy, rank, region)
+ * resolve their provider per evaluation and deny when it is missing.
  *
  * <p>Config shape: each condition is a map with a {@code type} key plus type-specific keys and an
  * optional {@code deny} message.

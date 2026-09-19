@@ -9,10 +9,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Registry of {@link Hook}s keyed by capability type. Multiple providers may register for the same
- * capability (the custom-item hooks); {@link #get} resolves the first one that is currently
- * {@link Hook#isAvailable() available} and returns {@code null} when none are, so callers degrade
- * gracefully rather than crashing. Availability is re-checked on every call, so a provider that
- * goes away is simply skipped.
+ * capability (the custom-item hooks); {@link #get} returns the first one that is
+ * {@link Hook#isAvailable() available}, checked on every call, or {@code null} when none is.
  */
 public final class HookRegistry {
 

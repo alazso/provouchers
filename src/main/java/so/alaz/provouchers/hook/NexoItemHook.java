@@ -8,8 +8,8 @@ import org.jetbrains.annotations.Nullable;
 import so.alaz.provouchers.platform.Classes;
 
 /**
- * Nexo-backed {@link ItemHook} (Nexo is the successor to Oraxen). Lookups are guarded and wrapped,
- * so a missing Nexo degrades to {@code null} instead of throwing.
+ * Nexo-backed {@link ItemHook}. Lookups are guarded and wrapped, so a missing Nexo degrades to
+ * {@code null} instead of throwing.
  */
 public final class NexoItemHook implements ItemHook {
 

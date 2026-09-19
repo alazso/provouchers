@@ -161,8 +161,8 @@ final class BuiltinConditions {
     }
 
     /**
-     * Compares a resolved PlaceholderAPI placeholder against a configured value. Degrades safely:
-     * with PAPI absent the placeholder resolves to its raw text, which simply will not match.
+     * Compares a resolved PlaceholderAPI placeholder against a configured value. With PAPI absent,
+     * the placeholder is compared as its raw text.
      */
     static final class Papi extends Base {
         private final String placeholder;
@@ -195,8 +195,8 @@ final class BuiltinConditions {
 
     /**
      * Compares a player statistic against a threshold. Handles untyped statistics as well as
-     * block/item (needs {@code material}) and entity (needs {@code entity}) statistics. Invalid names
-     * or a missing sub-type deny gracefully.
+     * block/item (needs {@code material}) and entity (needs {@code entity}) statistics. An invalid
+     * name or a missing sub-type denies.
      */
     static final class Playerstat extends Base {
         private final String statName;
@@ -267,7 +267,10 @@ final class BuiltinConditions {
         }
     }
 
-    /** Passes if the inventory holds at least {@code amount} of the material. Checks only, never consumes. */
+    /**
+     * Passes if the inventory holds at least {@code amount} of the material, without consuming it. A
+     * misconfigured amount or material denies.
+     */
     static final class Item extends Base {
         private final String materialName;
         private final int amount;
@@ -280,7 +283,6 @@ final class BuiltinConditions {
 
         @Override
         public ConditionResult test(ConditionContext context) {
-            // A misconfigured amount or material denies rather than passing, like playerstat.
             if (amount < 1) {
                 return denied(context, "condition.requirement-not-met");
             }
@@ -296,7 +298,7 @@ final class BuiltinConditions {
         }
     }
 
-    /** Passes if the player has completed the advancement. An unknown key denies rather than passing. */
+    /** Passes if the player has completed the advancement. An unknown key denies. */
     static final class Advancement extends Base {
         private final String key;
 

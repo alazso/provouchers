@@ -8,7 +8,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class CooldownManagerTest {
 
-    // Hour-scale margins keep the assertions independent of how long the test takes.
+    // Hour-scale margins make the assertions independent of the test's run time.
     private static final long HOUR = Duration.ofHours(1).toMillis();
 
     private final CooldownManager manager = new CooldownManager();
@@ -16,9 +16,9 @@ class CooldownManagerTest {
     @Test
     void extendKeepsTheLaterExpiry() {
         manager.setMillis("daily", 2 * HOUR);
-        manager.extendMillis("daily", HOUR);                                  // shorter: the running one stays
+        manager.extendMillis("daily", HOUR);
         assertThat(manager.remaining("daily")).isGreaterThan(Duration.ofMinutes(90));
-        manager.extendMillis("daily", 4 * HOUR);                              // longer: it wins
+        manager.extendMillis("daily", 4 * HOUR);
         assertThat(manager.remaining("daily")).isGreaterThan(Duration.ofHours(3));
     }
 

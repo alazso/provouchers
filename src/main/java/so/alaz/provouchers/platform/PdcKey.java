@@ -6,13 +6,12 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Typed read/write wrapper over a single persistent-data key, removing the raw-key
- * boilerplate and unchecked casting that PDC access otherwise requires.
+ * Typed read/write access to a single persistent-data key.
  *
  * <p>{@code P} is the primitive storage type and {@code C} the complex (API) type, matching
- * {@link PersistentDataType}. Writes mutate the holder's container in place; for
- * {@link org.bukkit.inventory.meta.ItemMeta} you must still call {@code ItemStack#setItemMeta}
- * afterwards.
+ * {@link PersistentDataType}. Writes mutate the holder's container in place, so a write to an
+ * {@link org.bukkit.inventory.meta.ItemMeta} reaches its item only through
+ * {@code ItemStack#setItemMeta}.
  */
 public final class PdcKey<P, C> {
 
@@ -35,7 +34,6 @@ public final class PdcKey<P, C> {
         return holder.getPersistentDataContainer().has(key, type);
     }
 
-    /** Writes the value into the holder's container. */
     public void set(PersistentDataHolder holder, C value) {
         holder.getPersistentDataContainer().set(key, type, value);
     }

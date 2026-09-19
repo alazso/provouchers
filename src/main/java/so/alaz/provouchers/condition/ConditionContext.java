@@ -23,7 +23,6 @@ public final class ConditionContext {
         return messages;
     }
 
-    /** A context for the given player. */
     public static ConditionContext of(Player player, Messages messages) {
         return new ConditionContext(player, messages);
     }

@@ -8,16 +8,12 @@ import java.util.Map;
 import java.util.concurrent.atomic.LongAdder;
 
 /**
- * Thread-safe runtime activity counters for metrics. The redeem pipeline bumps
- * these on each outcome; the metrics charts read them on each submission.
+ * Thread-safe runtime activity counters, read by the metrics charts on each submission.
  *
- * <p>Counters are monotonic session totals (reset only on plugin enable), never
- * drained on read. That keeps reads idempotent, which matters because the same
- * chart is polled independently by every enabled provider (bStats and FastStats):
- * a drain-on-read counter would split its count between whichever provider polled
- * first. Chart them with {@link MetricChart#counter}, which gives each provider its
- * own mark and reports the increase since that provider's last report.
- * {@link LongAdder} keeps the hot increment paths contention-free.
+ * <p>Counters are monotonic session totals (reset only on plugin enable) and reads never drain
+ * them, since every enabled provider (bStats and FastStats) polls the same chart independently.
+ * They are charted with {@link MetricChart#counter}, which gives each provider its own mark and
+ * reports the increase since that provider's last report.
  */
 public final class MetricCounters {
 

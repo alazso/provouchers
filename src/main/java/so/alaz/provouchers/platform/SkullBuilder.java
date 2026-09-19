@@ -19,16 +19,15 @@ import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
 /**
- * Builds {@code PLAYER_HEAD} items from the stable skull sources, with no third-party plugin.
+ * Builds {@code PLAYER_HEAD} items without a third-party plugin.
  *
  * <p>{@link #fromTexture} and {@link #fromUrl} are synchronous and need no network: the head
- * carries a texture property and the client fetches the image from Mojang's CDN, so they are
- * the reliable choice for permanent icons. {@link #fromName} and {@link #fromUuid} resolve the
- * player's current skin from Mojang off-thread (cached), so they suit dynamic "this player's
- * head" displays; the returned future completes off the main thread, so schedule any inventory
- * or entity work back on the right thread yourself.
+ * carries a texture property and the client fetches the image from Mojang's CDN.
+ * {@link #fromName} and {@link #fromUuid} resolve the player's current skin from Mojang on a
+ * background thread, and the returned future completes there, so inventory or entity work must
+ * be scheduled onto the owning thread.
  *
- * <p>Resolved textures are cached; failed lookups are not, so a transient failure can be retried.
+ * <p>Resolved textures are cached; failed lookups are not.
  */
 public final class SkullBuilder {
 
@@ -104,7 +103,7 @@ public final class SkullBuilder {
                     return null;
                 }
             }, EXECUTOR).whenComplete((value, error) -> {
-                // Do not cache a failed lookup, so a transient Mojang failure can be retried.
+                // A failed lookup is evicted so the next request retries it.
                 if (value == null) {
                     TEXTURE_CACHE.remove(cacheKey);
                 }

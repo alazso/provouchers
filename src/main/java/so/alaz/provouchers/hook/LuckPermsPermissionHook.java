@@ -19,9 +19,9 @@ import java.util.function.Predicate;
 
 /**
  * LuckPerms-backed {@link PermissionHook}: group resolution for the rank condition and the
- * group/permission reward writes. All LuckPerms references live inside guarded method bodies, so
- * the class loads fine when LuckPerms is absent and every lookup degrades to {@code null}/empty/
- * {@code false} instead of throwing.
+ * group/permission reward writes. LuckPerms is referenced only inside guarded method bodies, so the
+ * class loads without LuckPerms and every lookup degrades to {@code null}, empty, or {@code false}
+ * instead of throwing.
  */
 public final class LuckPermsPermissionHook implements PermissionHook {
 
@@ -93,7 +93,7 @@ public final class LuckPermsPermissionHook implements PermissionHook {
 
     @Override
     public boolean unsetPermission(Player player, String node) {
-        // Remove the node regardless of the stored true/false value or contexts.
+        // Matches the node by name, whatever its stored value or contexts.
         return mutate(player, user -> {
             Predicate<PermissionNode> matches = candidate -> candidate.getPermission().equals(node);
             boolean exists = user.getNodes(NodeType.PERMISSION).stream().anyMatch(matches);
