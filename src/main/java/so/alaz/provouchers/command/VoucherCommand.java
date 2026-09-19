@@ -50,16 +50,13 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 /**
- * The {@code /voucher} command tree, built directly on Paper's Brigadier command API.
- * Covers help, give, giveall, redeem, preview, list, and reload. Arguments tab-complete
- * against live data (voucher ids, predefined amounts, online players); replies all route
- * through {@link Messages} for a consistent prefix, palette, and wording.
+ * The {@code /voucher} command tree, built on Paper's Brigadier command API. Arguments
+ * tab-complete against live data (voucher ids, predefined amounts, online players).
  */
 public final class VoucherCommand {
 
     private static final int MAX_AMOUNT = 2304;
 
-    /** Predefined amount suggestions offered for give/giveall. */
     private static final List<String> AMOUNT_SUGGESTIONS = List.of("1", "16", "32", "64");
 
     private static final String PERM_GIVE = "provouchers.give";
@@ -77,12 +74,14 @@ public final class VoucherCommand {
     /** Valid voucher ids for files created in-game: file-name safe, lower-cased on use. */
     private static final Pattern FILE_ID = Pattern.compile("[A-Za-z0-9_-]{1,64}");
 
-    /** A single subcommand's help metadata; Brigadier nodes carry none of this, so it lives here. */
+    /** A subcommand's help metadata. */
     private record Sub(String name, String usage, @Nullable String permission) {
     }
 
-    /** The help listing, in display order. Each line is shown only when the sender may use it.
-     *  Descriptions are localized under {@code command.help.descriptions.<name>}. */
+    /**
+     * The help listing, in display order. Each line is shown only when the sender may use it, with its
+     * description localized under {@code command.help.descriptions.<name>}.
+     */
     private static final List<Sub> HELP = List.of(
         new Sub("give", "give <id> [amount] [player]", PERM_GIVE),
         new Sub("giveall", "giveall <id> [amount] [permission]", PERM_GIVEALL),
@@ -216,9 +215,8 @@ public final class VoucherCommand {
     }
 
     /**
-     * Queues a virtual voucher in the target's Stash instead of handing over an item. The target is a
-     * name resolved to an online player, else a previously seen (cached) offline player, so an admin
-     * can stash a reward for someone who is not online; a never-seen name is reported.
+     * Queues a virtual voucher in the target's Stash. The target name resolves to an online player, else
+     * to a cached offline player; a name never seen is reported.
      */
     private void stashGive(CommandContext<CommandSourceStack> ctx, int amount, @Nullable String argument) {
         CommandSourceStack source = ctx.getSource();
@@ -250,7 +248,6 @@ public final class VoucherCommand {
             "amount", amount, "voucher", voucher.id(), "target", targetName));
     }
 
-    /** The names of online players, for tab-completing a target argument. */
     private static List<String> onlineNames(CommandContext<CommandSourceStack> ctx) {
         return ctx.getSource().getSender().getServer().getOnlinePlayers().stream()
             .map(Player::getName).toList();
@@ -270,8 +267,7 @@ public final class VoucherCommand {
     }
 
     private LiteralArgumentBuilder<CommandSourceStack> redeemTree() {
-        // Codes are intentionally not suggested: tab-completing them would leak every loaded
-        // code to any player. The argument stays free text.
+        // Codes are not suggested, so tab completion cannot reveal them to players.
         return Commands.literal("redeem").requires(perm(PERM_REDEEM))
             .then(Commands.argument("code", StringArgumentType.word())
                 .executes(run(ctx -> redeem(ctx, false)))
@@ -391,7 +387,7 @@ public final class VoucherCommand {
     private void reloadAll(CommandSourceStack source) {
         Player viewer = asPlayer(source);
         if (plugin != null) {
-            plugin.reloadConfig();   // re-read config.yml so live settings (e.g. stash.overflow) update
+            plugin.reloadConfig();
         }
         messages.reload();
         List<String> errors = configManager.reload();
@@ -403,7 +399,7 @@ public final class VoucherCommand {
         reportReloadErrors(source, viewer, errors);
     }
 
-    /** Reloads just the voucher and/or code file named {@code id}, leaving the rest untouched. */
+    /** Reloads only the voucher and/or code file named {@code id}. */
     private void reloadOne(CommandSourceStack source, String id) {
         Player viewer = asPlayer(source);
         List<String> errors = configManager.reloadOne(id);
@@ -427,7 +423,7 @@ public final class VoucherCommand {
 
     /**
      * Captures the held item as a new voucher file, behind a confirm GUI that renders the
-     * item from its serialized form, so the admin sees the exact round-trip result.
+     * item from its serialized form.
      */
     private void fromhand(CommandContext<CommandSourceStack> ctx) {
         CommandSourceStack source = ctx.getSource();
@@ -461,7 +457,7 @@ public final class VoucherCommand {
 
     /**
      * Clears the persistent use counters recorded for {@code id}, either for one player or
-     * for everyone. Clears both the voucher key and the code key so the id works for either.
+     * for everyone, under both the voucher key and the code key.
      */
     private void resetUses(CommandContext<CommandSourceStack> ctx, boolean hasTarget) {
         CommandSourceStack source = ctx.getSource();
@@ -504,8 +500,6 @@ public final class VoucherCommand {
             return;
         }
         MigrationReport result = migrator.migrate();
-        // Reload so the new files take effect, and surface any that failed to parse: an imported
-        // file that does not load would otherwise be reported as imported yet silently absent.
         List<String> loadErrors = result.imported().isEmpty() ? List.of() : configManager.reload();
         reply(source, messages.get(viewer, "command.import.summary",
             "imported", result.imported().size(), "skipped", result.skipped().size()));
@@ -514,7 +508,7 @@ public final class VoucherCommand {
         reportLines(source, viewer, "command.reload.error-line", loadErrors);
     }
 
-    /** Reports every line: a migration audit must be complete, so nothing is truncated. */
+    /** Reports every line, without truncation. */
     private void reportLines(CommandSourceStack source, @Nullable Player viewer, String key,
                              List<String> lines) {
         for (String line : lines) {

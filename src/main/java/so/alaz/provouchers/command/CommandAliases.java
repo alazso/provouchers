@@ -12,8 +12,8 @@ final class CommandAliases {
     }
 
     /**
-     * Trims and lower-cases each alias, dropping blanks, entries containing whitespace (which a typed
-     * command can never match), duplicates, and the command's own {@code label}. Order is kept.
+     * Trims and lower-cases each alias, dropping blanks, entries containing whitespace, duplicates, and
+     * the command's own {@code label}. Order is kept.
      */
     static List<String> normalize(List<String> aliases, String label) {
         Set<String> names = new LinkedHashSet<>();

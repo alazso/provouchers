@@ -4,10 +4,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The stamp ids this server has claimed, or is claiming or giving back, for an item redeem that has not
- * settled. A redeem enters its item's id before it touches storage and ends the entry once its claim is
- * delivered or given back, so while the entry stands no other redeem on this server checks the id (and
- * mistakes the pending claim for a duplicate) or claims it.
+ * The stamp ids of item redeems on this server that have not settled. A redeem enters its item's id
+ * before it touches storage and ends the entry once its claim is delivered or given back, so no other
+ * redeem on this server checks or claims the id meanwhile.
  *
  * <p>Thread-safe: entries are entered and ended from any thread. Each belongs to the owner that entered
  * it, compared by identity, so only that redeem can end it.
@@ -29,7 +28,6 @@ public final class ClaimLedger {
         owners.computeIfPresent(uid, (key, current) -> current == owner ? null : current);
     }
 
-    /** Whether any owner holds {@code uid}. */
     public boolean holds(String uid) {
         return owners.containsKey(uid);
     }

@@ -17,8 +17,7 @@ import so.alaz.provouchers.voucher.VoucherRegistry;
 /**
  * Turns interactions with a voucher item into actions: a right-click redeems it (a
  * sneak-right-click batch-opens a stack), an optional left-click previews its rewards in
- * a GUI, and placing a voucher into an item frame is blocked (a common way to detach an
- * item from its owner while keeping a copy).
+ * a GUI, and placing a voucher into an item frame is blocked.
  */
 public final class VoucherInteractListener implements Listener {
 

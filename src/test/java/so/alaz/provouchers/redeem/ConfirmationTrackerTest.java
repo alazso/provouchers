@@ -16,7 +16,6 @@ class ConfirmationTrackerTest {
         ConfirmationTracker tracker = new ConfirmationTracker(5);
         assertThat(tracker.needsConfirm(player, "vip")).isTrue();
         assertThat(tracker.needsConfirm(player, "vip")).isFalse();
-        // after confirming, a fresh click starts over
         assertThat(tracker.needsConfirm(player, "vip")).isTrue();
     }
 
@@ -24,17 +23,17 @@ class ConfirmationTrackerTest {
     void differentVoucherRestartsConfirmation() {
         ConfirmationTracker tracker = new ConfirmationTracker(5);
         assertThat(tracker.needsConfirm(player, "vip")).isTrue();
-        assertThat(tracker.needsConfirm(player, "daily")).isTrue();  // switched voucher
-        assertThat(tracker.needsConfirm(player, "daily")).isFalse(); // confirms daily
+        assertThat(tracker.needsConfirm(player, "daily")).isTrue();
+        assertThat(tracker.needsConfirm(player, "daily")).isFalse();
     }
 
     @Test
     void confirmationExpiresAfterWindow() {
         AtomicLong now = new AtomicLong(0);
-        ConfirmationTracker tracker = new ConfirmationTracker(5, now::get); // 5s window
-        assertThat(tracker.needsConfirm(player, "vip")).isTrue();           // pending until 5000ms
-        now.set(6000);                                                      // window lapsed
-        assertThat(tracker.needsConfirm(player, "vip")).isTrue();           // must confirm again
+        ConfirmationTracker tracker = new ConfirmationTracker(5, now::get);
+        assertThat(tracker.needsConfirm(player, "vip")).isTrue();
+        now.set(6000);
+        assertThat(tracker.needsConfirm(player, "vip")).isTrue();
     }
 
     @Test

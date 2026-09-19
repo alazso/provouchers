@@ -19,9 +19,9 @@ import java.util.TreeSet;
 import java.util.function.Supplier;
 
 /**
- * Gathers a quick health report for {@code /voucher doctor}: version and server flavor, the
+ * Gathers the health report for {@code /voucher doctor}: version and server flavor, the
  * storage backend and pool state, loaded content counts, detected integrations, locale setup,
- * and whether metrics are on. Read-only and non-blocking, so it is safe on the command thread.
+ * and whether metrics are on. Read-only and non-blocking, so it may run on the command thread.
  */
 public final class Diagnostics {
 

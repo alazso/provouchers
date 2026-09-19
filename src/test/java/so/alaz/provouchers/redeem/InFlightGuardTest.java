@@ -23,7 +23,7 @@ class InFlightGuardTest {
         InFlightGuard guard = new InFlightGuard(60);
         InFlightGuard.Ticket first = guard.acquire(player, "vip");
         assertThat(first).isNotNull();
-        assertThat(guard.acquire(player, "vip")).isNull();   // still in flight
+        assertThat(guard.acquire(player, "vip")).isNull();
         guard.release(first);
         assertThat(guard.acquire(player, "vip")).isNotNull();
     }
@@ -32,19 +32,19 @@ class InFlightGuardTest {
     void holdsPerPlayerAndVoucher() {
         InFlightGuard guard = new InFlightGuard(60);
         assertThat(guard.acquire(player, "vip")).isNotNull();
-        assertThat(guard.acquire(player, "daily")).isNotNull();            // another voucher
-        assertThat(guard.acquire(UUID.randomUUID(), "vip")).isNotNull();   // another player
+        assertThat(guard.acquire(player, "daily")).isNotNull();
+        assertThat(guard.acquire(UUID.randomUUID(), "vip")).isNotNull();
     }
 
     @Test
     void staleEntryExpiresAfterItsLifetime() {
         AtomicLong now = new AtomicLong(0);
         InFlightGuard guard = new InFlightGuard(60, now::get);
-        assertThat(guard.acquire(player, "vip")).isNotNull();   // never released, as after a bug
+        assertThat(guard.acquire(player, "vip")).isNotNull();
         now.set(59_999);
-        assertThat(guard.acquire(player, "vip")).isNull();      // still live
+        assertThat(guard.acquire(player, "vip")).isNull();
         now.set(60_000);
-        assertThat(guard.acquire(player, "vip")).isNotNull();   // lapsed, so no longer blocks
+        assertThat(guard.acquire(player, "vip")).isNotNull();
     }
 
     @Test
@@ -68,11 +68,11 @@ class InFlightGuardTest {
         assertThat(stale).isNotNull();
         assertThat(newer).isNotNull();
 
-        guard.release(stale);                                    // a late release from the lapsed redeem
-        assertThat(guard.acquire(player, "vip")).isNull();      // the newer redeem still holds it
+        guard.release(stale);
+        assertThat(guard.acquire(player, "vip")).isNull();
 
         guard.release(newer);
-        guard.release(newer);                                    // releasing twice is harmless
+        guard.release(newer);
         assertThat(guard.acquire(player, "vip")).isNotNull();
     }
 

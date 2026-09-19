@@ -6,11 +6,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import so.alaz.provouchers.cooldown.CooldownService;
 
-/**
- * Loads a player's persisted voucher cooldowns into memory when they join, so
- * cooldowns survive restarts, and unloads them when they quit, so the next join
- * reads storage again.
- */
+/** Loads a player's persisted voucher cooldowns into memory on join and unloads them on quit. */
 public final class CooldownLoadListener implements Listener {
 
     private final CooldownService cooldowns;

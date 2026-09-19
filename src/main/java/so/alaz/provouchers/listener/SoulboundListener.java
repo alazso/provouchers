@@ -56,7 +56,6 @@ public final class SoulboundListener implements Listener {
             || event.getView().getTopInventory().getType() == InventoryType.CRAFTING) {
             return; // own inventory view; the item is not leaving the player
         }
-        // placed from the cursor, swapped in by a number key or the swap-offhand key, or shift-clicked across
         if (VoucherStationListener.incomingItems(event).stream().anyMatch(this::blocked)) {
             event.setCancelled(true);
             warn(player, "soulbound.no-container");
@@ -85,7 +84,6 @@ public final class SoulboundListener implements Listener {
         }
     }
 
-    /** Placing a soulbound voucher into an item frame. */
     @EventHandler(ignoreCancelled = true)
     public void onFramePlace(PlayerInteractEntityEvent event) {
         if (!(event.getRightClicked() instanceof ItemFrame)) {

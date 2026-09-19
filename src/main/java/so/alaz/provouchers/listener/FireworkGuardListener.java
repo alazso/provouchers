@@ -6,10 +6,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
-/**
- * Cancels damage from fireworks spawned as redeem effects, so a celebratory burst
- * never hurts the redeemer or bystanders.
- */
+/** Cancels damage from fireworks spawned as redeem effects. */
 public final class FireworkGuardListener implements Listener {
 
     /** Marks a firework entity as a redeem effect. */

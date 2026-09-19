@@ -17,16 +17,15 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Resolves plugin messages from language files, so every player-facing string is translatable.
+ * Resolves plugin messages from language files.
  *
- * <p>The bundled {@code lang/en.yml} is the ground truth and the ultimate fallback: any key a
- * translation omits resolves to English, so a partial translation never leaves a blank. Server
- * owners add {@code lang/<code>.yml} files in the data folder. When {@code per-player} is on, a
- * message is served in the viewer's Minecraft client language if a matching file exists, else the
- * configured default; console and other viewer-less output always use the default.
+ * <p>The bundled {@code lang/en.yml} is the final fallback: any key a translation omits resolves to
+ * English. Server owners add {@code lang/<code>.yml} files in the data folder. When {@code per-player}
+ * is on, a message is served in the viewer's Minecraft client language if a matching file exists, else
+ * the configured default; console and other viewer-less output always use the default.
  *
  * <p>{@link #get} returns a MiniMessage string with {@code {prefix}} and message placeholders
- * substituted; the caller renders it (so PlaceholderAPI still applies for that viewer).
+ * substituted; the caller renders it for the viewer, so PlaceholderAPI applies.
  */
 public final class Messages {
 
@@ -49,7 +48,7 @@ public final class Messages {
         reload();
     }
 
-    /** Reloads every {@code lang/<code>.yml} from disk. Picks up edited and newly added translations. */
+    /** Reloads every {@code lang/<code>.yml} from disk. */
     public void reload() {
         Map<String, Map<String, String>> loaded = new HashMap<>();
         File[] files = langDir.listFiles((dir, name) -> name.toLowerCase(Locale.ROOT).endsWith(".yml"));
@@ -71,13 +70,13 @@ public final class Messages {
     /**
      * The message for {@code key}, in {@code viewer}'s language, with {@code {prefix}} and the given
      * {@code placeholders} (alternating name, value) filled in. Never null; an unknown key returns a
-     * visible {@code <red>missing:key} marker rather than throwing.
+     * visible {@code <red>missing:key} marker.
      */
     public String get(@Nullable Player viewer, String key, Object... placeholders) {
         return getForLocale(viewer == null ? null : viewer.locale(), key, placeholders);
     }
 
-    /** Resolves by locale directly. The {@link #get(Player, String, Object...)} entry point delegates here. */
+    /** Like {@link #get}, but resolves by {@code locale}. */
     String getForLocale(@Nullable Locale locale, String key, Object... placeholders) {
         List<Map<String, String>> chain = resolutionChain(locale);
         String template = lookup(chain, key);
@@ -89,7 +88,7 @@ public final class Messages {
 
     /**
      * Substitutes {@code {prefix}} (in the viewer's language) and placeholders into an arbitrary
-     * template, e.g. a per-voucher message given inline rather than looked up by key.
+     * template, such as a per-voucher message given inline.
      */
     public String format(@Nullable Player viewer, String template, Object... placeholders) {
         List<Map<String, String>> chain = resolutionChain(viewer == null ? null : viewer.locale());

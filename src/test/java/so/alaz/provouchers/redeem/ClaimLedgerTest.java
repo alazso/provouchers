@@ -22,7 +22,7 @@ class ClaimLedgerTest {
         assertThat(ledger.begin("uid", owner)).isTrue();
         assertThat(ledger.holds("uid")).isTrue();
         assertThat(ledger.begin("uid", other)).isFalse();
-        assertThat(ledger.begin("uid", owner)).isFalse();   // not reentrant, even for the same owner
+        assertThat(ledger.begin("uid", owner)).isFalse();
 
         ledger.end("uid", owner);
         assertThat(ledger.holds("uid")).isFalse();
@@ -35,11 +35,11 @@ class ClaimLedgerTest {
         Object owner = new Object();
         assertThat(ledger.begin("uid", owner)).isTrue();
 
-        ledger.end("uid", new Object());                    // a redeem that never entered the id
+        ledger.end("uid", new Object());
         assertThat(ledger.holds("uid")).isTrue();
 
         ledger.end("uid", owner);
-        ledger.end("uid", owner);                           // ending twice is harmless
+        ledger.end("uid", owner);
         assertThat(ledger.holds("uid")).isFalse();
     }
 
@@ -51,7 +51,7 @@ class ClaimLedgerTest {
         Owner owner = new Owner("first");
         assertThat(ledger.begin("uid", owner)).isTrue();
 
-        ledger.end("uid", new Owner("first"));              // equal, but not the owner
+        ledger.end("uid", new Owner("first"));
         assertThat(ledger.holds("uid")).isTrue();
 
         ledger.end("uid", owner);
@@ -67,7 +67,7 @@ class ClaimLedgerTest {
         ledger.end("uid", earlier);
         assertThat(ledger.begin("uid", later)).isTrue();
 
-        ledger.end("uid", earlier);                         // a late, repeated end from the settled redeem
+        ledger.end("uid", earlier);
         assertThat(ledger.holds("uid")).isTrue();
         assertThat(ledger.begin("uid", earlier)).isFalse();
     }

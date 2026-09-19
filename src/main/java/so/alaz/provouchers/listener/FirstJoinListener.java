@@ -12,8 +12,8 @@ import java.util.List;
 
 /**
  * Gives the {@code auto-give.first-join} vouchers to a player joining the server for
- * the first time. Ids are resolved at join time, so a reload that adds or fixes a
- * voucher takes effect without a restart; an id that resolves to nothing is logged.
+ * the first time. Ids are resolved on each join, so a voucher added or fixed by a
+ * reload applies without a restart; an unknown id is logged.
  */
 public final class FirstJoinListener implements Listener {
 

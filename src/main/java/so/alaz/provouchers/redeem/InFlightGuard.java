@@ -8,15 +8,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.LongSupplier;
 
 /**
- * Admits one redemption at a time per player and voucher. An item redeem that verifies persistent
- * state (use limits, the anti-dupe stamp) off the player's thread holds a ticket from the click until
- * it is delivered, or until its first attempt to give back what it held has finished, so a second click
- * in that window, even on a distinct stamped copy, is refused instead of passing the cooldown and limit
- * checks the first has not settled yet.
+ * Admits one redemption at a time per player and voucher. An item redeem holds a ticket from the click
+ * until it is delivered, or until its first attempt to give back what it held has finished; a second
+ * click in that window, even on a distinct stamped copy, is refused.
  *
  * <p>Thread-safe: a ticket is taken on the player's thread and may be released from any thread. A
- * ticket older than the lifetime no longer blocks, so a release that never happens can delay a
- * voucher but never lock it for good.
+ * ticket stops blocking once its lifetime has passed, even if it is never released.
  */
 public final class InFlightGuard {
 
@@ -60,7 +57,7 @@ public final class InFlightGuard {
         long now = clock.getAsLong();
         Key key = new Key(player, voucherId);
         Ticket fresh = new Ticket(key, now + lifetimeMillis);
-        // compute runs atomically per key, so of two simultaneous attempts exactly one installs its ticket.
+        // Atomic per key: of simultaneous attempts, exactly one installs its ticket.
         Ticket holder = held.compute(key,
             (k, current) -> current == null || current.expiresAt <= now ? fresh : current);
         return holder == fresh ? fresh : null;

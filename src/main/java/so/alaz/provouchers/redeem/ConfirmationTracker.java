@@ -6,11 +6,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.LongSupplier;
 
 /**
- * Tracks pending two-step confirmations. A voucher flagged {@code two-step-authentication}
- * must be clicked a second time, within a window, to redeem: the first click records a
- * pending entry and asks for confirmation; a second click on the same voucher within the
- * window clears it and proceeds. A different voucher, or a click after the window lapsed,
- * starts a fresh confirmation.
+ * Tracks pending two-step confirmations. A voucher flagged {@code two-step-authentication} redeems only
+ * on a second click on the same voucher within the window.
  */
 public final class ConfirmationTracker {
 
@@ -47,12 +44,10 @@ public final class ConfirmationTracker {
         return true;
     }
 
-    /** Clears any pending confirmation, used when the player explicitly cancels. */
     public void clear(UUID player) {
         pending.remove(player);
     }
 
-    /** The confirmation window in seconds, for use in the confirmation message. */
     public long windowSeconds() {
         return windowMillis / 1000L;
     }

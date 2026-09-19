@@ -16,17 +16,15 @@ import java.util.Map;
 import java.util.function.BooleanSupplier;
 
 /**
- * Builds and hands out voucher items, the single give path shared by the command, the public API
- * service, and the preview GUI. Overflow that does not fit the inventory is the one place that policy
- * lives: by default it drops at the player's feet, but when {@link #overflowPolicy} routes it to the
- * Stash it is queued as virtual vouchers instead, so a reward is never lost. The policy is read live,
- * so {@code /voucher reload} can switch it without a restart.
+ * Builds and hands out voucher items for the command, the public API service, and the preview GUI.
+ * Overflow that does not fit the inventory drops at the player's feet, or is queued in the Stash as
+ * virtual vouchers when {@link #overflowPolicy} routes it there.
  *
  * <p>A target who logs out before the items reach them gets the whole amount queued in their Stash
- * whenever the Stash is enabled, whatever the overflow policy, since nothing can be dropped for a player
- * who is gone. With the Stash disabled, the undelivered amount is logged. Paper runs neither callback of
- * a hop still scheduled when the plugin disables, so each hop is tracked until it starts, and
- * {@link #settleForShutdown} treats a give whose hop never ran the same way.
+ * whenever the Stash is enabled, whatever the overflow policy. With the Stash disabled, the undelivered
+ * amount is logged. Paper runs neither callback of a hop still scheduled when the plugin disables, so
+ * each hop is tracked until it starts, and {@link #settleForShutdown} treats a give whose hop never ran
+ * the same way.
  */
 public final class VoucherGiveService {
 
@@ -46,8 +44,7 @@ public final class VoucherGiveService {
 
     /**
      * Configures overflow: {@code stashService} receives the leftovers when {@code overflowToStash}
-     * reports {@code true} at delivery time. The supplier is read on every give, so a config change
-     * picked up by {@code /voucher reload} takes effect without a restart.
+     * reports {@code true} at delivery time. The supplier is read on every give.
      */
     public void overflowPolicy(StashService stashService, BooleanSupplier overflowToStash) {
         this.stashService = stashService;
@@ -62,7 +59,7 @@ public final class VoucherGiveService {
     public void give(Player target, Voucher voucher, int amount) {
         factory.createItems(voucher, amount, target)
             .thenAccept(items -> {
-                // Exactly one of these runs, or the shutdown settlement handles the give when neither can.
+                // Exactly one of the two callbacks or the shutdown settlement handles the give.
                 PendingSettlements.Entry pending = deliveries.track(
                     () -> undelivered(target, voucher, items, "the plugin disabled before delivery"));
                 scheduler.entity(target,
@@ -86,10 +83,10 @@ public final class VoucherGiveService {
     }
 
     /**
-     * Settles every give whose items were built but whose hop to the target never ran, for when the plugin
-     * disables. Call it from {@code onDisable}, once the plugin is no longer enabled and before the Stash
-     * settles and storage closes. Each give is handled on the calling thread as if its target had logged
-     * out: queued in the Stash when that is enabled, and otherwise logged.
+     * Settles every give whose items were built but whose hop to the target never ran. Call it from
+     * {@code onDisable}, once the plugin is no longer enabled and before the Stash settles and storage
+     * closes. Each give is handled on the calling thread as if its target had logged out: queued in the
+     * Stash when that is enabled, and otherwise logged.
      */
     public void settleForShutdown() {
         int settled = deliveries.settleAll(
@@ -114,10 +111,9 @@ public final class VoucherGiveService {
     }
 
     /**
-     * Runs instead of {@link #deliver} when the target logged out first, or the plugin disabled first. It
-     * may run off the region thread, so it touches neither the world nor an inventory: the whole amount is
-     * queued in the Stash when that is enabled, and is otherwise logged as not delivered, with
-     * {@code reason}.
+     * Runs instead of {@link #deliver} when the target logged out or the plugin disabled first. It may run
+     * off the region thread, so it touches neither the world nor an inventory: the whole amount is queued
+     * in the Stash when that is enabled, and otherwise logged with {@code reason}.
      */
     private void undelivered(Player target, Voucher voucher, List<ItemStack> items, String reason) {
         int count = items.stream().mapToInt(ItemStack::getAmount).sum();

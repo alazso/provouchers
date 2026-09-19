@@ -22,14 +22,12 @@ import java.util.Set;
 
 /**
  * Stops a voucher item from being used as an ingredient in a station that consumes or
- * transforms items, closing off "craft/transform the voucher" as a way to dupe or destroy
- * a stamped voucher. Crafting (the player 2x2 and a crafting table) is handled by clearing
+ * transforms items. Crafting (the player 2x2 and a crafting table) is handled by clearing
  * the result when a voucher is in the matrix; the other stations are handled by blocking a
  * voucher from being placed into their slots.
  */
 public final class VoucherStationListener implements Listener {
 
-    /** Stations with a dedicated input inventory; crafting is handled separately via the craft event. */
     private static final Set<InventoryType> BLOCKED_STATIONS = Set.of(
         InventoryType.ANVIL, InventoryType.GRINDSTONE, InventoryType.SMITHING,
         InventoryType.LOOM, InventoryType.CARTOGRAPHY, InventoryType.STONECUTTER,
@@ -76,7 +74,6 @@ public final class VoucherStationListener implements Listener {
      * and the hotbar or offhand item a number key or the swap-offhand key swaps in. For a
      * shift-click in the player's inventory: the clicked item. Resolved from the slot and click
      * type as well as the action, since the server performs a click whatever action it predicted.
-     * Shared with {@link SoulboundListener}.
      */
     static List<ItemStack> incomingItems(InventoryClickEvent event) {
         List<ItemStack> items = new ArrayList<>();
@@ -86,7 +83,7 @@ public final class VoucherStationListener implements Listener {
             items.add(cursor);
             if (event.getAction() == InventoryAction.PLACE_FROM_BUNDLE
                 && cursor.getItemMeta() instanceof BundleMeta bundle) {
-                // which of its items the bundle places is not exposed, so all of them count
+                // the API does not expose which item the bundle places, so all of them count
                 items.addAll(bundle.getItems());
             }
             ItemStack swapped = swappedIn(event);
@@ -110,15 +107,13 @@ public final class VoucherStationListener implements Listener {
     @Nullable
     private static ItemStack swappedIn(InventoryClickEvent event) {
         ClickType click = event.getClick();
-        // HOTBAR_MOVE_AND_READD is no longer reported and is marked for removal, so it is not referenced
         if (click != ClickType.NUMBER_KEY && click != ClickType.SWAP_OFFHAND
             && event.getAction() != InventoryAction.HOTBAR_SWAP) {
             return null;
         }
         PlayerInventory inventory = event.getWhoClicked().getInventory();
         int button = event.getHotbarButton();
-        // An offhand swap reports no usable hotbar button (the value differs across versions),
-        // so the offhand is read directly.
+        // An offhand swap reports no usable hotbar button (the value differs across versions).
         return click != ClickType.SWAP_OFFHAND && button >= 0 && button < 9
             ? inventory.getItem(button)
             : inventory.getItemInOffHand();

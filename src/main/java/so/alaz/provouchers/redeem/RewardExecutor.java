@@ -38,17 +38,16 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Runs reward actions for a player. Command dispatch and broadcasts are routed
- * through the scheduler so the plugin stays Folia-safe; messages, titles,
- * action bars, sounds, and item grants act on the player (the caller already runs
- * this on the player's region thread). Placeholders such as {@code %player%},
- * {@code %arg%}, and {@code %random:min-max%} are substituted first, then
+ * Runs reward actions for a player. Must be called on the player's region thread: messages, titles,
+ * action bars, sounds, and item grants act on the player directly, while console commands and
+ * broadcasts are routed through the scheduler to stay Folia-safe. Placeholders such as
+ * {@code %player%}, {@code %arg%}, and {@code %random:min-max%} are substituted first, then
  * MiniMessage and PlaceholderAPI are resolved by the text renderer.
  *
  * <p>Each reward is executed independently: a single failing reward is logged
  * with its source and never aborts the others. A player command or a defined item
  * still waiting for the player's thread when the player logs out is logged the
- * same way, never dropped silently.
+ * same way.
  */
 public final class RewardExecutor {
 
@@ -96,12 +95,10 @@ public final class RewardExecutor {
     private void execute(Player player, String source, RewardLine reward, @Nullable String arg, boolean quiet,
                          Map<String, Long> namedRolls, Map<String, DefinedItem> definedItems,
                          Map<String, WebhookSpec> webhooks) {
-        // Batch open runs quiet: substantive rewards still apply, but per-item feedback that would
-        // spam chat (messages, broadcasts, titles, action bars, sounds) is skipped.
         if (quiet && isFeedbackOnly(reward.type())) {
             return;
         }
-        // Share namedRolls so %random:a-b:name% gives out and announces the same value.
+        // namedRolls is shared across the rewards, so %random:a-b:name% has the same value in each.
         String payload = Placeholders.apply(reward.payload(), player.getName(), arg,
             ThreadLocalRandom.current(), namedRolls);
         switch (reward.type()) {
@@ -141,7 +138,7 @@ public final class RewardExecutor {
                 throw new IllegalArgumentException("no webhook named '" + spec.namedRef() + "' is configured");
             }
             if (webhook.payload() != null) {
-                // Rich webhook: render its template (resolving placeholders per value); ignore any message.
+                // A payload template takes precedence: any message in the reward is ignored.
                 String body = WebhookPayload.render(webhook.payload(), raw -> text.resolve(
                     Placeholders.apply(raw, player.getName(), arg, ThreadLocalRandom.current(), namedRolls),
                     player));
@@ -156,7 +153,7 @@ public final class RewardExecutor {
                 reason -> warn(source, "discord", payload, reason));
             return;
         }
-        // Inline URL: the message was required at parse and is already placeholder-substituted here.
+        // Inline URL: parsing guarantees a message, already placeholder-substituted.
         discord.post(spec.target(), text.plain(spec.message(), player),
             reason -> warn(source, "discord", payload, reason));
     }
@@ -168,8 +165,8 @@ public final class RewardExecutor {
             if (defined == null) {
                 throw new IllegalArgumentException("no defined item named '" + spec.definedName() + "'");
             }
-            // Skull-based items may resolve off-thread; deliver on the player's region thread. A failed
-            // build, or a logout before delivery, is logged here because it happens after this call returns.
+            // Skull-based items may resolve off-thread, so delivery runs on the player's region thread.
+            // A failed build or a logout before delivery is logged here, after this call returns.
             factory.createDefinedItem(defined, spec.resolveAmount(), player)
                 .thenAccept(item -> scheduler.entity(player, () -> Items.giveOrDrop(player, item),
                     () -> warn(source, "item", payload,
@@ -212,7 +209,7 @@ public final class RewardExecutor {
     private void applyGroup(Player player, String source, String payload) {
         GroupRewardPayload spec = GroupRewardPayload.parse(payload);
         PermissionHook perms = hooks.get(PermissionHook.class);
-        // Permission writes hit the data store, so run them off the main thread.
+        // Permission writes hit the data store, so they run off the main thread.
         scheduler.async(() -> {
             boolean applied = perms != null && switch (spec.action()) {
                 case ADD -> spec.isTemporary()
@@ -242,10 +239,7 @@ public final class RewardExecutor {
         });
     }
 
-    /**
-     * Feedback-only rewards: a notification that grants nothing, skipped when quiet (batch open) so a
-     * stack does not spam chat or a Discord webhook with one notice per item.
-     */
+    /** Whether a reward only notifies and grants nothing; such rewards are skipped when quiet (batch open). */
     private static boolean isFeedbackOnly(RewardType type) {
         return switch (type) {
             case MESSAGE, BROADCAST, TITLE, ACTIONBAR, SOUND, DISCORD -> true;

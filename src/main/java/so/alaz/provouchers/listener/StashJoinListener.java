@@ -10,9 +10,9 @@ import so.alaz.provouchers.platform.Text;
 import so.alaz.provouchers.stash.StashService;
 
 /**
- * Tells a joining player when rewards are waiting in their Stash. The count is the number of cards the
- * menu shows (not stored rows) and is read off-thread; the greeting is sent back on the player's thread,
- * and only when something is actually waiting.
+ * Tells a joining player how many rewards wait in their Stash, when any do. The count is the number of
+ * cards the menu shows, not stored rows; it is read off-thread, and the greeting is sent on the player's
+ * thread.
  */
 public final class StashJoinListener implements Listener {
 
