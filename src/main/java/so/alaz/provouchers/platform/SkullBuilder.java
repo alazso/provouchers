@@ -95,19 +95,22 @@ public final class SkullBuilder {
     }
 
     private static CompletableFuture<String> resolveTexture(String key, Supplier<String> loader) {
-        return TEXTURE_CACHE.computeIfAbsent(key, cacheKey ->
+        CompletableFuture<String> lookup = TEXTURE_CACHE.computeIfAbsent(key, cacheKey ->
             CompletableFuture.supplyAsync(() -> {
                 try {
                     return loader.get();
                 } catch (RuntimeException ex) {
                     return null;
                 }
-            }, EXECUTOR).whenComplete((value, error) -> {
-                // A failed lookup is evicted so the next request retries it.
-                if (value == null) {
-                    TEXTURE_CACHE.remove(cacheKey);
-                }
-            }));
+            }, EXECUTOR));
+        // Evicts a failed lookup so the next request retries it. Must stay outside computeIfAbsent: a
+        // lookup that already completed runs this immediately, and a removal inside computeIfAbsent throws.
+        lookup.whenComplete((value, error) -> {
+            if (value == null) {
+                TEXTURE_CACHE.remove(key, lookup);
+            }
+        });
+        return lookup;
     }
 
     @Nullable
