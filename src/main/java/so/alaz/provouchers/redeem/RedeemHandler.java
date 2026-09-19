@@ -828,7 +828,6 @@ public final class RedeemHandler {
                         : reservation.limit() == UseLimit.PER_PLAYER ? "code.already-redeemed"
                         : "code.global-limit";
                 } catch (SQLException | RuntimeException ex) {
-                    // RuntimeException includes the pool not being open yet.
                     denialKey = "code.verify-failed";
                 }
                 if (denialKey != null) {
