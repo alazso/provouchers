@@ -4,20 +4,17 @@ import java.util.Locale;
 import java.util.UUID;
 
 /**
- * A player-head specification for a voucher item: which stable skull source to use
- * and its value. Resolved into an {@code ItemStack} by the skull builder.
+ * A player-head specification for a voucher item: a skull source and its value, built
+ * into an {@code ItemStack} by the skull builder.
  *
- * <p>{@code TEXTURE} and {@code URL} are stable and need no network, so they are
- * the recommended choices for permanent voucher icons. {@code NAME} and
- * {@code UUID} resolve a player's current skin (which can change) and are looked up
- * asynchronously.
+ * <p>{@code TEXTURE} and {@code URL} need no network lookup. {@code NAME} and
+ * {@code UUID} look up the player's current skin asynchronously.
  *
  * @param source where the skin comes from
  * @param value  the source value (base64 texture, texture URL, player name, or UUID)
  */
 public record SkullSpec(Source source, String value) {
 
-    /** The supported skull sources. */
     public enum Source { TEXTURE, URL, NAME, UUID }
 
     public SkullSpec {

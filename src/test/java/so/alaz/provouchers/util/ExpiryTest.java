@@ -42,7 +42,6 @@ class ExpiryTest {
         Instant expected = LocalDate.parse("2026-06-10").plusDays(1)
             .atStartOfDay(ZoneId.systemDefault()).toInstant();
         assertThat(expiry).isEqualTo(expected);
-        // Usable through June 10, expired once it ticks into June 11.
         assertThat(Expiry.isExpired(expiry,
             LocalDate.parse("2026-06-10").atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant())).isFalse();
     }
@@ -62,8 +61,6 @@ class ExpiryTest {
 
     @Test
     void relativeExpiryIsAnchoredToTheReferenceInstant() {
-        // Mirrors how RedeemHandler resolves "30d" against the item's give time
-        // rather than the redeem moment, so the voucher can actually expire.
         Instant giveTime = Instant.parse("2026-01-01T00:00:00Z");
         Instant expiry = Expiry.resolve("30d", giveTime);
         assertThat(expiry).isEqualTo(giveTime.plus(Duration.ofDays(30)));
@@ -73,8 +70,6 @@ class ExpiryTest {
 
     @Test
     void isRelativeOnlyForDurations() {
-        // Only a relative expiry needs the give-time anchor; blank and absolute do not, so they
-        // must not stamp it (which would stop a stackable voucher from stacking across gives).
         assertThat(Expiry.isRelative("30d")).isTrue();
         assertThat(Expiry.isRelative(" 12h ")).isTrue();
         assertThat(Expiry.isRelative(null)).isFalse();

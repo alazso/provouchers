@@ -34,14 +34,14 @@ import java.util.concurrent.CompletableFuture;
 /**
  * Builds the physical {@link ItemStack} for a voucher. The base item is, in order
  * of precedence, a custom provider item ({@code custom:}), a player head
- * ({@code skull:}), or a vanilla material. The voucher's name, lore, and glow are
- * applied on top, and the persistent-data stamp (id, batch, give time, owner) is
- * written.
+ * ({@code skull:}), or a vanilla material. The voucher's name, lore, and appearance
+ * extras are applied on top, and the persistent-data stamp (voucher id, plus uid,
+ * give time, and owner where they apply) is written.
  *
- * <p>The result is a {@link CompletableFuture} because some skull sources (player
- * name or UUID) resolve a skin from Mojang off-thread. For every other source the
- * future is already complete. The returned item may be built off the main thread,
- * so callers must add it to an inventory on the owning region thread.
+ * <p>The result is a {@link CompletableFuture} because the player name and UUID skull
+ * sources resolve a skin from Mojang off-thread; for every other source the future is
+ * already complete. The item may be built off the main thread, so callers must add it
+ * to an inventory on the owning region thread.
  */
 public final class VoucherItemFactory {
 
@@ -60,8 +60,8 @@ public final class VoucherItemFactory {
      * voucher yields a single stack of {@code amount}; an anti-dupe voucher
      * ({@code stackable: false}) yields {@code amount} separate items, each stamped
      * with its own unique id so they are individually dupe-tracked and do not stack.
-     * Names and lore are rendered for {@code viewer} when non-null; for an owner-only
-     * voucher, {@code viewer} is recorded as the owner.
+     * Names and lore are rendered for {@code viewer} when non-null; for an owner-only or
+     * soulbound voucher, {@code viewer} is recorded as the owner.
      */
     public CompletableFuture<List<ItemStack>> createItems(Voucher voucher, int amount,
                                                           @Nullable Player viewer) {
@@ -89,29 +89,26 @@ public final class VoucherItemFactory {
     }
 
     /**
-     * Builds a display-only copy of the voucher's appearance (name, lore, glow) with
-     * no stamp, for previews and GUIs. Never give this item out: it is not a redeemable
-     * voucher.
+     * Builds a display-only copy of the voucher's appearance for previews and GUIs. The
+     * item carries no stamp, so it is not a redeemable voucher.
      */
     public CompletableFuture<ItemStack> buildDisplay(Voucher voucher, @Nullable Player viewer) {
         return buildBase(voucher, viewer);
     }
 
-    /** The viewer's name for placeholder substitution, or empty when an item is built with no viewer. */
     private static String viewerName(@Nullable Player viewer) {
         return viewer != null ? viewer.getName() : "";
     }
 
     private void stampCommon(ItemMeta meta, Voucher voucher, @Nullable Player viewer, long now) {
         stamp.stamp(meta, voucher.id());
-        // Anchor the give time only for relative expiry (e.g. "30d"), which measures from it.
-        // Stamping it otherwise gives every batch a different value, so a stackable voucher would
-        // not stack across separate gives.
+        // The give time is stamped only for a relative expiry, which measures from it; its per-give
+        // value stops items from separate gives stacking.
         if (Expiry.isRelative(voucher.expiry())) {
             stamp.setGivenAt(meta, now);
         }
-        // Soulbound vouchers carry an owner like owner-only ones, so bind-on-pickup and
-        // ownership checks have a subject from the moment the item is given.
+        // A soulbound voucher gets an owner at give time, so bind-on-pickup (which binds only
+        // unowned items) does not rebind it.
         if ((voucher.ownerOnly() || voucher.soulbound() != null) && viewer != null) {
             stamp.setOwner(meta, viewer.getUniqueId());
         }
@@ -119,8 +116,7 @@ public final class VoucherItemFactory {
 
     /**
      * Builds a defined reward item ({@code items:} map) for {@code viewer}, carrying
-     * {@code amount}. Shares the voucher icon build path: base precedence (custom, skull,
-     * material), name and lore rendering, glow, and model data all behave identically.
+     * {@code amount}. Uses the voucher icon build path, without a stamp.
      */
     public CompletableFuture<ItemStack> createDefinedItem(DefinedItem defined, int amount,
                                                           @Nullable Player viewer) {
@@ -138,8 +134,9 @@ public final class VoucherItemFactory {
 
     /**
      * Builds a single decorated item from an appearance: a custom provider item, a skull,
-     * or a vanilla material, with name and lore rendered for {@code viewer}. With no display
-     * name, {@code fallbackName} is used; when that is also null the base item keeps its own.
+     * or a vanilla material, with name and lore rendered for {@code viewer}. Without a
+     * display name, a custom or skull item keeps its own name and a material item uses
+     * {@code fallbackName} when that is non-null.
      */
     private CompletableFuture<ItemStack> buildAppearance(@Nullable String displayName, List<String> lore,
                                                          VoucherItem spec, @Nullable String expiryRaw,
@@ -188,8 +185,9 @@ public final class VoucherItemFactory {
 
     /**
      * Applies the appearance extras shared by every build path: custom model data (when
-     * {@code applyModelData}), enchantments, and the glow glint. Real enchantments already
-     * glint, so the hidden glow is only added when there are none.
+     * {@code applyModelData}), enchantments, glow, unbreakable, damage, trim, item model,
+     * hidden tooltip, and dye color. Unknown enchantment and trim keys are skipped.
+     * Enchantments already glint, so the glow is added only to an item without them.
      */
     private static void applyExtras(ItemMeta meta, VoucherItem spec, boolean applyModelData) {
         if (applyModelData && spec.customModelData() != null) {
@@ -228,7 +226,7 @@ public final class VoucherItemFactory {
         }
     }
 
-    /** Applies a dye color to whichever colorable item this is (leather armor, potion, or map). */
+    /** Applies a dye color to leather armor, a potion, or a map; other items ignore it. */
     private static void applyColor(ItemMeta meta, Color color) {
         if (meta instanceof LeatherArmorMeta leather) {
             leather.setColor(color);
@@ -244,7 +242,7 @@ public final class VoucherItemFactory {
         return resolve(Registry.ENCHANTMENT, key);
     }
 
-    /** Looks a value up in a registry by its (namespaced) key, or {@code null} when unknown. */
+    /** Looks a value up in a registry by its namespaced key, or {@code null} when malformed or unknown. */
     @Nullable
     private static <T extends org.bukkit.Keyed> T resolve(Registry<T> registry, String key) {
         NamespacedKey namespaced = NamespacedKey.fromString(key);
@@ -265,9 +263,8 @@ public final class VoucherItemFactory {
     }
 
     /**
-     * Applies a name, lore, and glow onto an already-built base item (a custom provider
-     * item or a skull). The display name is only overridden when one is set; custom model
-     * data is applied only when {@code applyModelData}.
+     * Applies a name, lore, and the appearance extras onto an already-built base item (a
+     * custom provider item or a skull). The display name is overridden only when one is set.
      */
     private void decorate(ItemStack item, @Nullable String displayName, List<String> lore,
                           VoucherItem spec, @Nullable String expiryRaw, @Nullable Player viewer,

@@ -26,7 +26,7 @@ public record FireworkSpec(List<Color> colors, List<Color> fade, FireworkEffect.
         }
     }
 
-    /** Builds a spec from raw config values, resolving color names, hex values, and the shape. */
+    /** Builds a spec from raw config values, resolving the color strings and the shape name. */
     public static FireworkSpec of(List<String> colors, List<String> fade, String type, int power) {
         FireworkEffect.Type shape;
         try {

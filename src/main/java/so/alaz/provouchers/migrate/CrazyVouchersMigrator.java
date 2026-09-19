@@ -17,13 +17,12 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Imports CrazyVouchers configs into ProVouchers files. Vouchers come from the modern
- * per-file layout ({@code CrazyVouchers/vouchers/*.yml}, a root {@code voucher:} section)
- * and the legacy {@code vouchers.yml}; codes from {@code CrazyVouchers/codes/*.yml}
+ * Imports CrazyVouchers configs into ProVouchers files. Vouchers come from the per-file
+ * layout ({@code CrazyVouchers/vouchers/*.yml}, a root {@code voucher:} section) and the
+ * legacy {@code vouchers.yml} ({@code vouchers:}); codes from {@code CrazyVouchers/codes/*.yml}
  * ({@code voucher-code:}) and the legacy {@code codes.yml} ({@code voucher-codes:}).
  * Existing ProVouchers ids are never overwritten. Text converts from legacy color codes
- * and curly tokens; every key with no ProVouchers equivalent is reported, never silently
- * dropped, so an admin can audit a migration completely.
+ * and curly tokens, and every key with no ProVouchers equivalent is reported as a warning.
  */
 public final class CrazyVouchersMigrator implements Migrator {
 
@@ -109,8 +108,6 @@ public final class CrazyVouchersMigrator implements Migrator {
         }
     }
 
-    // ---- Vouchers -----------------------------------------------------------
-
     private void importVoucher(String name, ConfigurationSection voucher,
                                List<String> imported, List<String> skipped, List<String> warnings) {
         String id = sanitizeId(name);
@@ -170,16 +167,16 @@ public final class CrazyVouchersMigrator implements Migrator {
         if (!lore.isEmpty()) {
             out.put("lore", lore.stream().map(LegacyText::toMiniMessage).toList());
         }
-        // getString returns "" (not the default) when the key is present but blank, so guard it.
+        // A present but blank key reads as "", not the default.
         String material = v.getString("item", "PAPER");
         out.put("item.material",
             (material.isBlank() ? "PAPER" : material).toUpperCase(Locale.ROOT));
-        // CrazyVouchers glowing is an enum string (add_glow / remove_glow / none), not a boolean.
-        // It can also live under settings.glowing on a head voucher.
+        // CrazyVouchers glowing is an enum string (add_glow, remove_glow, none), not a boolean,
+        // and a head voucher can set it under settings.glowing.
         if ("add_glow".equalsIgnoreCase(v.getString("glowing", v.getString("settings.glowing", "none")))) {
             out.put("item.glow", true);
         }
-        // -1 is the CrazyVouchers "no model data" sentinel; a real value is positive.
+        // CrazyVouchers uses -1 for "no model data".
         if (v.getInt("custom-model-data", -1) > 0) {
             out.put("item.custom-model-data", v.getInt("custom-model-data"));
         }
@@ -192,8 +189,8 @@ public final class CrazyVouchersMigrator implements Migrator {
         if (hdb != null) {
             out.put("item.custom", "hdb:" + hdb);
         }
-        // The real item's durability and trim. CrazyVouchers names them "display-damage"/"display-trim"
-        // on the main voucher; the alternate head-item layout uses "settings.damage"/"settings.trim".
+        // Durability and trim are display-damage and display-trim, or settings.damage and
+        // settings.trim in the head-item layout.
         int damage = v.getInt("display-damage", v.getInt("settings.damage", -1));
         if (damage > 0) {
             out.put("item.damage", damage);
@@ -201,11 +198,10 @@ public final class CrazyVouchersMigrator implements Migrator {
         String trimMaterial = firstNonBlank(v, "display-trim.material", "settings.trim.material");
         String trimPattern = firstNonBlank(v, "display-trim.pattern", "settings.trim.pattern");
         if (trimMaterial != null && trimPattern != null) {
-            // Trim material/pattern are namespaced keys, so normalise to lowercase as CrazyVouchers does.
+            // Trim material and pattern are namespaced keys, which are lowercase.
             out.put("item.trim.material", trimMaterial.toLowerCase(Locale.ROOT));
             out.put("item.trim.pattern", trimPattern.toLowerCase(Locale.ROOT));
         }
-        // The modern item model (1.21.4+), a namespace + key pair.
         String namespace = v.getString("components.item-model.namespace", "");
         String key = v.getString("components.item-model.key", "");
         if (!namespace.isBlank() && !key.isBlank()) {
@@ -220,8 +216,8 @@ public final class CrazyVouchersMigrator implements Migrator {
         if (v.getBoolean("components.hide-tooltip", false)) {
             out.put("item.hide-tooltip", true);
         }
-        // Item dye: a named settings.color, or an r,g,b settings.rgb triple. CrazyVouchers accepts
-        // more color names than ProVouchers does, so validate before writing an unloadable value.
+        // Dye is a named settings.color or an r,g,b settings.rgb. CrazyVouchers accepts color names
+        // ProVouchers does not, so the value is validated before it is written.
         String color = firstNonBlank(v, "settings.color", "settings.rgb");
         if (color != null) {
             if (isParseableColor(color)) {
@@ -233,7 +229,6 @@ public final class CrazyVouchersMigrator implements Migrator {
         }
     }
 
-    /** Whether {@code value} is a color ProVouchers can parse, so we never write an unloadable one. */
     private static boolean isParseableColor(String value) {
         try {
             Colors.parse(value);
@@ -243,13 +238,11 @@ public final class CrazyVouchersMigrator implements Migrator {
         }
     }
 
-    // ---- Codes --------------------------------------------------------------
-
     private void importCode(String name, ConfigurationSection code,
                             List<String> imported, List<String> skipped, List<String> warnings) {
         String id = sanitizeId(name);
         File target = new File(codesDir, id + ".yml");
-        // The typed value defaults to the id when no explicit code is set, matching the parser.
+        // The code value defaults to the id when unset, as in VoucherParser.parseCode.
         String value = firstNonBlank(code, "code");
         String effective = value != null ? value : id;
         if (target.isFile() || registry.findCode(effective) != null) {
@@ -291,8 +284,6 @@ public final class CrazyVouchersMigrator implements Migrator {
         return out;
     }
 
-    // ---- Shared conversion --------------------------------------------------
-
     /** Guaranteed rewards: {@code commands} as console commands plus the right-click {@code message}. */
     private List<String> convertRewards(ConfigurationSection v, List<String> warnings, String id) {
         List<String> rewards = new ArrayList<>();
@@ -308,10 +299,10 @@ public final class CrazyVouchersMigrator implements Migrator {
 
     /**
      * Weighted reward sets from {@code chance-commands} and {@code random-commands}. CrazyVouchers
-     * runs its weighted and unweighted entries as two independent picks: weighted entries become
-     * {@code random-rewards}; a single unweighted entry always runs, so it is appended to the
-     * guaranteed {@code rewards}; several unweighted entries are a one-of pick, which only collides
-     * with the weighted pool (ProVouchers rolls one set per redeem), and that case is reported.
+     * picks from its weighted and unweighted entries independently, while ProVouchers rolls one set
+     * per redeem. Weighted entries become {@code random-rewards}. A single unweighted entry always
+     * runs, so it is appended to the guaranteed {@code rewards}. Several unweighted entries become
+     * equal-weight sets, and combining them with weighted entries is reported as a warning.
      */
     private List<Map<String, Object>> convertRandomRewards(ConfigurationSection v, List<String> rewards,
                                                            List<String> warnings, String id) {
@@ -350,7 +341,6 @@ public final class CrazyVouchersMigrator implements Migrator {
             }
         }
         if (unweighted.size() == 1) {
-            // A single unweighted entry always runs in CrazyVouchers: it is a guaranteed reward.
             rewards.addAll(commandRewards(unweighted.get(0), false));
         } else {
             for (List<String> commands : unweighted) {
@@ -389,7 +379,7 @@ public final class CrazyVouchersMigrator implements Migrator {
             }
         }
         if (v.getBoolean("options.firework.toggle", false)) {
-            // "firework" is the current key; some configs carry the "fireworks" typo.
+            // Some configs spell the key "fireworks".
             String colors = v.getString("options.firework.colors", v.getString("options.fireworks.colors", ""));
             if (!colors.isBlank()) {
                 out.put("effects.firework.colors",
@@ -401,7 +391,7 @@ public final class CrazyVouchersMigrator implements Migrator {
     /** A CrazyVouchers limiter caps total redemptions, which maps to {@code max-uses}. */
     private void applyLimiter(ConfigurationSection v, Map<String, Object> out, List<String> warnings, String id) {
         if (v.getBoolean("options.limiter.toggle", false)) {
-            // "limit" is the v4 key; older configs used "amount".
+            // "limit" is the v4 key; earlier versions use "amount".
             int limit = v.getInt("options.limiter.limit", v.getInt("options.limiter.amount", -1));
             if (limit > 0) {
                 out.put("max-uses", limit);
@@ -412,8 +402,9 @@ public final class CrazyVouchersMigrator implements Migrator {
     }
 
     /**
-     * World and permission whitelists become {@code world} and {@code permission} conditions.
-     * A blacklist permission (deny if held) has no equivalent and is reported.
+     * World and permission whitelists become {@code world} and {@code permission} conditions, and
+     * required placeholders become {@code papi} equality conditions. A blacklist permission (deny
+     * if held) has no equivalent and is reported.
      */
     private List<Map<String, Object>> buildConditions(ConfigurationSection v, List<String> warnings, String id) {
         List<Map<String, Object>> conditions = new ArrayList<>();
@@ -439,7 +430,6 @@ public final class CrazyVouchersMigrator implements Migrator {
         if (v.getBoolean("options.permission.blacklist-permission.toggle", false)) {
             warnings.add(id + ": blacklist-permission (deny if held) has no equivalent, not imported");
         }
-        // Required placeholders become equality papi conditions.
         ConfigurationSection required = v.getConfigurationSection("options.required-placeholders");
         if (required != null) {
             String message = v.getString("options.required-placeholders-message");
@@ -471,8 +461,6 @@ public final class CrazyVouchersMigrator implements Migrator {
         }
         return condition;
     }
-
-    // ---- Item-give DSL ------------------------------------------------------
 
     private Map<String, Object> convertDefinedItems(ConfigurationSection v, List<String> warnings, String id,
                                                     List<String> rewards) {
@@ -512,7 +500,6 @@ public final class CrazyVouchersMigrator implements Migrator {
                 currentKey = maybeKey;
                 pairs.put(currentKey, value);
             } else if (colon > 0 && !maybeKey.isEmpty()) {
-                // An unrecognised key:value: an enchantment when the value is a level number.
                 currentKey = null;
                 try {
                     enchantments.put(maybeKey, Integer.parseInt(value));
@@ -544,7 +531,6 @@ public final class CrazyVouchersMigrator implements Migrator {
         if (pairs.containsKey("damage")) {
             tryInt(pairs.get("damage")).ifPresent(damage -> out.put("damage", damage));
         }
-        // Trim is written pattern!material in the DSL.
         if (pairs.containsKey("trim")) {
             String[] parts = pairs.get("trim").split("!", 2);
             if (parts.length == 2) {
@@ -575,7 +561,6 @@ public final class CrazyVouchersMigrator implements Migrator {
         }
     }
 
-    /** A single-command weighted reward set. */
     private static Map<String, Object> rewardSet(double weight, String command) {
         Map<String, Object> set = new LinkedHashMap<>();
         set.put("weight", weight);
@@ -583,7 +568,6 @@ public final class CrazyVouchersMigrator implements Migrator {
         return set;
     }
 
-    /** The first of {@code paths} with a non-blank value, or {@code null}. */
     @Nullable
     private static String firstNonBlank(ConfigurationSection section, String... paths) {
         for (String path : paths) {
@@ -594,8 +578,6 @@ public final class CrazyVouchersMigrator implements Migrator {
         }
         return null;
     }
-
-    // ---- Reporting ----------------------------------------------------------
 
     /** Voucher keys this importer converts; every other leaf key is reported as unmapped. */
     private static final List<String> VOUCHER_HANDLED = List.of(
@@ -636,8 +618,6 @@ public final class CrazyVouchersMigrator implements Migrator {
         }
     }
 
-    // ---- Helpers ------------------------------------------------------------
-
     private void write(File target, Map<String, Object> data, String id,
                        List<String> imported, List<String> skipped, String kind) {
         YamlConfiguration out = new YamlConfiguration();
@@ -661,7 +641,7 @@ public final class CrazyVouchersMigrator implements Migrator {
         return hasWeightField ? command.replaceFirst("^\\d+(\\.\\d+)?\\s+", "") : command;
     }
 
-    /** {@code {prefix}} is a locale-file token with no meaning in ProVouchers message bodies. */
+    /** Removes the CrazyVouchers {@code {prefix}} locale token, which has no ProVouchers equivalent. */
     private static String stripPrefix(String value) {
         return value.replace("{prefix}", "").trim();
     }

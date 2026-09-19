@@ -19,8 +19,8 @@ import java.util.Map;
 /**
  * Loads voucher and code definitions from the plugin data folder into a
  * {@link VoucherRegistry}. Each {@code vouchers/*.yml} file is one voucher and
- * each {@code codes/*.yml} file is one code. Files that fail validation are
- * collected and reported rather than aborting the whole load.
+ * each {@code codes/*.yml} file is one code. A file that fails validation is
+ * reported and skipped; the other files still load.
  */
 public final class ConfigManager {
 
@@ -52,8 +52,8 @@ public final class ConfigManager {
 
     /**
      * Reloads a single voucher and/or code file by its id (the file name without extension),
-     * leaving every other loaded entry in place. A file that now fails to parse keeps its
-     * previously loaded version and reports the error.
+     * leaving every other loaded entry in place. A file that fails to parse is reported, and
+     * its previously loaded entry stays registered.
      *
      * @return the per-file errors, or {@code null} when no voucher or code file by that id exists
      */
@@ -120,9 +120,8 @@ public final class ConfigManager {
     }
 
     /**
-     * Rejects a condition whose {@code type} is not registered, so a typo or a removed type fails
-     * loudly at load (and the voucher/code does not load) rather than silently dropping the gate at
-     * redeem time, which would let the restriction fail open.
+     * Throws {@link VoucherParseException} for a condition whose {@code type} is not registered, so
+     * an unknown type fails the load and never leaves a gate unenforced.
      */
     private void requireKnownConditions(List<Map<String, Object>> conditionMaps) {
         for (Map<String, Object> condition : conditionMaps) {

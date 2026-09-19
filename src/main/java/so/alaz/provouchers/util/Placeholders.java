@@ -17,13 +17,11 @@ import java.util.regex.Pattern;
  * voucher's argument, and {@code %random:min-max%} for a random integer in the
  * inclusive range. A random can be named ({@code %random:min-max:name%}): the first
  * occurrence rolls and caches under that name, and later occurrences with the same name
- * reuse the value, so one roll can be given out and announced together. The curly-brace
- * forms ({@code {player}}, {@code {arg}}, {@code {random:min-max}}) are still honoured
- * for backward compatibility but are deprecated; the config loader warns when it sees them.
+ * reuse the value. The deprecated curly-brace forms ({@code {player}}, {@code {arg}},
+ * {@code {random:min-max}}) are also accepted; the config loader warns when it sees them.
  *
  * <p>These are ProVouchers' own placeholders, distinct from PlaceholderAPI. MiniMessage
- * markup and PlaceholderAPI placeholders are intentionally left untouched here; those
- * are resolved later by the text renderer.
+ * markup and PlaceholderAPI placeholders are left for the text renderer to resolve.
  */
 public final class Placeholders {
 
@@ -73,15 +71,15 @@ public final class Placeholders {
         String argValue = arg == null ? "" : arg;
         String result = input
             .replace("%player%", playerName)
-            .replace("{player}", playerName)   // deprecated curly-brace form
+            .replace("{player}", playerName)
             .replace("%arg%", argValue)
-            .replace("{arg}", argValue);        // deprecated curly-brace form
+            .replace("{arg}", argValue);
         return applyRandom(result, random, namedRolls);
     }
 
     /**
      * Applies all placeholders to each line, returning a new list. Named randoms are shared across
-     * the lines (so an item's lore is internally consistent); plain randoms are drawn per line.
+     * the lines; plain randoms are drawn independently.
      */
     public static List<String> applyAll(List<String> lines, String playerName, @Nullable String arg) {
         Map<String, Long> namedRolls = new HashMap<>();

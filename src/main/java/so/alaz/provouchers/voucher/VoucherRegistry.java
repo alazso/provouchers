@@ -29,7 +29,6 @@ public final class VoucherRegistry {
         codes.put(code.key(), code);
     }
 
-    /** The voucher with this id, if loaded. */
     public Optional<Voucher> getVoucher(String id) {
         return Optional.ofNullable(vouchers.get(id.toLowerCase(Locale.ROOT)));
     }
@@ -53,12 +52,11 @@ public final class VoucherRegistry {
         return null;
     }
 
-    /** All loaded voucher ids, in no particular order. */
+    /** All loaded voucher ids, sorted. */
     public List<String> voucherIds() {
         return vouchers.values().stream().map(Voucher::id).sorted().toList();
     }
 
-    /** All loaded codes. */
     public Collection<VoucherCode> codes() {
         return List.copyOf(codes.values());
     }
@@ -76,7 +74,6 @@ public final class VoucherRegistry {
         return codes.size();
     }
 
-    /** Removes everything; used at the start of a reload. */
     public void clear() {
         vouchers.clear();
         codes.clear();

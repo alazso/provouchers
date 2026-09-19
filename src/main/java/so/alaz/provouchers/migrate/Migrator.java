@@ -16,6 +16,6 @@ public interface Migrator {
     /** Whether the source plugin's data is present to import from. */
     boolean isPresent();
 
-    /** Converts the source data, writing ProVouchers files and returning what happened. */
+    /** Converts the source data into ProVouchers files and returns a report of the run. */
     MigrationReport migrate();
 }

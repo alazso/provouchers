@@ -10,11 +10,7 @@ import java.nio.charset.StandardCharsets;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
-/**
- * Guards the bundled example files against drifting from the parser: they ship to every
- * server and load on first start, so an invalid key would surface as a reload error for
- * users. Loads each example and parses it the way {@link ConfigManager} does.
- */
+/** Parses the example voucher and code files bundled in the plugin jar. */
 class BundledExampleTest {
 
     @Test

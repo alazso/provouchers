@@ -69,11 +69,11 @@ class VoucherParserTest {
     @Test
     void defaultsApplyWhenKeysOmitted() throws Exception {
         Voucher voucher = VoucherParser.parseVoucher(yaml("item:\n  material: PAPER\n"), "plain");
-        assertThat(voucher.displayName()).isNull();   // null lets a custom item keep its own name
+        assertThat(voucher.displayName()).isNull();
         assertThat(voucher.cooldownSeconds()).isZero();
         assertThat(voucher.expiry()).isNull();
         assertThat(voucher.hasRewards()).isFalse();
-        assertThat(voucher.stackable()).isTrue();      // stackable (anti-dupe off) by default
+        assertThat(voucher.stackable()).isTrue();
     }
 
     @Test
@@ -226,7 +226,6 @@ class VoucherParserTest {
         assertThatThrownBy(() -> VoucherParser.parseVoucher(config, longId))
             .isInstanceOf(VoucherParseException.class)
             .hasMessageContaining("56");
-        // The same id without limits loads fine; only the use counter has the length bound.
         assertThat(VoucherParser.parseVoucher(yaml("item:\n  material: PAPER\n"), longId).id())
             .isEqualTo(longId);
     }
@@ -296,7 +295,6 @@ class VoucherParserTest {
             effects:
               sound: "minecraft:ENTITY.PLAYER.LEVELUP 1 1"
             """);
-        // The spec is kept as written; the key is lower-cased when the sound plays.
         assertThat(VoucherParser.parseVoucher(config, "fx").effects().sound())
             .isEqualTo("minecraft:ENTITY.PLAYER.LEVELUP 1 1");
     }

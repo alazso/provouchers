@@ -14,11 +14,11 @@ import java.util.Map;
  * maps and built into {@code Condition}s at redemption time, so this type
  * stays independent of the running server.
  *
- * @param id            the unique voucher id (its file name without extension)
+ * @param id            the unique voucher id (the {@code id} key, defaulting to the file name
+ *                      without extension)
  * @param displayName   the MiniMessage display name, or {@code null} to keep the
  *                      base item's own name (relevant for custom provider items)
  * @param lore          the MiniMessage lore lines
- * @param item          the item appearance
  * @param conditionMaps raw condition sections, each a {@code type} plus its keys
  * @param rewards       reward lines that always run on a successful redeem
  * @param randomRewards weighted reward sets, exactly one of which runs per redeem
@@ -32,13 +32,13 @@ import java.util.Map;
  * @param activeFrom    raw absolute instant before which redeeming is refused, or {@code null}
  * @param hasArgument   if {@code true} a free-form argument is accepted and exposed as {@code %arg%}
  * @param stackable     if {@code true} (the default) items stack and are not dupe-tracked; if
- *                      {@code false}, each item is stamped with a unique id for anti-dupe and will
+ *                      {@code false}, each item is stamped with a unique id for anti-dupe and does
  *                      not stack
  * @param batchOpen     if {@code true}, shift-right-clicking a stack redeems every item at once;
  *                      requires a stackable voucher with no cooldown
  * @param twoStep       if {@code true}, redeeming requires a confirmation click within the window
  * @param confirmMessage the per-voucher confirmation prompt, or {@code null} to use the locale default
- * @param effects       optional sound and particle played to the redeemer, or {@code null} for none
+ * @param effects       optional sound and firework played on a successful redeem, or {@code null}
  * @param soulbound     transfer restrictions binding the item to its player, or {@code null}
  * @param enabled       if {@code false} the voucher loads but cannot be redeemed (an admin toggle)
  * @param discordWebhooks named Discord webhook targets for {@code discord: @name} rewards, keyed by lower-cased name
@@ -91,17 +91,14 @@ public record Voucher(
         }
     }
 
-    /** Whether this voucher grants any reward at all. */
     public boolean hasRewards() {
         return !rewards.isEmpty() || !randomRewards.isEmpty();
     }
 
-    /** Whether a global redemption cap is configured. */
     public boolean hasGlobalLimit() {
         return maxUses > 0;
     }
 
-    /** Whether a per-player lifetime limit is configured. */
     public boolean hasPerPlayerLimit() {
         return usesPerPlayer > 0;
     }

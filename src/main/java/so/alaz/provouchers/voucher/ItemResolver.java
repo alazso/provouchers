@@ -11,10 +11,9 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Resolves item references to {@link ItemStack}s, shared by voucher icon building
- * and item rewards. A reference is a vanilla material name, a {@code provider:id}
- * custom item served by an {@link ItemHook} (ItemsAdder, Oraxen, Nexo, HeadDatabase),
- * or a {@code serialized:<base64>} full-fidelity item.
+ * Resolves item references to {@link ItemStack}s. A reference is a vanilla material
+ * name, a {@code provider:id} custom item served by an {@link ItemHook} (ItemsAdder,
+ * Oraxen, Nexo, HeadDatabase), or a {@code serialized:<base64>} full-fidelity item.
  */
 public final class ItemResolver {
 
@@ -39,9 +38,8 @@ public final class ItemResolver {
         CustomItemRef ref = CustomItemRef.parse(reference);
         List<ItemHook> providers = hooks.all(ItemHook.class);
         if (ref.providerHint() != null) {
-            // Qualified reference: only the named provider (aliases like ia/hdb resolved) may build it,
-            // with the bare id. If that provider is unavailable or cannot build the id, nothing resolves
-            // rather than the id being handed to a different provider (which could grant the wrong item).
+            // A qualified reference resolves only through the named provider, with the bare id, and
+            // never falls back to another provider.
             String name = canonicalProvider(ref.providerHint());
             for (ItemHook provider : providers) {
                 if (provider.isAvailable() && provider.name().equalsIgnoreCase(name)) {
@@ -50,7 +48,6 @@ public final class ItemResolver {
             }
             return null;
         }
-        // Unqualified: try each available provider with the reference as given.
         for (ItemHook provider : providers) {
             if (provider.isAvailable()) {
                 ItemStack item = provider.createItem(reference);
@@ -73,7 +70,6 @@ public final class ItemResolver {
         return false;
     }
 
-    /** Maps a provider-prefix alias to the canonical hook name; other hints pass through unchanged. */
     private static String canonicalProvider(String hint) {
         return switch (hint.toLowerCase(Locale.ROOT)) {
             case "ia" -> "itemsadder";
@@ -87,7 +83,7 @@ public final class ItemResolver {
      * otherwise a vanilla material. The returned stack carries {@code amount}
      * (clamped to at least 1).
      *
-     * @throws IllegalArgumentException if neither a provider item nor a material resolves
+     * @throws IllegalArgumentException if neither a provider item nor an obtainable material resolves
      */
     public ItemStack give(String reference, int amount) {
         int count = Math.max(1, amount);

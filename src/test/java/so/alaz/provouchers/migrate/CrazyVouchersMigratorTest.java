@@ -81,8 +81,8 @@ class CrazyVouchersMigratorTest {
         assertThat(voucher.definedItems().get("imported_1").displayName()).isEqualTo("<red>A fancy sword");
         assertThat(voucher.definedItems().get("imported_1").lore())
             .containsExactly("<yellow>line one", "<gray>line two");
-        // The weighted random-commands map becomes two reward sets; the legacy inline 70 is stripped.
         assertThat(voucher.randomRewards()).hasSize(2);
+        // An inline weight is dropped when the entry sets an explicit weight.
         assertThat(voucher.randomRewards().get(0).rewards().get(0).payload())
             .isEqualTo("eco give %player% 100");
         assertThat(voucher.effects().sound()).startsWith("block.amethyst_block.step");
@@ -124,7 +124,6 @@ class CrazyVouchersMigratorTest {
 
         Voucher voucher = importedVoucher("gated");
         assertThat(voucher.maxUses()).isEqualTo(10);
-        // The real item's durability and trim come from display-damage / display-trim.
         assertThat(voucher.item().damage()).isEqualTo(50);
         assertThat(voucher.item().trim()).isEqualTo(new so.alaz.provouchers.voucher.ItemTrim("quartz", "sentry"));
         assertThat(voucher.conditionMaps()).hasSize(2);
@@ -132,7 +131,6 @@ class CrazyVouchersMigratorTest {
             .containsEntry("deny", "Wrong world.");
         assertThat(voucher.conditionMaps().get(1)).containsEntry("type", "permission")
             .containsEntry("permission", "vouchers.use.gated");
-        // Every unmapped key is reported, not silently dropped.
         assertThat(result.warnings()).anyMatch(w -> w.contains("override-anti-dupe"))
             .anyMatch(w -> w.contains("allow-vouchers-in-item-frames"))
             .anyMatch(w -> w.contains("is-edible"))
@@ -156,7 +154,6 @@ class CrazyVouchersMigratorTest {
         assertThat(defined.damage()).isEqualTo(50);
         assertThat(defined.trim()).isEqualTo(new so.alaz.provouchers.voucher.ItemTrim("quartz", "sentry"));
         assertThat(defined.enchantments()).containsEntry("protection", 4).containsEntry("unbreaking", 3);
-        // Everything mapped: no item-option warnings remain.
         assertThat(result.warnings()).noneMatch(w -> w.contains("item option"));
     }
 
@@ -212,7 +209,6 @@ class CrazyVouchersMigratorTest {
         MigrationReport result = importer(new VoucherRegistry()).migrate();
 
         Voucher voucher = importedVoucher("loot");
-        // The two weighted entries are a random pool; the always-run entry is a guaranteed reward.
         assertThat(voucher.randomRewards()).hasSize(2);
         assertThat(voucher.rewards()).anyMatch(r -> r.payload().equals("give %player% diamond 5"));
         assertThat(result.warnings()).noneMatch(w -> w.contains("random-commands"));
@@ -238,7 +234,6 @@ class CrazyVouchersMigratorTest {
                   sounds: [ 'block.note_block.pling' ]
             """);
         MigrationReport result = importer(new VoucherRegistry()).migrate();
-        // The file id comes from the file name; the code value stays as configured.
         assertThat(result.imported()).containsExactly("code starter-money");
 
         VoucherCode code = VoucherParser.parseCode(YamlConfiguration.loadConfiguration(
@@ -246,7 +241,6 @@ class CrazyVouchersMigratorTest {
         assertThat(code.code()).isEqualTo("startermoney");
         assertThat(code.maxUses()).isEqualTo(5);
         assertThat(code.rewards().get(0).payload()).isEqualTo("eco give %player% 10000");
-        // Codes now carry redeem effects, so the sound maps instead of warning.
         assertThat(code.effects()).isNotNull();
         assertThat(code.effects().sound()).startsWith("block.note_block.pling");
         assertThat(result.warnings()).noneMatch(w -> w.contains("sound/firework"));
@@ -293,9 +287,7 @@ class CrazyVouchersMigratorTest {
             """);
         MigrationReport result = importer(new VoucherRegistry()).migrate();
 
-        // An r,g,b triple ProVouchers can parse maps through.
         assertThat(importedVoucher("dyed").item().color()).isEqualTo("122,33,57");
-        // A name ProVouchers cannot represent is reported, not written as an unloadable value.
         assertThat(importedVoucher("bad-dye").item().color()).isNull();
         assertThat(result.warnings()).anyMatch(w -> w.contains("item color 'gold'"));
     }
@@ -352,7 +344,6 @@ class CrazyVouchersMigratorTest {
             """);
         MigrationReport result = importer(new VoucherRegistry()).migrate();
 
-        // The legacy weighted pool plus two unweighted entries collapse to one roll, which is reported.
         assertThat(result.warnings()).anyMatch(w -> w.contains("weighted pool"));
     }
 

@@ -8,7 +8,6 @@ import org.jetbrains.annotations.Nullable;
  */
 public record VoucherEffects(@Nullable String sound, @Nullable FireworkSpec firework) {
 
-    /** Whether no effect is configured. */
     public boolean isEmpty() {
         return (sound == null || sound.isBlank()) && firework == null;
     }

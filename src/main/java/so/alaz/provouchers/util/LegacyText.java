@@ -5,7 +5,7 @@ import java.util.Map;
 /**
  * Converts legacy {@code &}/{@code §} color codes and CrazyVouchers-style tokens into
  * ProVouchers' MiniMessage + percent-placeholder form. MiniMessage tags already present
- * in the input pass through untouched, so mixed-format strings convert cleanly.
+ * in the input pass through unchanged.
  */
 public final class LegacyText {
 

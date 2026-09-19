@@ -5,9 +5,9 @@ import org.bukkit.Material;
 import java.util.Locale;
 
 /**
- * Resolves a configured material name to a {@link Material}. Name resolution is
- * server-independent (it goes through the enum, not the runtime registry) so it
- * can be used both at config-load time for validation and at item-build time.
+ * Resolves a configured material name to a {@link Material}. Resolution uses
+ * {@code Material.getMaterial}, which works without a running server (the registry
+ * does not), so the parser can validate materials at load and in tests.
  */
 public final class Materials {
 

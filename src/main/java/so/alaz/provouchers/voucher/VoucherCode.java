@@ -70,7 +70,6 @@ public record VoucherCode(
         return caseSensitive ? code.equals(input) : code.equalsIgnoreCase(input);
     }
 
-    /** Whether this code has a global use cap. */
     public boolean hasGlobalLimit() {
         return maxUses >= 0;
     }

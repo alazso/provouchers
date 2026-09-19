@@ -7,7 +7,7 @@ import java.util.Map;
 
 /**
  * Parses a color from config: one of the 17 named colors, a {@code #RRGGBB} hex value, or an
- * {@code r,g,b} triple. Shared by item dye colors and firework colors.
+ * {@code r,g,b} triple.
  */
 public final class Colors {
 

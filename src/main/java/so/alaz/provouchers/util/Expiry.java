@@ -49,21 +49,22 @@ public final class Expiry {
     }
 
     /**
-     * Parses an absolute moment: a full instant, a local date-time, or a plain date. A plain
-     * date anchors to the END of that day for an expiry (usable through the date) and to the
-     * START of it for an activation gate.
+     * Parses an absolute moment: a full instant, a local date-time, or a plain date, or returns
+     * {@code null} for anything else. A plain date resolves to the end of that day when
+     * {@code dateAtEndOfDay} (an expiry, usable through the date) and to its start otherwise
+     * (an activation gate).
      */
     @Nullable
     private static Instant parseAbsolute(String value, boolean dateAtEndOfDay) {
         try {
             return Instant.parse(value);
         } catch (DateTimeParseException ignored) {
-            // Not a full instant; try a zone-less date-time next.
+            // Not a full instant; falls through to a local date-time.
         }
         try {
             return LocalDateTime.parse(value).atZone(ZoneId.systemDefault()).toInstant();
         } catch (DateTimeParseException ignored) {
-            // Not a date-time; try a plain calendar date next.
+            // Not a local date-time; falls through to a plain date.
         }
         try {
             LocalDate date = LocalDate.parse(value);
@@ -81,7 +82,7 @@ public final class Expiry {
 
     /**
      * Resolves an {@code active-from} start gate. Accepts the same absolute formats as
-     * {@link #resolve}, but a plain date means the START of that day (an expiry means its end),
+     * {@link #resolve}, but a plain date means the start of that day (an expiry means its end),
      * and relative durations are not accepted: a start gate has no give-time anchor.
      *
      * @return the activation instant, or {@code null} when blank (active immediately)
@@ -101,9 +102,7 @@ public final class Expiry {
 
     /**
      * Whether {@code raw} is a relative duration (such as {@code 30d}), as opposed to blank or an
-     * absolute instant. Only a relative expiry needs the per-item give time as its anchor, so this
-     * is what decides whether to stamp that time (stamping it otherwise stops stackable vouchers
-     * from stacking across separate gives).
+     * absolute instant. A relative expiry is measured from the item's give time.
      */
     public static boolean isRelative(@Nullable String raw) {
         return raw != null && !raw.isBlank() && Durations.parseOrNull(raw.trim()) != null;
@@ -112,7 +111,7 @@ public final class Expiry {
     /**
      * A human description for the {@code %expiry%} placeholder: {@code "in 30d"} for a relative
      * duration, {@code "on 2026-12-31"} for an absolute date or instant, or {@code "never"} when
-     * there is no expiry. Computed from the configured value at build time, not a live countdown.
+     * there is no expiry. The text depends only on {@code raw}, not on the current time.
      */
     public static String describe(@Nullable String raw) {
         if (raw == null || raw.isBlank()) {

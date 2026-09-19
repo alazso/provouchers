@@ -12,17 +12,17 @@ public final class MigrationService {
         this.migrators = List.of(migrators);
     }
 
-    /** The migrator with this id, if registered. */
+    /** The migrator with this id (case-insensitive), if registered. */
     public Optional<Migrator> byId(String id) {
         return migrators.stream().filter(m -> m.id().equalsIgnoreCase(id)).findFirst();
     }
 
-    /** The ids of every source whose data is present, for tab completion. */
+    /** The ids of every source whose data is present. */
     public List<String> presentIds() {
         return migrators.stream().filter(Migrator::isPresent).map(Migrator::id).toList();
     }
 
-    /** Every registered source id. */
+    /** Every registered source id, whether or not its data is present. */
     public List<String> allIds() {
         return migrators.stream().map(Migrator::id).toList();
     }

@@ -34,9 +34,8 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Turns a parsed YAML section into a {@link Voucher} or {@link VoucherCode}, with
- * eager validation. Every failure raises a {@link VoucherParseException} naming
- * the key at fault, so a malformed file is reported rather than silently skipped.
+ * Turns a parsed YAML section into a {@link Voucher} or {@link VoucherCode}, validating
+ * eagerly. Every failure throws a {@link VoucherParseException} naming the key at fault.
  */
 public final class VoucherParser {
 
@@ -75,7 +74,7 @@ public final class VoucherParser {
         validateWebhookRefs(rewards, randomRewards, discordWebhooks, voucherId);
         int maxUses = parseLimit(section, "max-uses", voucherId);
         int usesPerPlayer = parseLimit(section, "uses-per-player", voucherId);
-        // The use-counter column holds 64 characters; "voucher:" + a longer id would overflow it.
+        // The use-counter column holds 64 characters, so "voucher:" + id must fit in it.
         if ((maxUses > 0 || usesPerPlayer > 0) && Voucher.voucherUseKey(voucherId).length() > 64) {
             throw new VoucherParseException("voucher '" + voucherId
                 + "': ids longer than 56 characters cannot use max-uses or uses-per-player");
@@ -111,7 +110,8 @@ public final class VoucherParser {
 
     /**
      * The optional {@code soulbound} key: {@code true} enables every restriction, a section
-     * toggles them individually, and absence (or {@code false}) means freely tradeable.
+     * toggles them individually (each defaulting to on), and absence or {@code false} yields
+     * {@code null}.
      */
     @Nullable
     private static SoulboundSpec parseSoulbound(ConfigurationSection section) {
@@ -130,7 +130,7 @@ public final class VoucherParser {
 
     /**
      * Parses the optional {@code effects} block (sound, firework), or {@code null} when absent or empty.
-     * A sound key that cannot be parsed is rejected here at load rather than failing at redeem.
+     * An invalid sound key or firework is rejected.
      */
     @Nullable
     private static VoucherEffects parseEffects(ConfigurationSection section, String id) {
@@ -225,7 +225,6 @@ public final class VoucherParser {
         return result;
     }
 
-    /** Converts a config section to a nested map (sub-sections become maps; lists and scalars pass through). */
     private static Map<String, Object> toMap(ConfigurationSection section) {
         Map<String, Object> map = new LinkedHashMap<>();
         for (String key : section.getKeys(false)) {
@@ -277,7 +276,7 @@ public final class VoucherParser {
     /**
      * Validates every {@code discord: @name} reward against the {@code discord-webhooks:} map: the
      * name must exist, and a content-only webhook (no payload template) needs the reward to supply a
-     * message. Both are caught here at load rather than failing silently at redeem.
+     * message.
      */
     private static void validateWebhookRefs(List<RewardLine> rewards, List<RewardSet> randomRewards,
                                             Map<String, WebhookSpec> webhooks, String id) {
@@ -397,9 +396,9 @@ public final class VoucherParser {
     }
 
     /**
-     * The optional {@code enchantments} map (key to level). The enchantment key itself is not
-     * resolved here (the registry is not available headless); the level is validated and unknown
-     * keys are skipped with a warning when the item is built.
+     * The optional {@code enchantments} map (key to level). Only the level is validated: keys
+     * resolve against the registry, which is unavailable headless, so an unknown key is skipped
+     * when the item is built.
      */
     private static Map<String, Integer> parseEnchantments(@Nullable ConfigurationSection section, String id) {
         if (section == null) {
