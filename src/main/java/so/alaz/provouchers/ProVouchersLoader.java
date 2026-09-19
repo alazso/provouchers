@@ -11,18 +11,17 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 
 /**
- * Loads ProVouchers' runtime libraries (the connection pool and JDBC drivers) through Paper's
- * library loader. Paper downloads them from Maven Central on first start and caches them, so the
- * server owner installs nothing extra. Only top-level artifacts are listed; transitive dependencies
- * resolve automatically. Each backend brings its own driver: SQLite, MySQL (Connector/J), MariaDB,
- * and PostgreSQL.
+ * Loads ProVouchers' runtime libraries through Paper's library loader: the HikariCP connection pool and
+ * the SQLite, MySQL (Connector/J), MariaDB, and PostgreSQL JDBC drivers. Paper downloads them on first
+ * start and caches them. Only top-level artifacts are listed; transitive dependencies resolve
+ * automatically.
  */
 @SuppressWarnings("UnstableApiUsage")
 public final class ProVouchersLoader implements PluginLoader {
 
     /**
-     * The top-level runtime libraries. Their versions are mirrored in {@code gradle/libs.versions.toml}
-     * and a build-time test ({@code ProVouchersLoaderTest}) fails if the two drift apart.
+     * The top-level runtime libraries. Each version must match {@code gradle/libs.versions.toml}, which is
+     * not available at runtime; {@code ProVouchersLoaderTest} fails the build when they differ.
      */
     public static final List<String> LIBRARIES = List.of(
         "com.zaxxer:HikariCP:7.1.0",
@@ -35,7 +34,7 @@ public final class ProVouchersLoader implements PluginLoader {
     @Override
     public void classloader(@NotNull PluginClasspathBuilder classpath) {
         MavenLibraryResolver resolver = new MavenLibraryResolver();
-        // Paper forbids resolving directly against Maven Central; use its bundled mirror.
+        // Paper forbids resolving directly against Maven Central, so this uses its mirror.
         resolver.addRepository(new RemoteRepository.Builder(
             "central", "default", MavenLibraryResolver.MAVEN_CENTRAL_DEFAULT_MIRROR).build());
         for (String coordinates : LIBRARIES) {

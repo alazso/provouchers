@@ -3,10 +3,9 @@ package so.alaz.provouchers.reward;
 import java.util.Locale;
 
 /**
- * The parsed payload of an {@code xp} reward: an amount and whether it grants levels or
- * raw experience points (the default). The amount may be a literal number or a
- * placeholder such as {@code %random:1-3%} that is substituted before the reward runs,
- * so a placeholder amount is accepted at load and only resolved at redeem time.
+ * The parsed payload of an {@code xp} reward: an amount and whether it grants levels or raw experience
+ * points (the default). The amount is a positive integer or a placeholder such as {@code %random:1-3%};
+ * a placeholder is accepted at load and resolved to a number at redeem time.
  */
 public record XpRewardPayload(String amount, boolean levels) {
 

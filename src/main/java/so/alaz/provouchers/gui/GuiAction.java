@@ -5,8 +5,8 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Declarative result of a click: what the framework should do next. The slot click is always
- * cancelled regardless. Optionally carries a {@link #withMessage(Component) message} sent to the
- * viewer before the action is applied.
+ * cancelled. Optionally carries a {@link #withMessage(Component) message} sent to the viewer before
+ * the action is applied.
  */
 public final class GuiAction {
 

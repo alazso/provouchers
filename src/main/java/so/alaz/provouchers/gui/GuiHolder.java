@@ -5,9 +5,8 @@ import org.bukkit.inventory.InventoryHolder;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Marks an inventory as a ProVouchers menu and carries its {@link GuiSession}. Holder-based
- * identity is the Paper-recommended way to recognise your inventories in events; never match on
- * title.
+ * Marks an inventory as a ProVouchers menu and carries its {@link GuiSession}. Menus are recognised in
+ * events by this holder, never by title.
  */
 final class GuiHolder implements InventoryHolder {
 

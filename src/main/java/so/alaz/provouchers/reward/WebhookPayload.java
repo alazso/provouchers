@@ -12,7 +12,7 @@ import java.util.function.UnaryOperator;
  * Renders a Discord webhook payload template (a nested map of strings, numbers, booleans, lists, and
  * maps, as read from config) into a JSON body. Every string value is passed through {@code resolve}
  * (placeholder and PlaceholderAPI substitution) first; the structure is then serialized with Gson, so
- * a resolved value containing quotes or braces is escaped rather than able to corrupt the JSON.
+ * a resolved value cannot change the JSON structure.
  */
 public final class WebhookPayload {
 

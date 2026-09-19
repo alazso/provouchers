@@ -14,9 +14,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * The {@link VoucherService} implementation registered with Bukkit's services
- * manager. It exposes the registry and a programmatic give, delegating item
- * creation to the same async, Folia-safe path the command uses.
+ * The {@link VoucherService} implementation registered with Bukkit's services manager. It exposes the
+ * registry, and gives and stashes through {@link VoucherGiveService} and {@link StashService}, the same
+ * async, Folia-safe paths the commands use.
  */
 public final class VoucherServiceImpl implements VoucherService {
 

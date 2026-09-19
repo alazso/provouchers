@@ -13,8 +13,8 @@ import java.util.List;
 /**
  * The GUI variant of two-step confirmation ({@code redeem.confirm-style: gui}). Shows the
  * voucher between a confirm and a cancel button; confirming resumes the redemption,
- * cancelling clears the pending confirmation. Closing the menu without clicking behaves
- * like ignoring the chat prompt: the pending confirmation simply lapses with its window.
+ * cancelling clears the pending confirmation. Closing the menu without clicking leaves the
+ * pending confirmation to lapse with its window.
  */
 public final class ConfirmGui {
 
@@ -30,7 +30,7 @@ public final class ConfirmGui {
         this.text = text;
     }
 
-    /** Builds the voucher display off-thread, then opens the menu on the player's thread. */
+    /** Waits for the voucher's display item, then opens the menu on the player's thread. */
     public void open(Player player, Voucher voucher, Runnable onConfirm, Runnable onCancel) {
         factory.buildDisplay(voucher, player).thenAccept(display -> {
             Gui gui = ChestGui.builder(3)

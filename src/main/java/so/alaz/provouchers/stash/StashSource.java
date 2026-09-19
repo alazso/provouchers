@@ -1,8 +1,8 @@
 package so.alaz.provouchers.stash;
 
 /**
- * Where a {@link StashEntry} came from, kept for auditing and to let the GUI explain why a
- * reward is waiting. Stored as its name; an unrecognised stored value reads back as {@link #API}.
+ * Where a {@link StashEntry} came from. Stored as its name; an unrecognised stored value reads back as
+ * {@link #API}.
  */
 public enum StashSource {
 

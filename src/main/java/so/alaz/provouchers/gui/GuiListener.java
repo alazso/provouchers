@@ -7,9 +7,9 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 
 /**
- * Routes inventory events for ProVouchers menus by holder identity (never title). Chest clicks are
- * always cancelled (covers shift-click, hotbar swaps, double-click collect); drags into a menu are
- * blocked; closing a menu untracks its session.
+ * Routes inventory events for ProVouchers menus by holder identity, never by title. Every click in a
+ * menu's view is cancelled, including shift-clicks, hotbar swaps, and double-click collects; drags into
+ * a menu are blocked; closing a menu untracks its session.
  */
 public final class GuiListener implements Listener {
 

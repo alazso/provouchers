@@ -12,12 +12,6 @@ import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Guards against the runtime libraries in {@link ProVouchersLoader} drifting from the version
- * catalog: the loader is hardcoded (it must not reference the catalog, which is a build-time
- * artifact), so this test fails the build if a coordinate's version no longer matches
- * {@code gradle/libs.versions.toml}.
- */
 class ProVouchersLoaderTest {
 
     /** Each loader library's {@code group:artifact} mapped to its catalog {@code [versions]} key. */

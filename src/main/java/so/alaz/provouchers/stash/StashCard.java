@@ -12,17 +12,16 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * One card in the Stash menu, with the stored entries behind it. Every delivery is its own immutable
- * row, so matching rows are grouped only for display: never-expiring entries of the same voucher and
- * argument share one card whose amount is their sum, while each expiring entry is a card of its own and
- * keeps its own countdown. A card keeps its entries, so claiming it removes exactly those rows by id and
- * never takes a row queued after the menu was built.
+ * One card in the Stash menu and the stored entries behind it. Never-expiring entries of the same
+ * player, voucher, and argument share one card whose amount is their sum; each expiring entry is a card
+ * of its own. Claiming a card removes exactly its entries by id, never a row queued after the card was
+ * built.
  *
  * @param entries the stored entries behind this card, oldest first; never empty
  */
 public record StashCard(List<StashEntry> entries) {
 
-    /** Oldest first, the id breaking ties so entries queued in the same millisecond keep one order. */
+    /** Oldest first; the id breaks ties between entries queued in the same millisecond. */
     private static final Comparator<StashEntry> OLDEST_FIRST =
         Comparator.comparingLong(StashEntry::createdAt).thenComparing(entry -> entry.id().toString());
 
@@ -48,11 +47,9 @@ public record StashCard(List<StashEntry> entries) {
     }
 
     /**
-     * Groups a player's entries into the cards the menu shows, ordered by each card's oldest entry. Rows
-     * that earlier versions merged (an amount above one) or duplicated (several never-expiring rows for one
-     * voucher and argument) group like any others, so existing stashes need no migration. Voucher ids
-     * compare ignoring case, as the registry resolves them. A group whose total would overflow an
-     * {@code int} continues on a further card instead of wrapping.
+     * Groups a player's entries into the cards the menu shows, ordered by each card's oldest entry. Voucher
+     * ids compare ignoring case, as the registry resolves them. A group whose total would overflow an
+     * {@code int} continues on a further card.
      */
     public static List<StashCard> group(Collection<StashEntry> entries) {
         List<Pile> piles = new ArrayList<>();

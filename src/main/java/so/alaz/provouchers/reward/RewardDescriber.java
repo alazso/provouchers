@@ -9,12 +9,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Renders rewards as short, player-facing text for previews (lore, the preview GUI,
- * and batch-open summaries). Only "loot" rewards (items, currency given, ranks added)
- * are described; cosmetic and command rewards return {@code null} and are skipped, so a
- * preview shows what a player gains rather than how it is delivered. Pure and
- * server-independent: amounts are formatted from the raw payload, so a placeholder amount
- * like {@code %random:1-3%} shows as a range, not a single roll.
+ * Renders rewards as short, player-facing preview text. Only loot rewards (items, currency given, XP,
+ * ranks added) are described; every other reward returns {@code null} and is skipped. Pure and
+ * server-independent: amounts are formatted from the raw payload, so a {@code %random:1-3%} amount
+ * shows as the range {@code 1-3}.
  */
 public final class RewardDescriber {
 
@@ -34,7 +32,6 @@ public final class RewardDescriber {
             }
             case CURRENCY -> {
                 CurrencyRewardPayload currency = CurrencyRewardPayload.parse(reward.payload());
-                // Taking money is a cost, not loot, so it is not previewed.
                 yield currency.action() == CurrencyRewardPayload.Action.GIVE
                     ? amount(currency.amount()) + " currency" : null;
             }
@@ -47,7 +44,7 @@ public final class RewardDescriber {
                 yield group.action() == GroupRewardPayload.Action.ADD
                     ? group.group() + " rank" + (group.isTemporary() ? " (temporary)" : "") : null;
             }
-            default -> null; // commands, messages, titles, action bars, sounds, permissions
+            default -> null;
         };
     }
 
@@ -85,7 +82,7 @@ public final class RewardDescriber {
         try {
             return describe(reward);
         } catch (IllegalArgumentException ex) {
-            return null; // a malformed payload is simply not previewed
+            return null;
         }
     }
 
@@ -101,7 +98,7 @@ public final class RewardDescriber {
             return "a custom item";
         }
         if (reference.indexOf(':') >= 0) {
-            return reference; // provider:id custom item, shown as written
+            return reference; // a provider:id custom item
         }
         StringBuilder out = new StringBuilder();
         for (String word : reference.toLowerCase(Locale.ROOT).split("_")) {

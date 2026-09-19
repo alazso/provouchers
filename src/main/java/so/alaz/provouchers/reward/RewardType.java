@@ -6,8 +6,8 @@ import java.util.Locale;
 
 /**
  * The kinds of reward action a voucher can run. Each reward line in config is
- * written as {@code "<type>: <payload>"}; the leading keyword maps to one of
- * these values. Several aliases map to the same type for operator convenience.
+ * written as {@code "<type>: <payload>"}; the leading keyword, or one of its
+ * aliases, maps to one of these values.
  */
 public enum RewardType {
 
@@ -65,7 +65,7 @@ public enum RewardType {
     /**
      * If {@code keyword} is a provider alias (such as {@code itemsadder}), the
      * canonical provider prefix to prepend to the item reference; otherwise
-     * {@code null}. This lets {@code "itemsadder: foo"} mean {@code "item: itemsadder:foo"}.
+     * {@code null}. {@code "itemsadder: foo"} thus means {@code "item: itemsadder:foo"}.
      */
     @Nullable
     public static String providerPrefix(String keyword) {

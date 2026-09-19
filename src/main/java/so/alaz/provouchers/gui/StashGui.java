@@ -21,11 +21,10 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * The player's Stash: a paginated chest of their waiting virtual vouchers, one card per
- * {@link StashCard} (matching never-expiring entries summed, each expiring entry on its own), rendered
- * from the voucher's icon with an amount, an optional expiry, and a "click to claim" hint. The bottom
- * row is a menu bar (previous, claim-all, next), separated from the cards by a buffer row of panes.
- * Clicking a card claims the entries it was built from and refreshes; claiming the last one closes the
- * menu. Cards are built on the viewer's thread (icons may resolve skulls) and the menu is opened there too.
+ * {@link StashCard}, rendered from the voucher's icon with an amount, an optional expiry, and a claim
+ * hint. The bottom row is a menu bar (previous, claim-all, close, next), separated from the cards by a
+ * buffer row of panes. Clicking a card claims the entries it was built from and refreshes; claiming the
+ * last one closes the menu. Cards are built and the menu is opened on the viewer's thread.
  */
 public final class StashGui {
 
@@ -51,7 +50,7 @@ public final class StashGui {
         this.text = text;
         this.messages = messages;
         this.title = title;
-        // At least three rows so content, the buffer row, and the menu bar each have their own.
+        // At least three rows: content, the buffer row, and the menu bar.
         this.rows = Math.min(6, Math.max(3, rows));
         this.pane = new ItemBuilder(Material.GRAY_STAINED_GLASS_PANE)
             .name(text.render(" ").decoration(TextDecoration.ITALIC, false))
@@ -64,8 +63,8 @@ public final class StashGui {
     }
 
     /**
-     * Loads the viewer's cards and rebuilds the menu at {@code page}. {@code closeIfEmpty} closes a
-     * stale menu when a claim empties the Stash, so the last claimed card never lingers on screen.
+     * Loads the viewer's cards and rebuilds the menu at {@code page}. With {@code closeIfEmpty}, an empty
+     * Stash also closes the open menu.
      */
     private void refresh(Player viewer, boolean closeIfEmpty, int page) {
         stashService.cards(viewer.getUniqueId(),
@@ -78,7 +77,7 @@ public final class StashGui {
         for (StashCard card : cards) {
             Voucher voucher = registry.getVoucher(card.voucherId()).orElse(null);
             if (voucher == null) {
-                continue;   // removed by a reload since the cards were read
+                continue;   // unloaded by a reload after the cards were read
             }
             shown.add(card);
             icons.add(factory.buildDisplay(voucher, viewer));
@@ -90,8 +89,8 @@ public final class StashGui {
             text.send(viewer, messages.get(viewer, "stash.empty"));
             return;
         }
-        // Once every icon has resolved, build the cards and open on the viewer's thread: card() edits
-        // item meta, which must not run on the async thread that completed a skull icon's future.
+        // card() edits item meta, so it runs on the viewer's thread, never on the async thread that
+        // completed a skull icon's future.
         CompletableFuture.allOf(icons.toArray(CompletableFuture[]::new)).thenRun(() ->
             scheduler.entity(viewer, () -> {
                 List<Button> buttons = new ArrayList<>(shown.size());
@@ -116,7 +115,7 @@ public final class StashGui {
         ItemStack item = icon.clone();
         int amount = card.amount();
         Long expiresAt = card.expiresAt();
-        // Show the count on the stack (the corner caps at 64); the true total is in the lore below.
+        // The stack count caps at 64; the lore shows the full amount.
         item.setAmount(Math.min(64, Math.max(1, amount)));
         item.editMeta(meta -> {
             List<Component> lore = meta.lore() != null ? new ArrayList<>(meta.lore()) : new ArrayList<>();
@@ -131,7 +130,6 @@ public final class StashGui {
             lore.add(line(messages.get(viewer, "stash.lore.claim")));
             meta.lore(lore);
         });
-        // The click claims the entries this card was built from, never rows queued since.
         return Button.of(item, click -> {
             int page = click.session.page();
             stashService.claim(click.getPlayer(), card, () -> refresh(click.getPlayer(), true, page));

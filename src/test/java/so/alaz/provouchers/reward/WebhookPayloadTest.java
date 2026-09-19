@@ -31,7 +31,7 @@ class WebhookPayloadTest {
         assertThat(root.get("content").getAsString()).isEqualTo("hi Steve");
         JsonObject parsedEmbed = root.getAsJsonArray("embeds").get(0).getAsJsonObject();
         assertThat(parsedEmbed.get("description").getAsString()).isEqualTo("Steve won");
-        assertThat(parsedEmbed.get("color").getAsInt()).isEqualTo(16766720);   // stays a number
+        assertThat(parsedEmbed.get("color").getAsInt()).isEqualTo(16766720);
     }
 
     @Test

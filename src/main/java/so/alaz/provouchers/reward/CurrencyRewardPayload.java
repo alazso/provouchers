@@ -5,10 +5,9 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Locale;
 
 /**
- * The parsed payload of a {@code currency} reward: an action (give or take) and an
- * amount. The amount may be a literal number or a placeholder such as
- * {@code %random:100-500%} that is substituted before the reward runs, so a placeholder
- * amount is accepted at load and only resolved to a number at redeem time.
+ * The parsed payload of a {@code currency} reward: an action (give or take) and an amount. The amount
+ * is a positive number or a placeholder such as {@code %random:100-500%}; a placeholder is accepted at
+ * load and resolved to a number at redeem time.
  */
 public record CurrencyRewardPayload(Action action, String amount) {
 

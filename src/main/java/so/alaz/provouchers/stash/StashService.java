@@ -26,16 +26,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * The async gateway to the Stash. Queueing, listing, counting, and the atomic claim all run on the
- * async scheduler; storage failures are logged rather than thrown. Every delivery is its own immutable
- * row and the menu shows rows grouped into {@link StashCard}s. A claim removes a card's rows atomically,
- * one delete by id each, and runs the voucher through {@link RedeemHandler}'s claim path (conditions,
- * grant, effects) for only the rows it removed, so a row is granted at most once even under a double
- * click or two sessions, and a row that could not be granted is restored exactly as it was.
+ * The async gateway to the Stash. Queueing, listing, counting, and row removal run on the async
+ * scheduler; storage failures are logged, not thrown. Every delivery is its own immutable row, and the
+ * menu groups rows into {@link StashCard}s.
  *
- * <p>Paper runs neither callback of a hop still scheduled when the plugin disables, so a claim's hop to
- * the player is tracked until it starts. While the plugin disables, {@link #settleForShutdown} stops
- * claims from removing further rows and restores the rows of every claim whose hop never ran.
+ * <p>A claim removes a card's rows with one atomic delete by id each and grants only the rows it removed,
+ * through {@link RedeemHandler}'s claim path, so a row is granted at most once. Removed rows are restored
+ * exactly as they were when the claim is refused, or when the player leaves or the plugin disables
+ * before the grant. Paper runs neither callback of a hop still scheduled when the plugin disables, so a
+ * claim's hop to the player is tracked until it starts, and {@link #settleForShutdown} restores the rows
+ * of every hop that never ran.
  */
 public final class StashService {
 
@@ -69,16 +69,14 @@ public final class StashService {
     }
 
     /**
-     * Queues {@code amount} copies of {@code voucherId} in {@code player}'s stash off the calling
-     * thread. The optional {@code arg} is passed to the voucher's rewards as {@code %arg%} on claim.
-     * Each call inserts its own row, so concurrent deliveries never interfere. While the plugin disables
-     * the insert runs on the calling thread instead, so a give that could not be delivered is still
-     * queued, or its failure logged.
+     * Queues {@code amount} copies of {@code voucherId} in {@code player}'s stash as a new row, off the
+     * calling thread, or on it while the plugin disables. The optional {@code arg} is passed to the
+     * voucher's rewards as {@code %arg%} on claim.
      */
     public void stash(UUID player, String voucherId, int amount, @Nullable String arg, StashSource source) {
         long now = System.currentTimeMillis();
         Long expiresAt = defaultExpiryMillis > 0 ? now + defaultExpiryMillis : null;
-        // The arg column is VARCHAR(255); cap it here so an over-long argument cannot fail the insert.
+        // The arg column is VARCHAR(255); a longer value fails the insert.
         String capped = arg != null && arg.length() > 255 ? arg.substring(0, 255) : arg;
         StashEntry entry = new StashEntry(UUID.randomUUID(), player, voucherId, amount, capped, source, now, expiresAt);
         scheduler.asyncOrRun(() -> {
@@ -93,7 +91,7 @@ public final class StashService {
 
     /**
      * Loads a player's live entries off-thread and groups them into the cards the menu shows, leaving out
-     * cards whose voucher is no longer configured, then runs {@code callback} on the async thread.
+     * cards whose voucher is not loaded, then runs {@code callback} on the async thread.
      */
     public void cards(UUID player, Consumer<List<StashCard>> callback) {
         scheduler.async(() -> {
@@ -110,7 +108,7 @@ public final class StashService {
         });
     }
 
-    /** Removes every lapsed entry. Blocking; intended to be called from an async context (the sweeper). */
+    /** Removes every lapsed entry. Blocking; call it from an async task. */
     public void pruneExpired() {
         try {
             counters.recordStashExpired(storage.pruneExpiredStash(System.currentTimeMillis()));
@@ -128,18 +126,15 @@ public final class StashService {
     }
 
     /**
-     * Claims one card for an online player. Call this on the player's thread. The card's rows are removed
-     * atomically <em>first</em>, so its conditions and the pre-redeem event run only when this call removed
-     * at least one, and exactly the sum of the removed rows is granted on the player's thread: a row
-     * another claim took is not granted twice, and a row queued after the menu was built is not touched.
-     * If the voucher's conditions now fail, or the player logs out or the plugin disables before the
-     * grant, exactly the removed rows are restored so the reward is never lost. Once the plugin is settling
-     * for shutdown, a claim removes no rows. {@code onDone} (a GUI refresh) runs on the player's thread.
+     * Claims one card for an online player; call it on the player's thread. The card's rows are removed
+     * first, off-thread, so the voucher's conditions and the pre-redeem event run only when this call
+     * removed at least one row, and only those rows are granted, on the player's thread. A row queued
+     * after the card was built is not touched. Once shutdown settlement begins, a claim removes no rows.
+     * {@code onDone} runs on the player's thread.
      */
     public void claim(Player player, StashCard card, Runnable onDone) {
         Voucher voucher = registry.getVoucher(card.voucherId()).orElse(null);
         if (voucher == null) {
-            // The voucher was deleted since the entries were queued: drop the stale rows and explain.
             discard(card);
             text.send(player, messages.get(player, "stash.not-configured"));
             onDone.run();
@@ -152,7 +147,7 @@ public final class StashService {
         }
         scheduler.async(() -> {
             if (!removals.enter()) {
-                return;   // the plugin is disabling and storage is about to close: remove no rows
+                return;   // the plugin is disabling: remove no rows
             }
             try {
                 StashCard taken = take(card);
@@ -163,13 +158,13 @@ public final class StashService {
                     });
                     return;
                 }
-                // Exactly one of these runs, or the shutdown settlement restores the rows when neither can, so
-                // every removed row is either granted or restored, once.
+                // Whichever of the two callbacks or the shutdown settlement starts this entry first handles
+                // the rows, so they are granted or restored exactly once.
                 PendingSettlements.Entry pending = handOffs.track(() -> restore(taken));
                 scheduler.entity(player,
                     () -> {
                         if (!pending.start()) {
-                            return;   // the shutdown settlement restored these rows
+                            return;   // the shutdown settlement restores these rows
                         }
                         if (grantOrRestore(player, voucher, taken)) {
                             text.send(player, messages.get(player, "stash.claimed", "voucher", voucher.id()));
@@ -178,7 +173,7 @@ public final class StashService {
                     },
                     () -> {
                         if (pending.start()) {
-                            restore(taken);     // the player left before the grant: put these rows back
+                            restore(taken);     // the player left, or the plugin is disabling
                         }
                     });
             } finally {
@@ -188,16 +183,16 @@ public final class StashService {
     }
 
     /**
-     * On the player's thread: grants a taken card when its voucher can be claimed now, otherwise restores
+     * On the player's thread, grants a taken card when its voucher can be claimed now, otherwise restores
      * its rows, and returns whether it granted. A failure before granting starts restores the rows too.
-     * Once granting starts the rows count as consumed, so a failure part-way through is logged, not
-     * restored, since restoring could grant the rewards that already went out a second time.
+     * Once granting starts the rows count as consumed: a failure part-way through is logged, not restored,
+     * so no reward is granted twice.
      */
     private boolean grantOrRestore(Player player, Voucher voucher, StashCard taken) {
         boolean granting = false;
         try {
             if (!redeemHandler.canClaim(player, voucher)) {
-                restore(taken);   // conditions failed after claiming: put these rows back
+                restore(taken);
                 return false;
             }
             granting = true;
@@ -214,11 +209,10 @@ public final class StashService {
     }
 
     /**
-     * Removes a card's rows, each with its own atomic delete by id, and returns a card of just the rows
-     * this call removed, or {@code null} if it removed none. Rows another claim removed first are
-     * skipped, so overlapping claims split a card's rows without overlap. Stops at a storage failure,
-     * keeping the rows already removed for the caller to grant or restore; the rest stay queued.
-     * Blocking; call it from an async task.
+     * Removes a card's rows, each with its own atomic delete by id, and returns a card of only the rows
+     * this call removed, or {@code null} if it removed none. Rows another claim removed first are skipped.
+     * Stops at a storage failure and returns the rows already removed; the rest stay queued. Blocking;
+     * call it from an async task.
      */
     @Nullable
     private StashCard take(StashCard card) {
@@ -237,11 +231,9 @@ public final class StashService {
     }
 
     /**
-     * Re-inserts removed rows exactly as they were read, so a reward is never lost when a grant could not
-     * complete. The primary key keeps a row from being restored twice, and a restore never changes an
-     * amount. The work hops to the async scheduler, or runs on the calling thread while the plugin
-     * disables so the rows are not lost, so this is safe from any thread, including a retired callback
-     * that runs off the region thread.
+     * Re-inserts removed rows exactly as they were read; the primary key makes a second restore of a row a
+     * no-op. Runs on the async scheduler, or on the calling thread while the plugin disables, so it is safe
+     * from any thread, including a retired callback running off the region thread.
      */
     private void restore(StashCard taken) {
         scheduler.asyncOrRun(() -> {
@@ -256,7 +248,7 @@ public final class StashService {
         });
     }
 
-    /** Drops a card's stale rows (their voucher no longer exists); best effort. */
+    /** Deletes the rows of a card whose voucher is not loaded, stopping at the first storage failure. */
     private void discard(StashCard card) {
         scheduler.async(() -> {
             for (StashEntry entry : card.entries()) {
@@ -272,17 +264,16 @@ public final class StashService {
 
     /**
      * Claims every card in {@code cards} in turn for an online player, each as {@link #claim} does, then
-     * sends a single summary and runs {@code onDone} (a GUI refresh). Cards whose conditions fail are
-     * skipped (their own denial message is shown). Call this on the player's thread.
+     * sends one summary if any card was granted and runs {@code onDone}. Cards whose conditions fail are
+     * skipped after their own denial message. Call it on the player's thread.
      */
     public void claimAll(Player player, List<StashCard> cards, Runnable onDone) {
         claimAllStep(player, new ArrayDeque<>(cards), new int[]{0}, onDone);
     }
 
     private void claimAllStep(Player player, Deque<StashCard> queue, int[] granted, Runnable onDone) {
-        // Skip cards whose voucher is gone or already lapsed, iteratively so a long run of skippable
-        // cards cannot grow the stack. The recursion into the next card happens through the scheduler
-        // below, never synchronously.
+        // Unloaded and lapsed cards are passed over in this loop, and the next step runs from a scheduler
+        // callback, never synchronously, so a long run of cards cannot grow the stack.
         StashCard card = null;
         Voucher voucher = null;
         StashCard candidate;
@@ -305,16 +296,16 @@ public final class StashService {
         Voucher claimingVoucher = voucher;
         scheduler.async(() -> {
             if (!removals.enter()) {
-                return;   // the plugin is disabling and storage is about to close: stop the run here
+                return;   // the plugin is disabling: end the run
             }
             try {
                 StashCard taken = take(claiming);
-                // Only removed rows need settling: with none, a hop that never runs just ends the run.
+                // Only removed rows need settling; the hop still runs to continue with the next card.
                 PendingSettlements.Entry pending = taken != null ? handOffs.track(() -> restore(taken)) : null;
                 scheduler.entity(player,
                     () -> {
                         if (pending != null && !pending.start()) {
-                            return;   // the shutdown settlement restored these rows
+                            return;   // the shutdown settlement restores these rows
                         }
                         if (taken != null && grantOrRestore(player, claimingVoucher, taken)) {
                             granted[0]++;
@@ -322,7 +313,7 @@ public final class StashService {
                         claimAllStep(player, queue, granted, onDone);
                     },
                     () -> {
-                        // The player left mid-claim-all: put back only the rows this step removed, if any.
+                        // The player left, or the plugin is disabling: restore the rows this step removed, if any.
                         if (pending != null && pending.start()) {
                             restore(taken);
                         }
@@ -335,11 +326,11 @@ public final class StashService {
 
     /**
      * Restores the rows of every claim the plugin would otherwise lose by disabling. Call it from
-     * {@code onDisable}, once the plugin is no longer enabled and before storage closes. Stops claims from
-     * removing further rows and waits up to {@code wait} for the removals already running, whose claims
-     * restore their own rows since their hop to the player can no longer be scheduled. Then restores, on
-     * the calling thread, the rows of every claim whose hop was scheduled but never ran. Logs a line only
-     * when rows were restored or a removal was still running; a row that fails to restore is logged too.
+     * {@code onDisable}, before storage closes. Stops claims from removing further rows and waits up to
+     * {@code wait} for the removals already running, which restore their own rows because their hop to the
+     * player cannot be scheduled. Then restores, on the calling thread, the rows of every claim whose hop
+     * was scheduled but never ran. Logs only when rows were restored, a removal was still running, or a
+     * row failed to restore.
      */
     public void settleForShutdown(Duration wait) {
         int running = removals.close(wait);

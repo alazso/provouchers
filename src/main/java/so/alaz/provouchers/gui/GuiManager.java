@@ -12,9 +12,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Opens menus and tracks open sessions. Inventories are identified by a {@link GuiHolder} (never by
- * title), and all click/close events route through here with the safety guards (clicks cancelled,
- * drags into the menu blocked) applied by {@link GuiListener}.
+ * Opens menus and tracks open sessions. Inventories are identified by a {@link GuiHolder}, never by
+ * title; {@link GuiListener} cancels clicks, blocks drags into a menu, and routes clicks and closes here.
  *
  * <p>Must be called from the thread that owns the player (the player's region thread on Folia).
  */
@@ -27,7 +26,6 @@ public final class GuiManager {
         this.plugin = plugin;
     }
 
-    /** Opens {@code gui} for {@code player}. */
     public void open(Gui gui, Player player) {
         open(gui, player, 0);
     }
@@ -47,7 +45,6 @@ public final class GuiManager {
         player.openInventory(inventory);
     }
 
-    /** Closes all open menus (e.g. on plugin disable). */
     public void closeAll() {
         List.copyOf(sessions.values()).forEach(session -> session.viewer().closeInventory());
     }

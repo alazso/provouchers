@@ -39,13 +39,11 @@ class MessagesTest {
     void perPlayerServesClientLanguageThenFallsBackToEnglishPerKey() throws Exception {
         Path lang = dir.resolve("lang");
         Files.createDirectories(lang);
-        // A deliberately partial German translation: only one key is translated.
         Files.writeString(lang.resolve("de.yml"), "redeem:\n  expired: \"<red>Abgelaufen.\"\n");
 
         Messages messages = new Messages(dir.toFile(), "en", true);
 
         assertThat(messages.getForLocale(Locale.GERMAN, "redeem.expired")).isEqualTo("<red>Abgelaufen.");
-        // A key the translation omits falls back to bundled English, never blank.
         assertThat(messages.getForLocale(Locale.GERMAN, "redeem.unredeemable"))
             .isEqualTo("<red>This voucher cannot be redeemed.");
     }

@@ -56,7 +56,6 @@ class StashCardTest {
 
     @Test
     void voucherIdsGroupIgnoringCase() {
-        // The registry resolves ids ignoring case, so both rows are the same reward.
         StashEntry lower = lasting("loot", 1, null, 100);
         StashEntry upper = lasting("LOOT", 2, null, 200);
         assertThat(StashCard.group(List.of(upper, lower))).singleElement().satisfies(card -> {
@@ -77,7 +76,6 @@ class StashCardTest {
 
     @Test
     void legacyMergedAndDuplicateRowsGroupWithoutMigration() {
-        // Earlier versions merged deliveries into one row (amount 7), and their insert race left duplicates.
         StashEntry merged = lasting("loot", 7, null, 100);
         StashEntry duplicate = lasting("loot", 1, null, 100);
         StashEntry duplicateAgain = lasting("loot", 1, null, 100);
@@ -148,7 +146,6 @@ class StashCardTest {
 
     @Test
     void claimedSubsetIsACardOfJustThoseRows() {
-        // A claim that lost a row to another session grants a card of only the rows it removed.
         StashEntry first = lasting("loot", 1, "vip", 100);
         StashEntry second = lasting("loot", 2, "vip", 200);
         StashEntry third = lasting("loot", 4, "vip", 300);

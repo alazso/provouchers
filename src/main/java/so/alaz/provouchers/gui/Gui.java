@@ -5,10 +5,9 @@ import net.kyori.adventure.text.Component;
 import java.util.Map;
 
 /**
- * A menu blueprint. The framework calls {@link #render} to obtain the slot-to-{@link Button} map
- * for a session (so paginated menus can vary by {@link GuiSession#page()}), and {@link #title}/
- * {@link #rows} to size the inventory. Use the {@link ChestGui}/{@link PaginatedGui} builders, or
- * implement directly for a custom menu.
+ * A menu blueprint. {@link GuiManager} creates the inventory from {@link #title} and {@link #rows}, then
+ * calls {@link #render} for the session's slot-to-{@link Button} map, so a paginated menu can vary by
+ * {@link GuiSession#page()}.
  */
 public interface Gui {
 

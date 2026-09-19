@@ -18,9 +18,9 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * The staff voucher browser: a paginated chest of every loaded voucher. Right-click an
- * entry to give yourself one; left-click to open its admin info menu. Opened via
- * {@code /voucher preview} behind {@code provouchers.preview}.
+ * The staff voucher browser: a paginated chest of every loaded voucher. Right-clicking an
+ * entry gives the viewer one; any other click opens its admin info menu. Opened by
+ * {@code /voucher preview}, which requires {@code provouchers.preview}.
  */
 public final class PreviewGui {
 
@@ -44,7 +44,7 @@ public final class PreviewGui {
         this.text = text;
     }
 
-    /** Builds the preview off-thread (icons may resolve skulls) and opens it on the viewer's thread. */
+    /** Waits for every icon, then opens the menu on the viewer's thread. */
     public void open(Player viewer) {
         List<Voucher> vouchers = new ArrayList<>(registry.vouchers());
         vouchers.sort(Comparator.comparing(Voucher::id));

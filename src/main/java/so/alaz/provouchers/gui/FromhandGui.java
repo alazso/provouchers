@@ -16,10 +16,9 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 
 /**
- * The {@code /voucher fromhand} confirmation menu (PV-15). Shows the held item rebuilt
- * from its serialized form, the exact item the voucher will produce, so the admin
- * verifies the round trip before anything is written. Confirming writes
- * {@code vouchers/<id>.yml} and registers it; cancelling (or closing) writes nothing.
+ * The {@code /voucher fromhand} confirmation menu. Shows the held item rebuilt from its
+ * serialized form, which is the exact item the voucher produces. Confirming writes
+ * {@code vouchers/<id>.yml} and registers it; cancelling or closing writes nothing.
  */
 public final class FromhandGui {
 
@@ -66,8 +65,8 @@ public final class FromhandGui {
         File file = new File(vouchersDir, id + ".yml");
         try {
             Files.createDirectories(vouchersDir.toPath());
-            // CREATE_NEW makes the existence check and the write atomic, so two admins
-            // confirming the same id cannot overwrite each other.
+            // CREATE_NEW makes the existence check and the write one atomic step, so an existing file,
+            // including one written by a concurrent confirm, is never overwritten.
             Files.writeString(file.toPath(), template(id, serialized), StandardOpenOption.CREATE_NEW);
         } catch (FileAlreadyExistsException ex) {
             send(admin, "command.fromhand.exists", "id", id);

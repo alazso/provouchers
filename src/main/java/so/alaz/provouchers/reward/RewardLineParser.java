@@ -9,8 +9,9 @@ import so.alaz.provouchers.voucher.Materials;
  * Parses reward strings of the form {@code "<type>: <payload>"} into
  * {@link RewardLine}s. The keyword is everything before the first colon; the
  * payload is the remainder, with a single leading space trimmed. A provider
- * keyword (such as {@code itemsadder}) is folded into the item reference, and
- * item rewards are validated so material typos and bad amounts fail at load.
+ * keyword (such as {@code itemsadder}) is folded into the item reference. Item,
+ * currency, XP, group, permission, and Discord payloads are validated, so a bad
+ * value fails at load.
  */
 public final class RewardLineParser {
 
@@ -64,12 +65,12 @@ public final class RewardLineParser {
             return; // a defined-item reference; checked against the file's items map at load
         }
         if (ItemBuilder.isSerialized(reference)) {
-            return; // a serialized item carries its own data; decoded (and degraded) at runtime
+            return; // a serialized item carries its own data and is decoded at runtime
         }
         if (reference.indexOf(':') < 0) {
-            Materials.resolve(reference);   // vanilla material must exist
+            Materials.resolve(reference);   // throws for an unknown material
         } else {
-            // Provider item: validate the prefix and syntax now; item existence is checked at runtime.
+            // Provider item: the prefix and syntax are checked here, the item's existence at runtime.
             CustomItemRef ref = CustomItemRef.parse(reference);
             if (!ref.hasKnownProvider()) {
                 throw new IllegalArgumentException("unknown item provider '" + ref.providerHint() + "'");

@@ -12,10 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The per-voucher admin sub-menu, opened by left-clicking a voucher in the preview.
- * For now an info-only shell (PROVOUCHER-78): it shows the voucher's appearance,
- * reward/condition counts, and flags. Edit actions (enable/disable, reward editor,
- * rename, limits) are added in a later cycle; this is the entry point they hang off.
+ * The read-only per-voucher admin menu, opened from a voucher in the preview. Shows the voucher's
+ * appearance, reward and condition counts, and flags.
  */
 public final class VoucherAdminMenu {
 
@@ -25,10 +23,7 @@ public final class VoucherAdminMenu {
         this.text = text;
     }
 
-    /**
-     * Builds the info menu for {@code voucher}, reusing its already-built display
-     * {@code icon}. The Back button runs {@code onBack} (which reopens the preview).
-     */
+    /** Builds the info menu for {@code voucher} around its display {@code icon}; Back runs {@code onBack}. */
     public Gui build(Voucher voucher, ItemStack icon, GuiClickHandler onBack) {
         return ChestGui.builder(3)
             .title("<gold>" + voucher.id())

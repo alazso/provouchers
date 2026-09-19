@@ -15,8 +15,8 @@ import java.util.List;
 
 /**
  * A read-only reward preview for a single voucher, opened when a player left-clicks a
- * held voucher (PV-79). Shows the voucher's icon with its guaranteed and random rewards
- * listed in the lore, so a player can see what a voucher grants without redeeming it.
+ * held voucher. Shows the voucher's icon with its guaranteed and random rewards listed
+ * in the lore.
  */
 public final class RewardPreviewGui {
 
@@ -32,7 +32,7 @@ public final class RewardPreviewGui {
         this.text = text;
     }
 
-    /** Builds the icon off-thread (skulls may resolve), then opens the preview on the viewer's thread. */
+    /** Waits for the icon, then opens the preview on the viewer's thread. */
     public void open(Player viewer, Voucher voucher) {
         factory.buildDisplay(voucher, viewer).thenAccept(icon -> {
             ItemStack display = withRewardLore(voucher, icon);

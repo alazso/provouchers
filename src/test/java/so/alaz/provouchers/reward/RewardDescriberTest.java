@@ -27,7 +27,6 @@ class RewardDescriberTest {
     void tokenAmountShownAsRange() {
         assertThat(RewardDescriber.describe(new RewardLine(RewardType.ITEM, "GOLD_INGOT %random:1-3%")))
             .isEqualTo("1-3x Gold Ingot");
-        // the legacy curly-brace form is still understood
         assertThat(RewardDescriber.describe(new RewardLine(RewardType.ITEM, "GOLD_INGOT {random:1-3}")))
             .isEqualTo("1-3x Gold Ingot");
     }

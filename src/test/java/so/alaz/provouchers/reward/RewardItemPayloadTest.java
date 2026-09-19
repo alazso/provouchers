@@ -31,8 +31,6 @@ class RewardItemPayloadTest {
 
     @Test
     void acceptsTokenAmountAtParseTime() {
-        // The token is only resolved at redeem time, after substitution, so it must
-        // parse without error at load (mirroring currency).
         RewardItemPayload payload = RewardItemPayload.parse("GOLD_INGOT {random:1-3}");
         assertThat(payload.reference()).isEqualTo("GOLD_INGOT");
         assertThat(payload.amount()).isEqualTo("{random:1-3}");
@@ -40,7 +38,6 @@ class RewardItemPayloadTest {
 
     @Test
     void resolvesAmountAfterSubstitution() {
-        // What the executor sees once the token has been substituted to a number.
         assertThat(RewardItemPayload.parse("GOLD_INGOT 3").resolveAmount()).isEqualTo(3);
     }
 

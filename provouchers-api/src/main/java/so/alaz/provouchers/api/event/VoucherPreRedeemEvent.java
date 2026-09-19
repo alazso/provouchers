@@ -11,7 +11,6 @@ import so.alaz.provouchers.api.Voucher;
 /**
  * Fired synchronously before an item voucher is redeemed, after ProVouchers' own
  * checks pass and before the item is consumed. Cancel it to veto the redemption.
- * This is the policy seam for anti-cheat, spending limits, and similar gates.
  *
  * <p>Fired on the redeeming player's region thread.
  */

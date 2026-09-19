@@ -13,7 +13,7 @@ public final class RewardSelection {
     private RewardSelection() {
     }
 
-    /** Gathers the rewards to grant, picking one weighted set with {@code random}. */
+    /** The rewards to grant: {@code always} plus one set from {@code random}, picked by weight with {@code rng}. */
     public static List<RewardLine> gather(List<RewardLine> always, List<RewardSet> random, Random rng) {
         List<RewardLine> granted = new ArrayList<>(always);
         RewardSet chosen = WeightedRewardPicker.pick(random, rng);

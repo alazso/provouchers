@@ -18,7 +18,6 @@ public final class Button {
         return new Button(item, click -> GuiAction.none());
     }
 
-    /** A button with a click handler. */
     public static Button of(ItemStack item, GuiClickHandler onClick) {
         return new Button(item, onClick);
     }

@@ -190,9 +190,8 @@ public final class ProVouchersPlugin extends JavaPlugin {
                 getServer().getPluginManager().registerEvents(
                     new StashJoinListener(stashService, scheduler, text, messages), this);
             }
-            // Sweep lapsed entries periodically so an expiring Stash does not accrue dead rows.
             scheduler.repeatingAsync(stashService::pruneExpired, 60, 600, TimeUnit.SECONDS);
-            // Overflow policy is read live, so /voucher reload can switch it without a restart.
+            // The overflow policy is read on every give, so /voucher reload applies a change.
             giveService.overflowPolicy(stashService,
                 () -> "stash".equalsIgnoreCase(getConfig().getString("stash.overflow", "drop")));
         }
@@ -234,16 +233,13 @@ public final class ProVouchersPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // Best-effort: each step is independent, so one failing (e.g. a class that cannot load
-        // because the jar was swapped under a running server) must not skip storage cleanup.
         if (guiManager != null) {
             closeQuietly("close open menus", guiManager::closeAll);
         }
         if (metrics != null) {
             closeQuietly("stop metrics", metrics::shutdown);
         }
-        // Paper runs neither callback of a hop still scheduled now, so settle that work while storage is
-        // open. Gives go first, since an undelivered give is queued in the Stash.
+        // Settling pending work writes to storage, so it must run before storage closes.
         if (giveService != null) {
             closeQuietly("settle undelivered gives", giveService::settleForShutdown);
         }
@@ -283,9 +279,8 @@ public final class ProVouchersPlugin extends JavaPlugin {
     }
 
     /**
-     * Registers every integration provider. Hooks self-detect their backing plugin and report
-     * availability per call, so registering them unconditionally is safe; a missing plugin is
-     * simply skipped at resolution time.
+     * Registers every integration provider unconditionally. Each hook detects its backing plugin and
+     * reports availability per call; a hook whose plugin is missing is skipped at resolution time.
      */
     private static HookRegistry buildHooks() {
         HookRegistry hooks = new HookRegistry();
@@ -348,9 +343,8 @@ public final class ProVouchersPlugin extends JavaPlugin {
     }
 
     /**
-     * Writes a bundled resource to the data folder only when it is missing. Avoids Bukkit's
-     * {@code saveResource} warning that fires on every start once the file exists, which for a
-     * non-overwriting save is the expected case, not a failure.
+     * Writes a bundled resource to the data folder only when it is missing, since Bukkit's
+     * {@code saveResource} logs a warning whenever the file already exists.
      */
     private void saveResourceIfMissing(String resourcePath) {
         if (!new File(getDataFolder(), resourcePath).exists()) {

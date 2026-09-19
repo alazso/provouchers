@@ -91,9 +91,8 @@ public final class PaginatedGui implements Gui {
                 return GuiAction.none();
             }));
         }
-        // Fixed controls (e.g. claim-all) never override content or navigation.
+        // Fixed buttons never replace content or navigation.
         fixed.forEach(result::putIfAbsent);
-        // The filler dresses the menu bar: every non-content slot not already taken by a button.
         if (filler != null) {
             Set<Integer> contentSet = new HashSet<>(contentSlots);
             for (int slot = 0; slot < rows * COLUMNS; slot++) {
@@ -156,13 +155,13 @@ public final class PaginatedGui implements Gui {
             return this;
         }
 
-        /** Fills every non-content slot left empty (the buffer row and menu bar) with {@code filler}. */
+        /** Fills every non-content slot that has no button with {@code filler}. */
         public Builder filler(ItemStack filler) {
             this.filler = filler;
             return this;
         }
 
-        /** Pins a button to a slot (a menu-bar control such as claim-all); never overrides content. */
+        /** Pins a button to a slot; content and navigation take precedence over it. */
         public Builder fixed(int slot, Button button) {
             this.fixed.put(slot, button);
             return this;

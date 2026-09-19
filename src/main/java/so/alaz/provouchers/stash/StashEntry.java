@@ -6,10 +6,9 @@ import java.util.UUID;
 
 /**
  * One virtual (itemless) voucher waiting in a player's Stash: a deferred grant of {@code amount}
- * copies of voucher {@code voucherId}, claimed through the Stash GUI. The entry is a reference to a
- * known voucher (not a snapshot), so a claim runs the voucher through the normal redeem pipeline and
- * reflects its current config. The entry itself is the single-use token, so claims need no anti-dupe
- * stamp.
+ * copies of voucher {@code voucherId}, claimed through the Stash GUI. The entry references the voucher
+ * by id, so a claim uses the voucher's current config. The entry is the single-use claim token; claims
+ * carry no anti-dupe stamp.
  *
  * @param id        the unique entry id, also the claim token
  * @param player    the owning player

@@ -3,12 +3,10 @@ package so.alaz.provouchers.reward;
 import java.util.Locale;
 
 /**
- * The parsed payload of an {@code item} reward: an item reference (a vanilla
- * material or a {@code provider:id} custom item) and an amount that defaults to 1.
- *
- * <p>The amount may be a literal number or a placeholder such as {@code %random:1-3%}
- * that is substituted before the reward runs, so a placeholder amount is accepted at
- * load and only resolved to a number at redeem time (mirroring {@code currency}).
+ * The parsed payload of an {@code item} reward: an item reference (a vanilla material or a
+ * {@code provider:id} custom item) and an amount that defaults to 1. The amount is a positive integer
+ * or a placeholder such as {@code %random:1-3%}; a placeholder is accepted at load and resolved to a
+ * number at redeem time.
  */
 public record RewardItemPayload(String reference, String amount) {
 
