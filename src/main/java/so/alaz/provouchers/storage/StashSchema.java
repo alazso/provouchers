@@ -6,9 +6,7 @@ import java.sql.Statement;
 
 /**
  * Adds the Stash table that backs virtual (itemless) vouchers: a per-player queue of deferred
- * voucher grants claimed through the Stash GUI. It generalises the never-wired offline-give queue
- * (adding a source and an optional expiry), so that unused table is dropped here. The DDL keeps to a
- * single primary key and portable column types so it runs unchanged on every supported backend.
+ * voucher grants claimed through the Stash GUI. Drops the unused offline-give table.
  */
 public final class StashSchema implements Migration {
 
@@ -32,10 +30,9 @@ public final class StashSchema implements Migration {
                     expires_at BIGINT,
                     PRIMARY KEY (id)
                 )""");
-            // Reads filter by player; a plain CREATE INDEX is portable and runs once with this migration.
+            // Plain CREATE INDEX is the portable form; it runs once, with this migration.
             statement.executeUpdate(
                 "CREATE INDEX idx_provouchers_stash_player ON provouchers_stash (player_uuid)");
-            // The offline-give queue was never wired; the Stash supersedes it.
             statement.executeUpdate("DROP TABLE IF EXISTS provouchers_offline_gives");
         }
     }

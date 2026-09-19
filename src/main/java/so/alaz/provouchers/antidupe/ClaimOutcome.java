@@ -9,6 +9,6 @@ public enum ClaimOutcome {
     CLAIMED,
     /** The id was already claimed by another redemption, so this claim was not stored. */
     TAKEN,
-    /** Storage failed, so this claim may or may not have been stored; give it back to be sure. */
+    /** Storage failed, so this claim may or may not have been stored and must be given back. */
     UNKNOWN
 }

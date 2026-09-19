@@ -19,7 +19,7 @@ class CooldownReadinessTest {
         CooldownReadiness.Load load = readiness.begin(player);
         assertThat(load).isNotNull();
         assertThat(load.player()).isEqualTo(player);
-        assertThat(readiness.isReady(player)).isFalse();                  // loading is not ready
+        assertThat(readiness.isReady(player)).isFalse();
         assertThat(readiness.succeed(load, () -> { })).isTrue();
         assertThat(readiness.isReady(player)).isTrue();
     }
@@ -36,7 +36,7 @@ class CooldownReadinessTest {
         CooldownReadiness.Load load = readiness.begin(player);
         AtomicBoolean readyDuringMerge = new AtomicBoolean(true);
         readiness.succeed(load, () -> readyDuringMerge.set(readiness.isReady(player)));
-        assertThat(readyDuringMerge).isFalse();                           // never ready with memory unmerged
+        assertThat(readyDuringMerge).isFalse();
         assertThat(readiness.isReady(player)).isTrue();
         assertThat(readiness.isCurrent(load)).isFalse();
     }
@@ -54,11 +54,10 @@ class CooldownReadinessTest {
         assertThat(readiness.fail(load)).isEqualTo(Duration.ofSeconds(4));
         assertThat(readiness.fail(load)).isEqualTo(Duration.ofSeconds(8));
         assertThat(readiness.fail(load)).isEqualTo(Duration.ofSeconds(16));
-        assertThat(readiness.fail(load)).isNull();                        // fifth failure: out of attempts
+        assertThat(readiness.fail(load)).isNull();
         assertThat(readiness.isCurrent(load)).isFalse();
-        assertThat(readiness.isReady(player)).isFalse();                  // still closed after giving up
+        assertThat(readiness.isReady(player)).isFalse();
 
-        // A later request (the next redeem) starts a fresh load with the full attempts again.
         CooldownReadiness.Load next = readiness.begin(player);
         assertThat(next).isNotNull();
         assertThat(readiness.fail(next)).isEqualTo(Duration.ofSeconds(2));
@@ -74,10 +73,10 @@ class CooldownReadinessTest {
     @Test
     void forgettingAPlayerStopsTheirRetries() {
         CooldownReadiness.Load load = readiness.begin(player);
-        assertThat(readiness.fail(load)).isNotNull();                     // a retry is pending
-        readiness.forget(player);                                         // the player quits
+        assertThat(readiness.fail(load)).isNotNull();
+        readiness.forget(player);
 
-        assertThat(readiness.isCurrent(load)).isFalse();                  // the retry sees this and stops
+        assertThat(readiness.isCurrent(load)).isFalse();
         assertThat(readiness.fail(load)).isNull();
         AtomicBoolean merged = new AtomicBoolean();
         assertThat(readiness.succeed(load, () -> merged.set(true))).isFalse();
@@ -88,15 +87,15 @@ class CooldownReadinessTest {
     @Test
     void lateResultFromBeforeAQuitIsDiscardedAfterRejoin() {
         CooldownReadiness.Load before = readiness.begin(player);
-        readiness.forget(player);                                         // quit while the query runs
-        CooldownReadiness.Load after = readiness.begin(player);           // rejoin starts a new load
+        readiness.forget(player);
+        CooldownReadiness.Load after = readiness.begin(player);
         assertThat(after).isNotNull().isNotSameAs(before);
 
         AtomicBoolean staleMerged = new AtomicBoolean();
         assertThat(readiness.succeed(before, () -> staleMerged.set(true))).isFalse();
         assertThat(staleMerged).isFalse();
-        assertThat(readiness.isReady(player)).isFalse();                  // only the new load can open it
-        assertThat(readiness.fail(before)).isNull();                      // nor spend the new load's attempts
+        assertThat(readiness.isReady(player)).isFalse();
+        assertThat(readiness.fail(before)).isNull();
         assertThat(readiness.isCurrent(after)).isTrue();
 
         assertThat(readiness.succeed(after, () -> { })).isTrue();
@@ -108,7 +107,7 @@ class CooldownReadinessTest {
         readiness.succeed(readiness.begin(player), () -> { });
         readiness.forget(player);
         assertThat(readiness.isReady(player)).isFalse();
-        assertThat(readiness.begin(player)).isNotNull();                  // the next join loads again
+        assertThat(readiness.begin(player)).isNotNull();
     }
 
     @Test

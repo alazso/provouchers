@@ -4,11 +4,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-/**
- * First schema version. Creates the tables that back duplicate detection and code
- * redemption tracking. The DDL uses portable column types so it runs unchanged on
- * SQLite, MySQL, MariaDB, and PostgreSQL.
- */
+/** Creates the tables that back duplicate detection and code redemption tracking. */
 public final class InitialSchema implements Migration {
 
     @Override

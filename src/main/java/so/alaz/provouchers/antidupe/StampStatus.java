@@ -7,8 +7,8 @@ public enum StampStatus {
 
     /** The stamp has not been redeemed before; the redemption may proceed. */
     VALID,
-    /** The stamp has already been redeemed; this is a duplicate and must be rejected. */
+    /** The stamp has already been redeemed; the redemption must be rejected. */
     DUPLICATE,
-    /** The stamp could not be checked (for example a storage error); treat with caution. */
+    /** The stamp could not be checked, for example because storage failed. */
     UNKNOWN
 }

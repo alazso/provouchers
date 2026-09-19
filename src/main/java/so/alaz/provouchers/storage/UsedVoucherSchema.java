@@ -5,9 +5,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /**
- * Third schema version. Replaces the batch/nonce stamp table with a single-column
- * used-voucher table keyed on each item's unique id, matching the simpler anti-dupe
- * model (one unique id per anti-dupe item, recorded once on redeem). Portable DDL.
+ * Replaces the batch and nonce stamp table with a used-voucher table keyed on each item's unique id.
  */
 public final class UsedVoucherSchema implements Migration {
 

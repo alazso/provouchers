@@ -14,10 +14,9 @@ public enum Backend {
     }
 
     /**
-     * The JDBC driver class for this backend. Set explicitly on the pool so HikariCP loads the
-     * driver from the plugin classloader: the drivers are fetched by Paper's library loader onto
-     * that isolated loader, where {@link java.sql.DriverManager}'s auto-registration cannot see
-     * them, so leaving HikariCP to find a driver by URL alone fails with "No suitable driver".
+     * The JDBC driver class for this backend. The pool names it explicitly because Paper's library
+     * loader puts the drivers on the plugin classloader, where {@link java.sql.DriverManager} cannot
+     * find them by URL.
      */
     public String driverClassName() {
         return driverClassName;

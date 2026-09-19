@@ -11,12 +11,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Owns the connection lifecycle and pooling for the plugin's database, backed by HikariCP over JDBC.
- * Works for SQLite (file-based, default) and MySQL/MariaDB/PostgreSQL. All lifecycle work runs on a
- * single dedicated daemon thread, so the futures never block a server thread.
- *
- * <p>Call {@link #init()} once during enable and {@link #shutdown()} during disable. The pooled
- * {@link DataSource} is the access primitive used directly with JDBC.
+ * Owns the HikariCP connection pool for the plugin's database. Lifecycle work and migrations run on a
+ * single dedicated daemon thread, never a server thread.
  */
 public final class StorageProvider {
 
@@ -41,8 +37,8 @@ public final class StorageProvider {
     }
 
     /**
-     * Opens the connection pool (creating the SQLite file/dirs if needed). Idempotent. Refused once
-     * {@link #shutdown()} has run, so a late retry cannot reopen a pool that was closed.
+     * Opens the connection pool, creating the SQLite file's parent directories if needed. Idempotent.
+     * Fails once {@link #shutdown()} has run.
      */
     public CompletableFuture<Void> init() {
         return CompletableFuture.runAsync(() -> {
@@ -91,7 +87,6 @@ public final class StorageProvider {
         return current;
     }
 
-    /** This provider's migration runner. */
     public MigrationRunner migrations() {
         return runner;
     }

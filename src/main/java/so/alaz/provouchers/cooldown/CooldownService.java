@@ -12,8 +12,8 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Per-player, per-voucher cooldowns that survive restarts. An in-memory
- * {@link CooldownManager} answers the fast synchronous checks during a redeem,
- * while the same data is persisted to storage and re-loaded when a player joins.
+ * {@link CooldownManager} answers the synchronous checks during a redeem, while
+ * the same data is persisted to storage and re-loaded when a player joins.
  *
  * <p>Checks fail closed until that load succeeds: {@link #ensureLoaded} tells a redeem
  * whether a player's in-memory cooldowns can be trusted yet, and a failed load is retried
@@ -81,9 +81,8 @@ public final class CooldownService {
 
     /**
      * Marks a player's cooldowns as needing a reload (call on quit) and stops any load still running.
-     * Their in-memory entries stay, so a cooldown whose write has not reached storage survives a quick
-     * rejoin; the next join loads again from storage (which another server sharing the database may have
-     * updated) and merges, keeping the later expiry.
+     * Their in-memory entries stay, so a cooldown whose write has not reached storage survives a
+     * rejoin; the next join merges the stored cooldowns into them, keeping the later expiry.
      */
     public void unload(UUID player) {
         readiness.forget(player);
@@ -92,7 +91,7 @@ public final class CooldownService {
     /** One load attempt (async context). A failure schedules the next attempt while the load is current. */
     private void attemptLoad(CooldownReadiness.Load load) {
         if (!readiness.isCurrent(load)) {
-            return; // The player left, so a pending retry stops here.
+            return;
         }
         UUID player = load.player();
         long now = System.currentTimeMillis();
@@ -106,7 +105,7 @@ public final class CooldownService {
             }
             return;
         }
-        // Extend rather than set, so a cooldown applied during the load is never shortened.
+        // Extends, so a cooldown applied during the load is never shortened.
         readiness.succeed(load, () -> active.forEach((voucherId, expiresAt) ->
             memory.extendMillis(key(player, voucherId), expiresAt - now)));
     }

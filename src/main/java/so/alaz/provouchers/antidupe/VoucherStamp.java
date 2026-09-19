@@ -12,11 +12,11 @@ import java.util.UUID;
 /**
  * Reads and writes the persistent-data stamp that identifies a voucher item.
  *
- * <p>Every voucher item carries its voucher id. A voucher whose {@code stackable}
- * flag is {@code false} (anti-dupe on) also carries a {@code uid} that is unique
- * per physical item and written at give time; this is what duplicate detection
- * matches on, and it is what stops those items from stacking. A {@code stackable}
- * voucher carries no {@code uid}, so its items stack and are not dupe-tracked.
+ * <p>Every voucher item carries its voucher id. An item of a voucher whose
+ * {@code stackable} flag is {@code false} (anti-dupe on) also carries a {@code uid},
+ * unique per physical item and written at give time, which duplicate detection
+ * matches on and which keeps those items from stacking. A {@code stackable}
+ * voucher's items carry no {@code uid}, so they stack and are not dupe-tracked.
  */
 public final class VoucherStamp {
 
@@ -70,7 +70,7 @@ public final class VoucherStamp {
         givenAtKey.set(meta, epochMillis);
     }
 
-    /** The epoch-millis give time, or {@code null} if the item predates give-time stamping. */
+    /** The epoch-millis give time, or {@code null} if the item has no give-time stamp. */
     @Nullable
     public Long givenAt(ItemMeta meta) {
         return givenAtKey.get(meta);

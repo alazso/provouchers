@@ -5,17 +5,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /**
- * Fifth schema version. Adds a running total per use key (a code, or {@code "voucher:<id>"}) so a
- * global cap can be reserved with one conditional update on a single row instead of summing every
- * player's count, which cannot be made atomic portably. The total is backfilled from the per-player
- * counts already recorded, so existing caps carry over unchanged.
+ * Adds a running total per use key (a code, or {@code "voucher:<id>"}), so a global cap is reserved
+ * with one conditional update on a single row, and backfills each total from the per-player counts.
  *
- * <p>The backfill replaces whatever the table holds. MySQL and MariaDB commit a {@code CREATE TABLE}
- * on their own, so a backfill that failed or was interrupted leaves the table behind, and servers
- * sharing a database can start this migration together, one of them failing on the other's work;
- * either way the next run (the retry {@link VoucherStorage#init()} makes, or a later start) recomputes
- * every total, or skips the migration once the other server has recorded it, instead of failing on
- * rows that are already there.
+ * <p>The backfill replaces any rows already in the table: MySQL and MariaDB commit {@code CREATE TABLE}
+ * implicitly, so the table can outlive a failed run, and servers sharing a database can run this
+ * migration together.
  */
 public final class UseTotalsSchema implements Migration {
 

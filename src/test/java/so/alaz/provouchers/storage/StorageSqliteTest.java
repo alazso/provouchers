@@ -19,10 +19,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Storage tests on the default SQLite backend, which needs no Docker, so they always run (including
- * on a Docker-less local build). The full networked matrix lives in {@link StorageMigrationMatrixTest}.
- */
 class StorageSqliteTest {
 
     @Test
@@ -37,8 +33,6 @@ class StorageSqliteTest {
         StorageProvider provider = new StorageProvider(config);
         try {
             provider.init().get(30, TimeUnit.SECONDS);
-            // Simulate a pre-1.0.0 install whose schema is already at v3, tracked by the
-            // Strata-managed version table.
             try (Connection c = provider.dataSource().getConnection();
                  Statement s = c.createStatement()) {
                 s.executeUpdate("CREATE TABLE strata_schema_version (version INTEGER NOT NULL)");
@@ -52,7 +46,6 @@ class StorageSqliteTest {
                 .migrate()
                 .get(30, TimeUnit.SECONDS);
 
-            // Seeded from the legacy table, so nothing re-runs.
             assertThat(applied).isZero();
             try (Connection c = provider.dataSource().getConnection();
                  Statement s = c.createStatement()) {
@@ -60,7 +53,6 @@ class StorageSqliteTest {
                     assertThat(r.next()).isTrue();
                     assertThat(r.getInt(1)).isEqualTo(3);
                 }
-                // The orphaned legacy table is dropped once it has been read.
                 try (ResultSet r = s.executeQuery(
                     "SELECT name FROM sqlite_master WHERE type='table' AND name='strata_schema_version'")) {
                     assertThat(r.next()).isFalse();
@@ -136,7 +128,7 @@ class StorageSqliteTest {
         VoucherStorage storage = new VoucherStorage(provider);
         UUID player = UUID.randomUUID();
         try {
-            // Only the pool is open, as while the migrations still run: queries are refused.
+            // Only the pool is open; no migration has run.
             provider.init().get(30, TimeUnit.SECONDS);
             assertThat(storage.isReady()).isFalse();
             assertThatThrownBy(() -> storage.reserveUses("WELCOME", player, 1, 1, 1))
@@ -166,7 +158,6 @@ class StorageSqliteTest {
             @Override
             public void up(Connection connection) throws SQLException {
                 if (attempts.incrementAndGet() == 1) {
-                    // As when another server sharing the database applied the same migration first.
                     throw new SQLException("simulated concurrent migration");
                 }
             }
@@ -200,7 +191,6 @@ class StorageSqliteTest {
         storage.shutdown().get(30, TimeUnit.SECONDS);
         assertThatThrownBy(() -> opening.get(60, TimeUnit.SECONDS)).isInstanceOf(ExecutionException.class);
         assertThat(storage.isReady()).isFalse();
-        // The pool stays closed: no retry opened it again after the shutdown.
         assertThatThrownBy(provider::dataSource).isInstanceOf(IllegalStateException.class);
     }
 
@@ -212,7 +202,7 @@ class StorageSqliteTest {
             provider.init().get(30, TimeUnit.SECONDS);
             try (Connection c = provider.dataSource().getConnection();
                  Statement s = c.createStatement()) {
-                // A table in the way of the version 5 backfill, so that migration fails.
+                // A conflicting table makes the version 5 migration fail.
                 s.executeUpdate("CREATE TABLE provouchers_use_totals (unexpected INTEGER)");
             }
             assertThatThrownBy(() -> storage.init().get(60, TimeUnit.SECONDS))

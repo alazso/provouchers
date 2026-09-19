@@ -2,11 +2,7 @@ package so.alaz.provouchers.storage;
 
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Connection settings for the {@link StorageProvider}. Build via the static factories rather than
- * the constructor, e.g. {@code StorageConfig.sqlite(dataFolder + "/data.db")} or
- * {@code StorageConfig.mysql(host, port, db, user, pass, poolSize, poolName)}.
- */
+/** Connection settings for the {@link StorageProvider}, built through one static factory per backend. */
 public final class StorageConfig {
 
     final Backend backend;

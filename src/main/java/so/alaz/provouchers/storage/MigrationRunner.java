@@ -16,15 +16,13 @@ import java.util.concurrent.ExecutorService;
  * {@code provouchers_schema_version} table. Each migration runs in its own transaction; a failure
  * rolls that migration back and aborts the run.
  *
- * <p>An install upgrading from a pre-1.0.0 version (which tracked schema state in the Strata-managed
- * {@code strata_schema_version} table) is seeded from that table on first run, so already-applied
- * migrations are not re-run and the old table is removed.
+ * <p>An empty version table is seeded from the legacy {@code strata_schema_version} table of
+ * pre-1.0.0 installs, when present, and the legacy table is then dropped.
  */
 public final class MigrationRunner {
 
     private static final String VERSION_TABLE = "provouchers_schema_version";
 
-    /** The version table used before 1.0.0, when storage was managed by the Strata library. */
     private static final String LEGACY_VERSION_TABLE = "strata_schema_version";
 
     private final StorageProvider storage;
@@ -76,7 +74,7 @@ public final class MigrationRunner {
             try {
                 connection.rollback();
             } catch (SQLException ignored) {
-                // The original failure is the one that matters.
+                // The migration's failure is rethrown below.
             }
             throw new RuntimeException("Migration failed at version > " + current, ex);
         } finally {
@@ -98,11 +96,9 @@ public final class MigrationRunner {
         if (!empty) {
             return;
         }
-        // Seed from the pre-1.0.0 table when upgrading, so already-applied migrations are not re-run;
-        // then drop the orphan. The count query above is closed first: SQLite refuses the seeding
-        // INSERT and especially the legacy DROP (a schema change) while a read cursor is still open.
-        // Runs in autocommit (before applyPending), so the legacy lookup failing on a fresh install
-        // is independent and harmless.
+        // The count query above is closed first: SQLite refuses the INSERT and the DROP while a read
+        // cursor is open. This runs in autocommit, so the legacy lookup failing on a fresh install
+        // leaves no aborted transaction on PostgreSQL.
         int seed = legacyVersion(connection);
         try (PreparedStatement insert =
                  connection.prepareStatement("INSERT INTO " + VERSION_TABLE + " (version) VALUES (?)")) {
@@ -116,7 +112,7 @@ public final class MigrationRunner {
         }
     }
 
-    /** The version recorded by the pre-1.0.0 (Strata-managed) table, or 0 if it is absent. */
+    /** The version in the legacy table, or 0 when the table is absent. */
     private int legacyVersion(Connection connection) {
         try (Statement statement = connection.createStatement();
              ResultSet result = statement.executeQuery("SELECT version FROM " + LEGACY_VERSION_TABLE + " LIMIT 1")) {

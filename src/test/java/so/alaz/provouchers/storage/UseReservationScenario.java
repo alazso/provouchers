@@ -23,13 +23,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static so.alaz.provouchers.storage.VoucherStorage.UNCAPPED;
 
 /**
- * Use-reservation cases run against each backend: caps hold under contention, counts never lose an
- * update, releases and clears keep each key's total equal to the sum of its player counts, and the
- * version 5 migration backfills that total. Used by both the SQLite test and the Docker matrix.
- *
- * <p>Contention is real, not simulated: threads released together by a barrier race through the
- * pool, and every assertion is on an outcome that must hold for any interleaving. Every case uses
- * fresh keys, so all but {@link #upgradeBackfillsTotals} tolerate a database shared with other tests.
+ * Use-reservation cases run against each backend by the SQLite test and the Docker matrix. Every case
+ * uses fresh keys, so all but {@link #upgradeBackfillsTotals} can share a database with other tests.
  */
 final class UseReservationScenario {
 
@@ -51,7 +46,6 @@ final class UseReservationScenario {
         backfillRerunReplacesExistingTotals(config);
     }
 
-    /** Many players racing for a key with {@code max-uses: 1}: exactly one reserves it. */
     static void lastUseIsReservedOnce(StorageConfig config) throws Exception {
         withStorage(config, (storage, provider) -> {
             String key = uniqueKey();
@@ -67,7 +61,6 @@ final class UseReservationScenario {
         });
     }
 
-    /** One player racing against their own cap of three: exactly three reserve. */
     static void perPlayerCapHoldsUnderContention(StorageConfig config) throws Exception {
         withStorage(config, (storage, provider) -> {
             String key = uniqueKey();
@@ -83,7 +76,6 @@ final class UseReservationScenario {
         });
     }
 
-    /** Uncapped reservations racing on the same rows all count: no increment is lost. */
     static void unlimitedReservationsCountExactly(StorageConfig config) throws Exception {
         withStorage(config, (storage, provider) -> {
             String key = uniqueKey();
@@ -107,7 +99,6 @@ final class UseReservationScenario {
         });
     }
 
-    /** A batch larger than what is left reserves exactly what is left, alone or racing other batches. */
     static void batchReservesTheRemainingAllowance(StorageConfig config) throws Exception {
         withStorage(config, (storage, provider) -> {
             String key = uniqueKey();
@@ -120,14 +111,12 @@ final class UseReservationScenario {
             assertThat(storage.reserveUses(key, second, 1, UNCAPPED, 10))
                 .isEqualTo(new UseReservation(0, UseLimit.GLOBAL));
 
-            // The player's own cap is reported when it is the one that ran short.
             String personal = uniqueKey();
             assertThat(storage.reserveUses(personal, first, 3, 5, 100))
                 .isEqualTo(new UseReservation(3, UseLimit.NONE));
             assertThat(storage.reserveUses(personal, first, 5, 5, 100))
                 .isEqualTo(new UseReservation(2, UseLimit.PER_PLAYER));
 
-            // Overlapping batches of four against a cap of ten share it exactly.
             String contested = uniqueKey();
             List<UseReservation> results = concurrently(
                 i -> () -> storage.reserveUses(contested, UUID.randomUUID(), 4, UNCAPPED, 10));
@@ -138,7 +127,6 @@ final class UseReservationScenario {
         });
     }
 
-    /** A released use can be reserved again, and no release takes a count below zero. */
     static void releaseRestoresCapacityAndNeverGoesNegative(StorageConfig config) throws Exception {
         withStorage(config, (storage, provider) -> {
             String key = uniqueKey();
@@ -150,14 +138,12 @@ final class UseReservationScenario {
             assertThat(storage.codeUsesTotal(key)).isZero();
             assertThat(storage.reserveUses(key, waiting, 1, 1, 1).reserved()).isEqualTo(1);
 
-            // Releasing more than is held gives back only what is held.
             assertThat(storage.releaseUses(key, waiting, 5)).isEqualTo(1);
             assertThat(storage.releaseUses(key, waiting, 1)).isZero();
-            assertThat(storage.releaseUses(key, UUID.randomUUID(), 1)).isZero();   // never reserved
+            assertThat(storage.releaseUses(key, UUID.randomUUID(), 1)).isZero();
             assertThat(storage.codeUsesByPlayer(key, waiting)).isZero();
             assertThat(storage.codeUsesTotal(key)).isZero();
 
-            // Racing releases of three held uses give back three in all.
             String raced = uniqueKey();
             assertThat(storage.reserveUses(raced, holder, 3, UNCAPPED, UNCAPPED).reserved()).isEqualTo(3);
             List<Integer> released = concurrently(i -> () -> storage.releaseUses(raced, holder, 1));
@@ -165,9 +151,9 @@ final class UseReservationScenario {
             assertThat(storage.codeUsesByPlayer(raced, holder)).isZero();
             assertThat(storage.codeUsesTotal(raced)).isZero();
 
-            // A total that fell behind its player counts is clamped at zero rather than going negative.
             String drifted = uniqueKey();
             assertThat(storage.reserveUses(drifted, holder, 2, UNCAPPED, UNCAPPED).reserved()).isEqualTo(2);
+            // Puts the total behind the player's count of two.
             execute(provider, "UPDATE provouchers_use_totals SET uses = 1 WHERE code = ?", drifted);
             assertThat(storage.releaseUses(drifted, holder, 2)).isEqualTo(2);
             assertThat(storage.codeUsesByPlayer(drifted, holder)).isZero();
@@ -175,7 +161,6 @@ final class UseReservationScenario {
         });
     }
 
-    /** Clearing one player's uses, or a whole key's, moves the total with them, even mid-contention. */
     static void clearUsesKeepsTotalsConsistent(StorageConfig config) throws Exception {
         withStorage(config, (storage, provider) -> {
             String key = uniqueKey();
@@ -188,10 +173,10 @@ final class UseReservationScenario {
             storage.clearUses(key, first);
             assertThat(storage.codeUsesByPlayer(key, first)).isZero();
             assertThat(storage.codeUsesTotal(key)).isEqualTo(3L);
-            storage.clearUses(key, UUID.randomUUID());                 // no uses: nothing changes
+            storage.clearUses(key, UUID.randomUUID());
             assertThat(storage.codeUsesTotal(key)).isEqualTo(3L);
             assertThat(storage.reserveUses(key, first, 10, UNCAPPED, 10))
-                .isEqualTo(new UseReservation(7, UseLimit.GLOBAL));   // the cleared uses are free again
+                .isEqualTo(new UseReservation(7, UseLimit.GLOBAL));
 
             storage.clearUses(key);
             assertThat(storage.codeUsesByPlayer(key, first)).isZero();
@@ -200,9 +185,7 @@ final class UseReservationScenario {
             assertThat(storage.reserveUses(key, second, 10, UNCAPPED, 10))
                 .isEqualTo(new UseReservation(10, UseLimit.NONE));
 
-            // Reservations, releases, and both clears racing on one key leave the total equal to the sum.
-            // One thread does the whole-key clears, as an admin reset would: two of them racing each other
-            // can lock the same rows in different orders on PostgreSQL, which is not what this checks.
+            // Only thread 0 clears the whole key: concurrent whole-key clears can deadlock on PostgreSQL.
             String busy = uniqueKey();
             UUID[] players = {UUID.randomUUID(), UUID.randomUUID()};
             concurrently(i -> () -> {
@@ -227,11 +210,6 @@ final class UseReservationScenario {
         });
     }
 
-    /**
-     * The version 5 migration sums the per-player counts recorded before totals existed. Runs the
-     * migration against the table dropped back to its pre-version-5 state, which is safe on a
-     * shared database: every other key's total is recomputed from the same counts.
-     */
     static void backfillSumsRecordedUses(StorageConfig config) throws Exception {
         withStorage(config, (storage, provider) -> {
             String busy = uniqueKey();
@@ -240,6 +218,7 @@ final class UseReservationScenario {
             recordUsesDirectly(provider, busy, UUID.randomUUID(), 3);
             recordUsesDirectly(provider, single, UUID.randomUUID(), 1);
 
+            // Restores the pre-version-5 schema; the migration rebuilds every key's total.
             try (Connection connection = provider.dataSource().getConnection()) {
                 try (Statement statement = connection.createStatement()) {
                     statement.executeUpdate("DROP TABLE provouchers_use_totals");
@@ -254,11 +233,6 @@ final class UseReservationScenario {
         });
     }
 
-    /**
-     * Running the version 5 migration again over totals that already exist, as after a backfill that
-     * failed once MySQL or MariaDB had committed its table, or when two servers migrate together,
-     * recomputes every total from the recorded uses instead of failing on the rows already there.
-     */
     static void backfillRerunReplacesExistingTotals(StorageConfig config) throws Exception {
         withStorage(config, (storage, provider) -> {
             String busy = uniqueKey();
@@ -266,7 +240,7 @@ final class UseReservationScenario {
             recordUsesDirectly(provider, busy, UUID.randomUUID(), 2);
             recordUsesDirectly(provider, busy, UUID.randomUUID(), 3);
             recordUsesDirectly(provider, single, UUID.randomUUID(), 1);
-            // A stale total left in the table before the rerun, which would collide with the backfill.
+            // A stale total already in the table before the rerun.
             execute(provider, "INSERT INTO provouchers_use_totals (code, uses) VALUES (?, 0)", busy);
 
             try (Connection connection = provider.dataSource().getConnection()) {
@@ -280,10 +254,7 @@ final class UseReservationScenario {
         });
     }
 
-    /**
-     * Upgrading a database at schema version 4 applies version 5 on init, backfilling each key's total
-     * from the uses already recorded. Needs a database that was never migrated past version 4.
-     */
+    /** Needs a database never migrated past version 4. */
     static void upgradeBackfillsTotals(StorageConfig config) throws Exception {
         String busy = uniqueKey();
         String single = uniqueKey();
@@ -307,7 +278,6 @@ final class UseReservationScenario {
         withStorage(config, (storage, provider) -> assertBackfilled(storage, busy, single));
     }
 
-    /** Totals of five and one from the recorded uses, enforced by the very next reservation. */
     private static void assertBackfilled(VoucherStorage storage, String busy, String single) throws SQLException {
         assertThat(storage.codeUsesTotal(busy)).isEqualTo(5L);
         assertThat(storage.codeUsesTotal(single)).isEqualTo(1L);
@@ -375,7 +345,7 @@ final class UseReservationScenario {
         assertThat(storage.codeUsesTotal(key)).isEqualTo(summed);
     }
 
-    /** Writes a per-player count directly, the way versions before the totals table recorded uses. */
+    /** Inserts a per-player count directly, without touching the key's total. */
     private static void recordUsesDirectly(StorageProvider provider, String key, UUID player, int uses)
         throws SQLException {
         try (Connection connection = provider.dataSource().getConnection();

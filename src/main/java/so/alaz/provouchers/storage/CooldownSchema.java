@@ -4,10 +4,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-/**
- * Second schema version. Adds the per-player cooldown table so voucher cooldowns
- * survive restarts. Portable column types, like the initial schema.
- */
+/** Adds the per-player cooldown table so voucher cooldowns survive restarts. */
 public final class CooldownSchema implements Migration {
 
     @Override

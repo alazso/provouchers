@@ -21,12 +21,8 @@ import java.util.function.IntFunction;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Stash storage exercise run against each backend, alongside {@link StorageScenario}: deliveries stay
- * separate rows that sum exactly, a row is claimed at most once however many claims race for it, a card
- * claims only the rows it was built from, and a restore puts back the identical row exactly once.
- * Racing threads are released together by a barrier, so each assertion must hold for every
- * interleaving. Each case uses its own player and clears its rows, so cases sharing a database (the
- * Docker matrix reuses one per backend) stay independent.
+ * Stash storage cases run against each backend. Each case uses its own player and leaves no rows
+ * behind, so the cases can share a database.
  */
 final class StashStorageScenario {
 
@@ -52,11 +48,7 @@ final class StashStorageScenario {
         }
     }
 
-    /**
-     * Concurrent deliveries of one voucher each insert their own row, so the card sums them exactly. The
-     * two starting rows mimic duplicates left by the old update-then-insert race, which the old merge
-     * then multiplied (each later delivery was added to both rows).
-     */
+    /** Concurrent deliveries of one voucher each insert their own row, and the card sums them. */
     private static void concurrentDeliveriesSumExactly(VoucherStorage storage) throws Exception {
         UUID player = UUID.randomUUID();
         long now = System.currentTimeMillis();
@@ -77,7 +69,6 @@ final class StashStorageScenario {
         clear(storage, player);
     }
 
-    /** However many claims race for one row, exactly one of them removes it. */
     private static void concurrentClaimsOfOneRowSucceedOnce(VoucherStorage storage) throws Exception {
         UUID player = UUID.randomUUID();
         long now = System.currentTimeMillis();
@@ -87,10 +78,6 @@ final class StashStorageScenario {
         assertThat(storage.listStash(player, now)).isEmpty();
     }
 
-    /**
-     * Two sessions or a double click claiming the same card race row by row: every row goes to exactly
-     * one claim, so together they take the card's rows once and no row twice.
-     */
     private static void concurrentCardClaimsSplitTheRows(VoucherStorage storage) throws Exception {
         UUID player = UUID.randomUUID();
         long now = System.currentTimeMillis();
@@ -105,12 +92,6 @@ final class StashStorageScenario {
         assertThat(storage.listStash(player, now)).isEmpty();
     }
 
-    /**
-     * The stale menu case: a card is built from the rows present when the menu opened (a row an earlier
-     * version merged plus a duplicate row), another delivery of the same voucher arrives, then the card
-     * is clicked. It takes exactly its own rows, a second click takes nothing, and the newer delivery
-     * stays queued and claimable.
-     */
     private static void staleCardClaimsOnlyItsOwnRows(VoucherStorage storage) throws Exception {
         UUID player = UUID.randomUUID();
         long now = System.currentTimeMillis();
@@ -134,10 +115,6 @@ final class StashStorageScenario {
         assertThat(storage.listStash(player, now)).isEmpty();
     }
 
-    /**
-     * A restore puts back the identical row (id, amount, argument, source, and timestamps), and the
-     * primary key stops any further restore of it, sequential or concurrent, from adding a copy.
-     */
     private static void restoreReinsertsTheIdenticalRowOnce(VoucherStorage storage) throws Exception {
         UUID player = UUID.randomUUID();
         long now = System.currentTimeMillis();
@@ -159,18 +136,13 @@ final class StashStorageScenario {
         clear(storage, player);
     }
 
-    /**
-     * A server on an older version sharing the database merges a delivery into an existing row after this
-     * server's menu read it. The claim removes a row only while it holds the amount it was read with, so
-     * it misses instead of deleting the merged total while granting the stale amount, and the next read
-     * shows the new total, which then claims normally.
-     */
     private static void rowMergedByAnOlderServerIsNotClaimedAtTheReadAmount(StorageProvider provider,
                                                                             VoucherStorage storage) throws Exception {
         UUID player = UUID.randomUUID();
         long now = System.currentTimeMillis();
         StashEntry read = entry(player, "loot", 1, null, now);
         storage.addStash(read);
+        // An older version sharing the database merges a delivery into the row after it was read.
         try (Connection connection = provider.dataSource().getConnection();
              PreparedStatement merge = connection.prepareStatement(
                  "UPDATE provouchers_stash SET amount = amount + 4 WHERE id = ?")) {

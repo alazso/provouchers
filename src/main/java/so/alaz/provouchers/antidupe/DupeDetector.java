@@ -8,11 +8,10 @@ import java.util.UUID;
 /**
  * Validates voucher item stamps against persistent storage. A stamp seen before
  * is a {@link StampStatus#DUPLICATE}; a storage error yields
- * {@link StampStatus#UNKNOWN} so callers can decide how strict to be.
+ * {@link StampStatus#UNKNOWN}.
  *
  * <p>A claim is identified by the unique id, the claiming player, and the epoch
- * millis it was claimed at, so only the redemption that made a claim can give it
- * back, and a repeated give-back never removes a later claim of the same id.
+ * millis it was claimed at; a give-back removes only the claim matching all three.
  *
  * <p>{@link #check(String)}, {@link #claim(String, UUID, long)} and
  * {@link #release(String, UUID, long)} perform blocking queries and must run off
@@ -31,7 +30,7 @@ public final class DupeDetector {
         try {
             return storage.isUsed(uid) ? StampStatus.DUPLICATE : StampStatus.VALID;
         } catch (SQLException | RuntimeException ex) {
-            // Any storage failure, including the pool not being open yet, is unverifiable.
+            // Any failure, including a pool that is not open, is unverifiable.
             return StampStatus.UNKNOWN;
         }
     }
@@ -52,10 +51,10 @@ public final class DupeDetector {
     }
 
     /**
-     * Gives back the claim {@code player} made of a unique id at {@code claimedAt}, so the
-     * item it was made for stays redeemable when its redemption is abandoned before
-     * delivery. Returns {@code true} when no such claim remains (it was removed, or was
-     * never stored), and {@code false} on a storage failure, which may leave it in place.
+     * Gives back the claim {@code player} made of a unique id at {@code claimedAt}, making
+     * the item redeemable again. Returns {@code true} when no such claim remains (it was
+     * removed, or was never stored), and {@code false} on a storage failure, which may
+     * leave it in place.
      */
     public boolean release(String uid, UUID player, long claimedAt) {
         try {

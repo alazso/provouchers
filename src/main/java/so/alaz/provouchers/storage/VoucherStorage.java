@@ -22,27 +22,23 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 /**
- * Persistence gateway for ProVouchers, built on a {@link StorageProvider}. The
- * provider owns the connection pool, JDBC drivers, and migration runner; this class
- * registers the schema and runs the plain-JDBC queries the redeem pipeline needs.
+ * Persistence gateway for ProVouchers over a {@link StorageProvider}, which owns the connection pool
+ * and the migration runner. This class registers the migrations and runs the plain-JDBC queries.
  *
- * <p>The blocking query methods are intended to be called from an async context
- * (the async scheduler), never the main or a region thread.
+ * <p>The query methods block and must run off the main and region threads. Every statement must run
+ * unchanged on SQLite, MySQL, MariaDB, and PostgreSQL.
  */
 public final class VoucherStorage {
 
     /** A cap for {@link #reserveUses} that leaves the count unlimited. */
     public static final int UNCAPPED = -1;
 
-    /**
-     * How many times in a row a use-count write retries after concurrent writers moved the count it
-     * read. Each retry means another write committed, so this only bounds pathological contention.
-     */
+    /** Attempts a use-count write makes while concurrent writers keep moving the count it read. */
     private static final int MAX_WRITE_ATTEMPTS = 32;
 
     /**
-     * The delays before each retry of opening storage after a failed attempt, each lengthened by a random
-     * part of up to half its length so servers that failed together do not retry together.
+     * Delays before each retry of a failed open. Each is extended by random jitter of up to half its
+     * length.
      */
     private static final List<Duration> OPEN_RETRY_DELAYS = List.of(
         Duration.ofSeconds(1), Duration.ofSeconds(2), Duration.ofSeconds(4), Duration.ofSeconds(8));
@@ -51,20 +47,19 @@ public final class VoucherStorage {
     private final List<Duration> openRetryDelays;
 
     /**
-     * Set once every migration has applied, and cleared on shutdown. The pool opens before the
-     * migrations run, so queries wait for this instead: a query against a half-migrated schema could
-     * write rows a migration is about to create (a use total the backfill then collides with).
+     * Set once every migration has applied, and cleared on shutdown. Queries are refused while it is
+     * unset, so none runs against a partly migrated schema.
      */
     private volatile boolean ready;
 
-    /** Set on shutdown, so a pending retry of opening storage stops instead of reopening the pool. */
+    /** Set on shutdown; stops a pending retry of opening storage. */
     private volatile boolean closed;
 
     public VoucherStorage(StorageProvider provider) {
         this(provider, OPEN_RETRY_DELAYS);
     }
 
-    /** Opens storage through {@code provider}, retrying a failed open after each of {@code openRetryDelays}. */
+    /** Storage over {@code provider} that retries a failed open after each of {@code openRetryDelays}. */
     VoucherStorage(StorageProvider provider, List<Duration> openRetryDelays) {
         this.provider = provider;
         this.openRetryDelays = List.copyOf(openRetryDelays);
@@ -72,10 +67,8 @@ public final class VoucherStorage {
 
     /**
      * Opens the pool and applies pending migrations, then admits queries. A failed attempt is retried
-     * with backoff before the returned future fails: servers sharing a database that start together can
-     * apply the same migration at once, and the one that loses (a duplicate or a deadlock) then finds the
-     * other's work committed and skips it. A connection or lock error that clears quickly passes the same
-     * way.
+     * with backoff before the returned future fails; a retry skips any migration that another server
+     * sharing the database has committed.
      */
     public CompletableFuture<Void> init() {
         provider.migrations()
@@ -110,9 +103,8 @@ public final class VoucherStorage {
     }
 
     /**
-     * Closes the pool, then refuses further queries. Queries are admitted until the close runs, so a
-     * give-back still finishing while the plugin disables is not refused before the pool is gone. A
-     * pending retry of opening storage stops.
+     * Stops any pending retry of opening storage and closes the pool. Queries are admitted until the
+     * pool has closed, so work settling during disable still runs.
      */
     public CompletableFuture<Void> shutdown() {
         closed = true;
@@ -121,7 +113,7 @@ public final class VoucherStorage {
 
     /**
      * Whether storage is open and fully migrated, so queries are admitted. Non-blocking. Stays
-     * {@code false} when opening or a migration failed, which leaves every query refused.
+     * {@code false} when opening or a migration failed.
      */
     public boolean isReady() {
         return ready;
@@ -149,14 +141,13 @@ public final class VoucherStorage {
     }
 
     /**
-     * Records a unique id as redeemed: a claim identified by the id, {@code player}, and
-     * {@code redeemedAt} (the epoch millis the claiming server wrote). Returns {@code true} when the
-     * stored row is this claim, and {@code false} when the id is claimed by anything else.
+     * Records a unique id as redeemed by {@code player} at {@code redeemedAt} (epoch millis). Returns
+     * {@code true} when the stored row is this claim, and {@code false} when the id is claimed by
+     * anything else.
      *
-     * <p>When the insert fails, the row is read back in autocommit, so PostgreSQL has no aborted
-     * transaction to read in. A row matching this claim exactly means the insert committed before the
-     * driver failed, so the claim holds; any other row means the id was already claimed; no row rethrows
-     * the original failure. A failing read propagates.
+     * <p>When the insert fails, the row is read back in autocommit, since PostgreSQL aborts a
+     * transaction after a failed statement: a row matching this claim returns {@code true}, any other
+     * row returns {@code false}, and no row rethrows the insert's failure.
      */
     public boolean recordUse(String uid, UUID player, long redeemedAt) throws SQLException {
         try (Connection connection = connection();
@@ -197,10 +188,8 @@ public final class VoucherStorage {
 
     /**
      * Removes the claim {@link #recordUse} made of a unique id for {@code player} at
-     * {@code redeemedAt}, making the item redeemable again, and returns whether a row was removed. Used
-     * when a redemption that claimed the id is abandoned before its reward is delivered. Matching the
-     * whole claim means a give-back can never remove a different claim of the id, even the same
-     * player's other one, so repeating it is harmless.
+     * {@code redeemedAt}, making the item redeemable again. Deletes only the row that matches all
+     * three values; returns whether a row was removed.
      */
     public boolean deleteUse(String uid, UUID player, long redeemedAt) throws SQLException {
         try (Connection connection = connection();
@@ -254,14 +243,11 @@ public final class VoucherStorage {
      * both caps still allow, where a negative cap ({@link #UNCAPPED}) leaves that count unlimited. The
      * player's count and the key's total move together in one transaction, or not at all.
      *
-     * <p>Each update is conditional ({@code uses + n <= cap}), so the row lock the database takes for
-     * it settles a race: of two reservations for the last slot, the later one re-evaluates its condition
-     * against the earlier one's committed count and matches no row. A condition that fails after the
-     * allowance was read means a concurrent reservation, release, or clear moved it, so the transaction
-     * rolls back and the allowance is read again. Both rows are created beforehand in autocommit, so a
-     * duplicate insert from a concurrent first use fails on its own instead of aborting the transaction
-     * (as PostgreSQL would). Every writer locks a player's row before the key's total, so a
-     * reservation, release, or clear cannot deadlock another over that pair.
+     * <p>Each update is conditional on its cap ({@code uses + n <= cap}), which the database checks
+     * under the row lock. When an update matches no row, the transaction rolls back and the counts are
+     * read again. Both rows are created beforehand in autocommit, because PostgreSQL aborts a transaction
+     * after a failed statement, such as a duplicate insert from a concurrent first use. Every writer
+     * locks a player's row before the key's total, so no two deadlock over that pair.
      *
      * <p>Blocking; call from an async context. Undo with {@link #releaseUses}.
      */
@@ -291,7 +277,7 @@ public final class VoucherStorage {
     /**
      * Gives back up to {@code count} uses of {@code key} reserved for {@code player}, taking the same
      * amount off the key's total, and returns how many were released. Never takes a count below zero:
-     * if the player's uses were cleared in the meantime, only what is left is released.
+     * at most the player's current count is released.
      *
      * <p>Blocking; call from an async context.
      */
@@ -381,9 +367,9 @@ public final class VoucherStorage {
     }
 
     /**
-     * Takes {@code amount} off the player's count and the key's total in one transaction. The player's
-     * update requires {@code uses >= amount} and returns {@code false}, with nothing changed, when a
-     * concurrent release or clear lowered the count after it was read.
+     * Takes {@code amount} off the player's count and the key's total in one transaction. Returns
+     * {@code false}, with nothing changed, when the player's count has fallen below {@code amount}
+     * since it was read.
      */
     private static boolean subtractUses(Connection connection, String key, UUID player, int amount)
         throws SQLException {
@@ -428,8 +414,8 @@ public final class VoucherStorage {
     }
 
     /**
-     * Takes {@code amount} off the key's total, clamped at zero so a total that fell behind the player
-     * counts (for example one written by an older version sharing the database) never goes negative.
+     * Takes {@code amount} off the key's total, clamped at zero for a total that has fallen behind the
+     * player counts.
      */
     private static void subtractTotal(Connection connection, String key, long amount) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(
@@ -444,8 +430,8 @@ public final class VoucherStorage {
 
     /**
      * The player's recorded uses of {@code key}, first inserting a zero row when there is none so the
-     * conditional update has a row to match. Runs in autocommit: a concurrent first use may insert the
-     * same row, and that duplicate is detected by reading again, like {@link #recordUse}.
+     * conditional update has a row to match. Runs in autocommit; when the insert fails and the row now
+     * exists (a concurrent first use), returns its count.
      */
     private static int ensurePlayerUses(Connection connection, String key, UUID player) throws SQLException {
         Integer uses = playerUses(connection, key, player);
@@ -602,8 +588,7 @@ public final class VoucherStorage {
 
     /**
      * Queues a virtual voucher in a player's stash as its own row. Rows are never merged or updated
-     * afterwards (the menu groups matching entries for display), so concurrent deliveries cannot
-     * inflate one another and a row still holds the amount it was read with when a claim removes it.
+     * after insert; the menu groups matching rows for display.
      */
     public void addStash(StashEntry entry) throws SQLException {
         try (Connection connection = connection();
@@ -633,8 +618,7 @@ public final class VoucherStorage {
 
     /**
      * Puts a claimed entry back exactly as it was read: same id, amount, argument, source, and
-     * timestamps. Returns {@code false} if a row with its id already exists, so the primary key turns a
-     * second restore of one entry into a no-op rather than a duplicate reward.
+     * timestamps. Returns {@code false}, adding nothing, when a row with its id already exists.
      */
     public boolean restoreStash(StashEntry entry) throws SQLException {
         try {
@@ -687,11 +671,8 @@ public final class VoucherStorage {
 
     /**
      * Atomically claims one stash entry, removing it only while it still holds the amount it was read
-     * with. Returns {@code true} only for the call that removed it, so a double click or a second
-     * session cannot claim the same entry twice. A menu card claims each of its rows this way, so
-     * overlapping claims split the rows between them. This version never updates a row after insert;
-     * the amount check refuses a row that an older server version sharing the database merged a
-     * delivery into after it was read, so the stale amount is never granted for the larger row.
+     * with. Returns {@code true} only for the call that removed it. The amount check refuses a row that
+     * an older version sharing the database merged a delivery into after it was read.
      */
     public boolean claimStash(StashEntry entry) throws SQLException {
         try (Connection connection = connection();

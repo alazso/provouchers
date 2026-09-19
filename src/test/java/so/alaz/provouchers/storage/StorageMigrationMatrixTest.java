@@ -8,12 +8,8 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
- * Runs the schema migrations and a CRUD round-trip against real MySQL, MariaDB, and PostgreSQL
- * servers, so the portable DDL and queries are proven on every networked backend, not just SQLite.
- *
- * <p>The databases are ephemeral Docker containers. The whole class is skipped when no Docker
- * environment is available, so it exercises the matrix in CI (where Docker is present) and never
- * fails a Docker-less local build.
+ * Runs the storage scenarios against MySQL, MariaDB, and PostgreSQL in Docker containers, skipped
+ * when Docker is unavailable.
  */
 @Testcontainers(disabledWithoutDocker = true)
 class StorageMigrationMatrixTest {
