@@ -34,6 +34,10 @@ All notable changes to ProVouchers are documented here. This project follows
 - Updated FastStats to 0.30.2, which anonymizes Discord webhook URLs in error reports.
 
 ### Fixed
+- A broken third-party plugin no longer stops ProVouchers from enabling. Checking for an
+  integration searches every plugin on the server, so a plugin that failed to enable and had
+  its jar closed made that check throw. The integration now counts as absent, with a warning
+  naming the class, and a provider that cannot be built is skipped the same way.
 - Stash: claiming a card no longer deletes vouchers delivered after the menu was
   opened. Each delivery is stored on its own and the menu combines matching ones
   into one card, so a claim takes exactly the deliveries on that card.

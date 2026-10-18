@@ -25,6 +25,7 @@ import so.alaz.provouchers.gui.GuiListener;
 import so.alaz.provouchers.gui.GuiManager;
 import so.alaz.provouchers.hook.EconomyHook;
 import so.alaz.provouchers.hook.HeadDatabaseItemHook;
+import so.alaz.provouchers.hook.Hook;
 import so.alaz.provouchers.hook.HookRegistry;
 import so.alaz.provouchers.hook.ItemHook;
 import so.alaz.provouchers.hook.ItemsAdderItemHook;
@@ -72,6 +73,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static net.kyori.adventure.text.Component.text;
 
@@ -283,16 +285,29 @@ public final class ProVouchersPlugin extends JavaPlugin {
      * Registers every integration provider unconditionally. Each hook detects its backing plugin and
      * reports availability per call; a hook whose plugin is missing is skipped at resolution time.
      */
-    private static HookRegistry buildHooks() {
+    private HookRegistry buildHooks() {
         HookRegistry hooks = new HookRegistry();
-        hooks.register(EconomyHook.class, new VaultEconomyHook());
-        hooks.register(PermissionHook.class, new LuckPermsPermissionHook());
-        hooks.register(RegionHook.class, new WorldGuardRegionHook());
-        hooks.register(ItemHook.class, new ItemsAdderItemHook());
-        hooks.register(ItemHook.class, new OraxenItemHook());
-        hooks.register(ItemHook.class, new NexoItemHook());
-        hooks.register(ItemHook.class, new HeadDatabaseItemHook());
+        register(hooks, EconomyHook.class, VaultEconomyHook::new);
+        register(hooks, PermissionHook.class, LuckPermsPermissionHook::new);
+        register(hooks, RegionHook.class, WorldGuardRegionHook::new);
+        register(hooks, ItemHook.class, ItemsAdderItemHook::new);
+        register(hooks, ItemHook.class, OraxenItemHook::new);
+        register(hooks, ItemHook.class, NexoItemHook::new);
+        register(hooks, ItemHook.class, HeadDatabaseItemHook::new);
         return hooks;
+    }
+
+    /**
+     * Registers one provider, logging and skipping it when building it fails, so a broken third-party
+     * plugin costs that integration rather than this plugin's enable.
+     */
+    private <T extends Hook> void register(HookRegistry hooks, Class<T> type, Supplier<T> provider) {
+        try {
+            hooks.register(type, provider.get());
+        } catch (LinkageError | RuntimeException ex) {
+            getComponentLogger().warn(text("ProVouchers: an integration provider for "
+                + type.getSimpleName() + " could not be built and stays off: " + ex, NamedTextColor.RED));
+        }
     }
 
     /** The {@code cooldown.tiers} config section as tier-name to multiplier; read once at enable. */
