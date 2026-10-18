@@ -8,10 +8,11 @@ All notable changes to ProVouchers are documented here. This project follows
 
 ### Added
 - `command-aliases` in `config.yml` sets the extra names for `/voucher` (default
-  `pv` and `vouchers`), so a server can drop `/pv` when another plugin such as
-  PlayerVaults uses it. `[]` registers none; `/voucher` itself always works.
+  `vouchers`). `[]` registers none; `/voucher` itself always works.
 
 ### Changed
+- `/voucher` no longer registers `/pv`, which PlayerVaults uses. Add `pv` to
+  `command-aliases` to keep it.
 - Aliases for `/voucher` and `/stash` are trimmed and lower-cased; blank entries,
   entries containing spaces, and duplicates are ignored.
 - Activity metrics (redemptions, blocked duplicates, condition denials, Stash
