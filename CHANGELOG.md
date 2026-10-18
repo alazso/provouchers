@@ -27,7 +27,7 @@ All notable changes to ProVouchers are documented here. This project follows
   needs storage stays unavailable until it is fixed, instead of running against a
   half-upgraded database.
 - Published for Minecraft 26.2 and 26.3. The plugin still runs on 26.1 or newer.
-- Updated FastStats to 0.30.1.
+- Updated FastStats to 0.30.2, which anonymizes Discord webhook URLs in error reports.
 
 ### Fixed
 - Stash: claiming a card no longer deletes vouchers delivered after the menu was
