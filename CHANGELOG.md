@@ -27,6 +27,10 @@ All notable changes to ProVouchers are documented here. This project follows
   needs storage stays unavailable until it is fixed, instead of running against a
   half-upgraded database.
 - Published for Minecraft 26.2 and 26.3. The plugin still runs on 26.1 or newer.
+- `/voucher doctor` reports what metrics are actually doing: which providers started, the
+  FastStats SDK version, whether it submits metrics, and whether error reports are sent.
+  It previously showed only the `metrics.enabled` switch, which says nothing about a
+  provider that failed to start or a server that opted out of FastStats.
 - Updated FastStats to 0.30.2, which anonymizes Discord webhook URLs in error reports.
 
 ### Fixed

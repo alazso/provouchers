@@ -211,8 +211,9 @@ public final class ProVouchersPlugin extends JavaPlugin {
                 new FirstJoinListener(registry, giveService, firstJoin, getComponentLogger()), this);
         }
         getServer().getOnlinePlayers().forEach(player -> cooldowns.hydrate(player.getUniqueId()));
+        // The metrics handle is read live, since metrics start after the command is registered.
         Diagnostics diagnostics = new Diagnostics(this, storage, registry, hooks, messages,
-            () -> backend.name().toLowerCase(Locale.ROOT));
+            () -> backend.name().toLowerCase(Locale.ROOT), () -> metrics);
         FromhandGui fromhandGui = new FromhandGui(guiManager, configManager, messages, text, getDataFolder());
         MigrationService migrationService = new MigrationService(
             new CrazyVouchersMigrator(getDataFolder(), registry));

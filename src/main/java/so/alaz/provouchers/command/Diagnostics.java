@@ -10,6 +10,7 @@ import so.alaz.provouchers.hook.ItemHook;
 import so.alaz.provouchers.hook.PermissionHook;
 import so.alaz.provouchers.hook.RegionHook;
 import so.alaz.provouchers.locale.Messages;
+import so.alaz.provouchers.metrics.Metrics;
 import so.alaz.provouchers.storage.VoucherStorage;
 import so.alaz.provouchers.voucher.VoucherRegistry;
 
@@ -31,15 +32,18 @@ public final class Diagnostics {
     private final HookRegistry hooks;
     private final Messages messages;
     private final Supplier<String> backend;
+    private final Supplier<Metrics> metrics;
 
     public Diagnostics(JavaPlugin plugin, VoucherStorage storage, VoucherRegistry registry,
-                       HookRegistry hooks, Messages messages, Supplier<String> backend) {
+                       HookRegistry hooks, Messages messages, Supplier<String> backend,
+                       Supplier<Metrics> metrics) {
         this.plugin = plugin;
         this.storage = storage;
         this.registry = registry;
         this.hooks = hooks;
         this.messages = messages;
         this.backend = backend;
+        this.metrics = metrics;
     }
 
     /** The report lines, as MiniMessage strings. */
@@ -59,9 +63,42 @@ public final class Diagnostics {
         lines.add("<gray>Locale: <white>" + plugin.getConfig().getString("locale.default", "en")
             + (plugin.getConfig().getBoolean("locale.per-player", true) ? " <dark_gray>(per-player)" : "")
             + " <gray>| langs: <white>" + languages());
-        lines.add("<gray>Metrics: " + (plugin.getConfig().getBoolean("metrics.enabled", true)
-            ? "<green>on" : "<gray>off"));
+        lines.add("<gray>Metrics: " + metricsState());
         return lines;
+    }
+
+    /**
+     * What each metrics provider is doing: whether it started, and for FastStats its SDK version,
+     * whether it submits metrics, and whether error reports are submitted. A provider that failed to
+     * start, or a server that opted out of FastStats, reads differently from the config switch alone.
+     */
+    private String metricsState() {
+        if (!plugin.getConfig().getBoolean("metrics.enabled", true)) {
+            return "<gray>off <dark_gray>(metrics.enabled: false)";
+        }
+        Metrics handle = metrics.get();
+        if (handle == null) {
+            return "<red>not started <dark_gray>(no provider configured, or enable failed)";
+        }
+        return "<white>bStats " + (handle.bStatsStarted() ? "<green>on" : "<red>not started")
+            + "<gray>, " + fastStatsState(handle);
+    }
+
+    private static String fastStatsState(Metrics handle) {
+        String sdk = handle.fastStatsSdk();
+        if (sdk == null) {
+            return "<white>FastStats <red>not started";
+        }
+        String state;
+        if (!handle.fastStatsEnabled()) {
+            state = "<yellow>opted out on this server";
+        } else if (!handle.fastStatsSubmitting()) {
+            state = "<yellow>not submitting metrics";
+        } else {
+            state = "<green>on";
+        }
+        return "<white>FastStats " + sdk + " " + state
+            + " <dark_gray>(errors " + (handle.fastStatsErrorTracking() ? "on" : "off") + ")";
     }
 
     private String languages() {
