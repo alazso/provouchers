@@ -31,6 +31,9 @@ All notable changes to ProVouchers are documented here. This project follows
   FastStats SDK version, whether it submits metrics, and whether error reports are sent.
   It previously showed only the `metrics.enabled` switch, which says nothing about a
   provider that failed to start or a server that opted out of FastStats.
+- The API documentation now states that `VoucherPreRedeemEvent` and `VoucherRedeemEvent`
+  also fire for a Stash claim, where the item id is `null`, and that cancelling the
+  pre-redeem event returns the claimed entries to the Stash.
 - Updated FastStats to 0.30.2, which anonymizes Discord webhook URLs in error reports.
 
 ### Fixed
@@ -73,6 +76,8 @@ All notable changes to ProVouchers are documented here. This project follows
   out are logged.
 - A redeem effect that fails, such as a sound that cannot play, no longer stops the
   rest of a batch open or Stash claim from being granted.
+- A voucher icon or reward that uses a player head no longer fails with an internal
+  error when its skin lookup fails immediately, such as for an unknown player name.
 - Redeems, Stash claims, and gives still in progress when the server stops are
   settled before storage closes: uses and anti-dupe claims are given back, Stash
   entries are put back, and undelivered gives are queued in the Stash.
