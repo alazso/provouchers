@@ -6,6 +6,19 @@ All notable changes to ProVouchers are documented here. This project follows
 
 ## [Unreleased]
 
+### Fixed
+- `/voucher reload` now applies the anti-dupe and redeem settings, and the Stash menu
+  title and height. They were read once at startup, so changing them did nothing until
+  the server restarted, whatever the reload command reported.
+
+### Added
+- Optional ComfiConf support: edit the settings of `config.yml` in the ComfiConf
+  web editor (https://docs.comficonf.com). Needs the ComfiConf bridge 0.1.0 or
+  newer; without it nothing changes. Each save keeps the comments and other keys
+  of `config.yml` and backs up the previous file in `plugins/ProVouchers/backups/`.
+  The anti-dupe and redeem settings, the Stash title, height and overflow apply at
+  once; storage, aliases and the other startup settings after a restart.
+
 ## [1.5.0] - 2026-10-18
 
 ### Added

@@ -38,3 +38,7 @@ dependencies:
     HeadDatabase:
       load: BEFORE
       required: false
+    ComfiConf:
+      load: BEFORE
+      required: false
+      join-classpath: true

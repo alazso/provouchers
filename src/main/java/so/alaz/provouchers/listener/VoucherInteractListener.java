@@ -6,6 +6,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+
+import java.util.function.BooleanSupplier;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import so.alaz.provouchers.antidupe.VoucherStamp;
@@ -25,10 +27,10 @@ public final class VoucherInteractListener implements Listener {
     private final RedeemHandler handler;
     private final VoucherRegistry registry;
     private final RewardPreviewGui previewGui;
-    private final boolean leftClickPreview;
+    private final BooleanSupplier leftClickPreview;
 
     public VoucherInteractListener(VoucherStamp stamp, RedeemHandler handler, VoucherRegistry registry,
-                                   RewardPreviewGui previewGui, boolean leftClickPreview) {
+                                   RewardPreviewGui previewGui, BooleanSupplier leftClickPreview) {
         this.stamp = stamp;
         this.handler = handler;
         this.registry = registry;
@@ -53,7 +55,7 @@ public final class VoucherInteractListener implements Listener {
         if (action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK) {
             event.setCancelled(true);
             handler.redeemHeldVoucher(event.getPlayer(), event.getHand(), event.getPlayer().isSneaking());
-        } else if (leftClickPreview
+        } else if (leftClickPreview.getAsBoolean()
             && (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK)) {
             event.setCancelled(true);
             Voucher voucher = registry.getVoucher(stamp.voucherId(meta)).orElse(null);

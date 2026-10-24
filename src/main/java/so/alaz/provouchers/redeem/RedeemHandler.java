@@ -44,6 +44,7 @@ import so.alaz.provouchers.condition.ConditionContext;
 import so.alaz.provouchers.condition.ConditionRegistry;
 import so.alaz.provouchers.condition.ConditionResult;
 import so.alaz.provouchers.condition.Conditions;
+import so.alaz.provouchers.config.LiveSettings;
 import so.alaz.provouchers.cooldown.CooldownService;
 import so.alaz.provouchers.cooldown.CooldownTiers;
 import so.alaz.provouchers.gui.ConfirmGui;
@@ -64,6 +65,7 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * The redemption pipeline shared by item vouchers and codes. Synchronous checks
@@ -118,11 +120,8 @@ public final class RedeemHandler {
     private final ConditionRegistry conditions;
     private final MetricCounters counters;
     private final ComponentLogger logger;
-    private final boolean removeOnDiscovery;
-    private final boolean warningEnabled;
-    private final String warningText;
-    private final boolean notifyEnabled;
-    private final boolean batchQuiet;
+    /** The config.yml settings read on every use, so a reload or a ComfiConf save applies them at once. */
+    private final Supplier<LiveSettings> settings;
     private final ConfirmationTracker confirmations;
     /** One item redeem at a time per player and voucher, held from the click until it settles. */
     private final InFlightGuard inFlight = new InFlightGuard(IN_FLIGHT_LIFETIME_SECONDS);
@@ -135,8 +134,8 @@ public final class RedeemHandler {
     /** Stamp claim give-backs waiting to retry, each given a last attempt if the plugin disables first. */
     private final PendingSettlements claimRetries = new PendingSettlements();
     private final CooldownTiers cooldownTiers;
-    /** The GUI confirm dialog, or {@code null} for the chat style. */
-    @Nullable private final ConfirmGui confirmGui;
+    /** The menu confirm dialog, used while {@code redeem.confirm-style} is {@code gui}. */
+    private final ConfirmGui confirmGui;
 
     public RedeemHandler(
         VoucherRegistry registry,
@@ -152,13 +151,8 @@ public final class RedeemHandler {
         MetricCounters counters,
         ComponentLogger logger,
         CooldownTiers cooldownTiers,
-        @Nullable ConfirmGui confirmGui,
-        boolean removeOnDiscovery,
-        boolean warningEnabled,
-        String warningText,
-        boolean notifyEnabled,
-        boolean batchQuiet,
-        long confirmWindowSeconds
+        ConfirmGui confirmGui,
+        Supplier<LiveSettings> settings
     ) {
         this.registry = registry;
         this.stamp = stamp;
@@ -174,12 +168,8 @@ public final class RedeemHandler {
         this.logger = logger;
         this.cooldownTiers = cooldownTiers;
         this.confirmGui = confirmGui;
-        this.removeOnDiscovery = removeOnDiscovery;
-        this.warningEnabled = warningEnabled;
-        this.warningText = warningText;
-        this.notifyEnabled = notifyEnabled;
-        this.batchQuiet = batchQuiet;
-        this.confirmations = new ConfirmationTracker(confirmWindowSeconds);
+        this.settings = settings;
+        this.confirmations = new ConfirmationTracker(() -> settings.get().confirmWindowSeconds());
     }
 
     /**
@@ -608,7 +598,7 @@ public final class RedeemHandler {
                 // The GUI collected the second click; clearing the entry makes a later redeem ask again.
                 confirmations.clear(player.getUniqueId());
             } else if (confirmations.needsConfirm(player.getUniqueId(), voucher.id())) {
-                if (confirmGui != null) {
+                if (settings.get().guiConfirm()) {
                     confirmGui.open(player, voucher,
                         () -> scheduler.entity(player, () -> redeemHeldVoucher(player, hand, sneaking, true)),
                         () -> confirmations.clear(player.getUniqueId()));
@@ -753,7 +743,7 @@ public final class RedeemHandler {
         if (slot < 0) {
             return;
         }
-        if (removeOnDiscovery) {
+        if (settings.get().removeOnDiscovery()) {
             take(inventory, slot, 1);
         } else {
             ItemStack duplicate = inventory.getItem(slot);
@@ -764,7 +754,7 @@ public final class RedeemHandler {
 
     /** Appends the duplicate warning lore to a rejected item, once, if enabled. */
     private void applyWarningLore(ItemStack item) {
-        if (!warningEnabled) {
+        if (!settings.get().warningEnabled()) {
             return;
         }
         item.editMeta(meta -> {
@@ -773,7 +763,7 @@ public final class RedeemHandler {
             }
             List<Component> lore = meta.lore();
             List<Component> updated = lore != null ? new ArrayList<>(lore) : new ArrayList<>();
-            updated.add(text.render(warningText).decoration(TextDecoration.ITALIC, false));
+            updated.add(text.render(settings.get().warningText()).decoration(TextDecoration.ITALIC, false));
             meta.lore(updated);
             stamp.setWarned(meta);
         });
@@ -995,13 +985,13 @@ public final class RedeemHandler {
 
     private void redeemBatch(Player player, Voucher voucher, int count) {
         for (int i = 0; i < count; i++) {
-            completeVoucherRedeem(player, voucher, null, batchQuiet);
+            completeVoucherRedeem(player, voucher, null, settings.get().batchQuiet());
         }
         send(player, messages.get(player, "redeem.opened", "count", count, "voucher", voucher.id()));
     }
 
     private void notifyStaff(String key, Object... placeholders) {
-        if (!notifyEnabled) {
+        if (!settings.get().notifyEnabled()) {
             return;
         }
         for (Player online : Bukkit.getOnlinePlayers()) {

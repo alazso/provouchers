@@ -15,15 +15,16 @@ public final class ConfirmationTracker {
     }
 
     private final Map<UUID, Pending> pending = new ConcurrentHashMap<>();
-    private final long windowMillis;
+    /** Read on every use, so a changed window applies without a restart. */
+    private final LongSupplier windowSeconds;
     private final LongSupplier clock;
 
-    public ConfirmationTracker(long windowSeconds) {
+    public ConfirmationTracker(LongSupplier windowSeconds) {
         this(windowSeconds, System::currentTimeMillis);
     }
 
-    ConfirmationTracker(long windowSeconds, LongSupplier clock) {
-        this.windowMillis = Math.max(1, windowSeconds) * 1000L;
+    ConfirmationTracker(LongSupplier windowSeconds, LongSupplier clock) {
+        this.windowSeconds = windowSeconds;
         this.clock = clock;
     }
 
@@ -40,7 +41,7 @@ public final class ConfirmationTracker {
             pending.remove(player);
             return false;
         }
-        pending.put(player, new Pending(voucherId, now + windowMillis));
+        pending.put(player, new Pending(voucherId, now + windowSeconds() * 1000L));
         return true;
     }
 
@@ -49,6 +50,6 @@ public final class ConfirmationTracker {
     }
 
     public long windowSeconds() {
-        return windowMillis / 1000L;
+        return Math.max(1, windowSeconds.getAsLong());
     }
 }

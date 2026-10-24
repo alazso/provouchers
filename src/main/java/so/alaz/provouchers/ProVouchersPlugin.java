@@ -1,6 +1,9 @@
 package so.alaz.provouchers;
 
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.configuration.InvalidConfigurationException;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 import so.alaz.provouchers.antidupe.DupeDetector;
@@ -9,8 +12,10 @@ import so.alaz.provouchers.api.VoucherService;
 import so.alaz.provouchers.command.Diagnostics;
 import so.alaz.provouchers.command.StashCommand;
 import so.alaz.provouchers.command.VoucherCommand;
+import so.alaz.provouchers.comficonf.ComfiConfIntegration;
 import so.alaz.provouchers.condition.ConditionRegistry;
 import so.alaz.provouchers.config.ConfigManager;
+import so.alaz.provouchers.config.LiveSettings;
 import so.alaz.provouchers.migrate.CrazyVouchersMigrator;
 import so.alaz.provouchers.migrate.MigrationService;
 import so.alaz.provouchers.service.VoucherServiceImpl;
@@ -67,13 +72,17 @@ import so.alaz.provouchers.voucher.VoucherItemFactory;
 import so.alaz.provouchers.voucher.VoucherRegistry;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.logging.Level;
 
 import static net.kyori.adventure.text.Component.text;
 
@@ -92,7 +101,15 @@ public final class ProVouchersPlugin extends JavaPlugin {
     /** How long disabling waits for the storage pool to close. */
     private static final long STORAGE_CLOSE_TIMEOUT_SECONDS = 10;
 
+    /** Name of the ComfiConf bridge plugin. Written out here: the API's constant would load an API class. */
+    private static final String COMFICONF = "ComfiConf";
+
+    /** The config.yml settings that apply without a restart; replaced on every reload. */
+    private final AtomicReference<LiveSettings> liveSettings = new AtomicReference<>();
+
     private VoucherStorage storage;
+    /** The ComfiConf registration of config.yml; null while none is registered. */
+    private ComfiConfHook comfiConf;
     private Metrics metrics;
     private GuiManager guiManager;
     private DiscordWebhook discordWebhook;
@@ -108,6 +125,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
             return;
         }
         saveDefaultConfig();
+        liveSettings.set(LiveSettings.from(getConfig()));
         saveResourceIfMissing("vouchers/example.yml");
         saveResourceIfMissing("codes/example.yml");
 
@@ -168,14 +186,8 @@ public final class ProVouchersPlugin extends JavaPlugin {
             counters,
             getComponentLogger(),
             loadCooldownTiers(),
-            "gui".equalsIgnoreCase(getConfig().getString("redeem.confirm-style", "chat"))
-                ? new ConfirmGui(factory, guiManager, scheduler, text) : null,
-            getConfig().getBoolean("anti-dupe.remove-on-discovery", true),
-            getConfig().getBoolean("anti-dupe.warning.enabled", false),
-            getConfig().getString("anti-dupe.warning.text", "<red>This item has been duplicated"),
-            getConfig().getBoolean("anti-dupe.notify.enabled", true),
-            getConfig().getBoolean("redeem.batch-open-quiet", true),
-            getConfig().getLong("redeem.confirm-window-seconds", 5L)
+            new ConfirmGui(factory, guiManager, scheduler, text),
+            liveSettings::get
         );
 
         Duration stashExpiry = Durations.parseOrNull(getConfig().getString("stash.expire-after", ""));
@@ -184,8 +196,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
         boolean stashEnabled = getConfig().getBoolean("stash.enabled", true);
         if (stashEnabled) {
             StashGui stashGui = new StashGui(stashService, registry, factory, guiManager, scheduler, text,
-                messages, getConfig().getString("stash.title", "<gradient:#FFD700:#FF8A00>Your Stash"),
-                getConfig().getInt("stash.rows", 6));
+                messages, liveSettings::get);
             new StashCommand(stashGui, text, messages)
                 .register(this, getConfig().getStringList("stash.command-aliases"));
             if (getConfig().getBoolean("stash.notify-on-join", true)) {
@@ -200,7 +211,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(
             new VoucherInteractListener(stamp, redeemHandler, registry, rewardPreviewGui,
-                getConfig().getBoolean("redeem.left-click-preview", false)), this);
+                () -> liveSettings.get().leftClickPreview()), this);
         getServer().getPluginManager().registerEvents(new CooldownLoadListener(cooldowns), this);
         getServer().getPluginManager().registerEvents(new GuiListener(guiManager), this);
         getServer().getPluginManager().registerEvents(new VoucherStationListener(stamp), this);
@@ -215,12 +226,13 @@ public final class ProVouchersPlugin extends JavaPlugin {
         getServer().getOnlinePlayers().forEach(player -> cooldowns.hydrate(player.getUniqueId()));
         // The metrics handle is read live, since metrics start after the command is registered.
         Diagnostics diagnostics = new Diagnostics(this, storage, registry, hooks, messages,
-            () -> backend.name().toLowerCase(Locale.ROOT), () -> metrics);
+            () -> backend.name().toLowerCase(Locale.ROOT), () -> metrics, this::comfiConfStatus);
         FromhandGui fromhandGui = new FromhandGui(guiManager, configManager, messages, text, getDataFolder());
         MigrationService migrationService = new MigrationService(
             new CrazyVouchersMigrator(getDataFolder(), registry));
         new VoucherCommand(registry, giveService, redeemHandler, configManager, previewGui, text,
-            messages, diagnostics, storage, scheduler, fromhandGui, migrationService, stashService)
+            messages, diagnostics, storage, scheduler, fromhandGui, migrationService, stashService,
+            this::onConfigReloaded)
             .register(this, getConfig().getStringList("command-aliases"));
 
         getServer().getServicesManager().register(VoucherService.class,
@@ -230,12 +242,19 @@ public final class ProVouchersPlugin extends JavaPlugin {
         metrics = VoucherMetrics.start(this, registry, counters,
             () -> backend.name().toLowerCase(Locale.ROOT));
 
+        hookComfiConf();
+
         getComponentLogger().info(text("ProVouchers enabled with " + registry.voucherCount()
             + " voucher(s) and " + registry.codeCount() + " code(s).", NamedTextColor.GOLD));
     }
 
     @Override
     public void onDisable() {
+        ComfiConfHook registration = comfiConf;
+        if (registration != null) {
+            comfiConf = null;
+            closeQuietly("unregister from ComfiConf", registration::close);
+        }
         if (guiManager != null) {
             closeQuietly("close open menus", guiManager::closeAll);
         }
@@ -307,6 +326,84 @@ public final class ProVouchersPlugin extends JavaPlugin {
         } catch (LinkageError | RuntimeException ex) {
             getComponentLogger().warn(text("ProVouchers: an integration provider for "
                 + type.getSimpleName() + " could not be built and stays off: " + ex, NamedTextColor.RED));
+        }
+    }
+
+    /**
+     * Registers config.yml with ComfiConf when its bridge is enabled. The plugin keeps working in every branch: no
+     * class loaded before this call names a ComfiConf API type.
+     */
+    private void hookComfiConf() {
+        if (!getServer().getPluginManager().isPluginEnabled(COMFICONF)) {
+            getLogger().info("ComfiConf is not installed; settings are edited in config.yml only");
+            return;
+        }
+        Path dataFolder = getDataFolder().toPath();
+        try {
+            comfiConf = ComfiConfIntegration.register(this, dataFolder.resolve("config.yml"),
+                dataFolder.resolve("backups"), this::reloadSavedConfig);
+            getLogger().info("Registered " + comfiConf.resourceId() + " with ComfiConf");
+        } catch (LinkageError e) {
+            Plugin bridge = getServer().getPluginManager().getPlugin(COMFICONF);
+            getLogger().warning(incompatibleBridgeMessage(
+                bridge == null ? "?" : bridge.getPluginMeta().getVersion(), e));
+        } catch (RuntimeException e) {
+            getLogger().log(Level.WARNING, "Could not register with ComfiConf; continuing without it", e);
+        }
+    }
+
+    /** Warning for an installed ComfiConf whose classes do not match the API this plugin was compiled against. */
+    static String incompatibleBridgeMessage(String bridgeVersion, LinkageError error) {
+        String missing = error.getMessage() == null
+            ? error.getClass().getSimpleName()
+            : "missing " + error.getMessage().replace('/', '.');
+        return "The installed ComfiConf " + bridgeVersion + " does not include the ComfiConf API this plugin needs ("
+            + missing + "). Update ComfiConf to the version this plugin was built for"
+            + " (https://docs.comficonf.com/bridge/updating#when-a-plugin-needs-a-newer-bridge); settings are"
+            + " edited in config.yml only until then.";
+    }
+
+    /**
+     * Re-reads config.yml into the copy {@link #getConfig()} returns, after ComfiConf saved it. Returns false and
+     * keeps the loaded copy when the file does not parse, which {@link #reloadConfig()} alone would hide. Runs on the
+     * server main thread.
+     */
+    private boolean reloadSavedConfig() {
+        try {
+            new YamlConfiguration().load(new File(getDataFolder(), "config.yml"));
+        } catch (IOException | InvalidConfigurationException e) {
+            getLogger().warning("config.yml could not be read after ComfiConf saved it; the loaded settings stay "
+                + "active until /voucher reload or a restart");
+            return false;
+        }
+        reloadConfig();
+        liveSettings.set(LiveSettings.from(getConfig()));
+        return true;
+    }
+
+    /**
+     * What ComfiConf is doing, for {@code /voucher doctor}: the registered resource, the bridge installed without a
+     * registration (its classes were unreachable at enable, or registering failed), or no bridge at all.
+     */
+    private String comfiConfStatus() {
+        ComfiConfHook registration = comfiConf;
+        if (registration != null && registration.isRegistered()) {
+            return "<white>" + registration.resourceId() + " <green>(registered)";
+        }
+        return getServer().getPluginManager().isPluginEnabled(COMFICONF)
+            ? "<yellow>installed, not registered"
+            : "<gray>not installed";
+    }
+
+    /**
+     * Runs after {@code /voucher reload} re-read config.yml: applies the settings that need no restart, then tells
+     * ComfiConf that the file changed outside it, so open editors load the newer values.
+     */
+    private void onConfigReloaded() {
+        liveSettings.set(LiveSettings.from(getConfig()));
+        ComfiConfHook registration = comfiConf;
+        if (registration != null) {
+            registration.notifyChanged();
         }
     }
 

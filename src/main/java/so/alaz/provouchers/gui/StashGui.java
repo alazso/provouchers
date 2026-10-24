@@ -5,6 +5,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import so.alaz.provouchers.config.LiveSettings;
 import so.alaz.provouchers.locale.Messages;
 import so.alaz.provouchers.platform.ItemBuilder;
 import so.alaz.provouchers.platform.Scheduler;
@@ -17,6 +18,7 @@ import so.alaz.provouchers.voucher.VoucherRegistry;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -35,13 +37,13 @@ public final class StashGui {
     private final Scheduler scheduler;
     private final Text text;
     private final Messages messages;
-    private final String title;
-    private final int rows;
+    /** Read when a menu opens, so a changed title or height applies without a restart. */
+    private final Supplier<LiveSettings> settings;
     private final ItemStack pane;
 
     public StashGui(StashService stashService, VoucherRegistry registry, VoucherItemFactory factory,
                     GuiManager guiManager, Scheduler scheduler, Text text, Messages messages,
-                    String title, int rows) {
+                    Supplier<LiveSettings> settings) {
         this.stashService = stashService;
         this.registry = registry;
         this.factory = factory;
@@ -49,9 +51,7 @@ public final class StashGui {
         this.scheduler = scheduler;
         this.text = text;
         this.messages = messages;
-        this.title = title;
-        // At least three rows: content, the buffer row, and the menu bar.
-        this.rows = Math.min(6, Math.max(3, rows));
+        this.settings = settings;
         this.pane = new ItemBuilder(Material.GRAY_STAINED_GLASS_PANE)
             .name(text.render(" ").decoration(TextDecoration.ITALIC, false))
             .build();
@@ -97,9 +97,11 @@ public final class StashGui {
                 for (int i = 0; i < shown.size(); i++) {
                     buttons.add(card(viewer, shown.get(i), icons.get(i).join()));
                 }
+                // At least three rows: content, the buffer row, and the menu bar.
+                int rows = Math.min(6, Math.max(3, settings.get().stashRows()));
                 int menuRow = (rows - 1) * 9;
                 PaginatedGui gui = PaginatedGui.builder(rows)
-                    .title(title)
+                    .title(settings.get().stashTitle())
                     .contentRows(rows - 2)
                     .content(buttons)
                     .navigation(menuRow, menuRow + 8, navItem("<yellow>Previous"), navItem("<yellow>Next"))

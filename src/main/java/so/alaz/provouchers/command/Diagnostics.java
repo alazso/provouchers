@@ -33,10 +33,11 @@ public final class Diagnostics {
     private final Messages messages;
     private final Supplier<String> backend;
     private final Supplier<Metrics> metrics;
+    private final Supplier<String> comfiConf;
 
     public Diagnostics(JavaPlugin plugin, VoucherStorage storage, VoucherRegistry registry,
                        HookRegistry hooks, Messages messages, Supplier<String> backend,
-                       Supplier<Metrics> metrics) {
+                       Supplier<Metrics> metrics, Supplier<String> comfiConf) {
         this.plugin = plugin;
         this.storage = storage;
         this.registry = registry;
@@ -44,6 +45,7 @@ public final class Diagnostics {
         this.messages = messages;
         this.backend = backend;
         this.metrics = metrics;
+        this.comfiConf = comfiConf;
     }
 
     /** The report lines, as MiniMessage strings. */
@@ -64,6 +66,7 @@ public final class Diagnostics {
             + (plugin.getConfig().getBoolean("locale.per-player", true) ? " <dark_gray>(per-player)" : "")
             + " <gray>| langs: <white>" + languages());
         lines.add("<gray>Metrics: " + metricsState());
+        lines.add("<gray>ComfiConf: " + comfiConf.get());
         return lines;
     }
 

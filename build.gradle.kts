@@ -49,6 +49,12 @@ dependencies {
     compileOnly(libs.worldedit.bukkit) { isTransitive = false }
     compileOnly(libs.worldedit.core) { isTransitive = false }
 
+    // ComfiConf API: provided at runtime by the ComfiConf bridge plugin (soft-depend, join-classpath).
+    // Never bundled, relocated or runtime-loaded: a second copy of its classes never finds the bridge.
+    // Only so.alaz.provouchers.comficonf names its types. The test classpath needs it for the provider tests.
+    compileOnly(libs.comficonf.api)
+    testImplementation(libs.comficonf.api)
+
     testImplementation(libs.paper.api)
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.assertj.core)
@@ -114,6 +120,7 @@ val coverageExclusions = listOf(
     "**/voucher/ItemResolver.class",
     "**/config/ConfigManager.class",
     "**/stash/StashService.class",
+    "**/comficonf/ComfiConfIntegration.class",
 )
 
 tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {

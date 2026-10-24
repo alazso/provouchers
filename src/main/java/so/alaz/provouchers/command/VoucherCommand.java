@@ -109,6 +109,8 @@ public final class VoucherCommand {
     private final FromhandGui fromhandGui;
     private final MigrationService migrationService;
     private final StashService stashService;
+    /** Runs after {@code /voucher reload} re-read config.yml. */
+    private final Runnable configReloaded;
     /** Set when the command is registered; used to re-read config.yml on reload. */
     private Plugin plugin;
 
@@ -125,7 +127,8 @@ public final class VoucherCommand {
         Scheduler scheduler,
         FromhandGui fromhandGui,
         MigrationService migrationService,
-        StashService stashService
+        StashService stashService,
+        Runnable configReloaded
     ) {
         this.registry = registry;
         this.giveService = giveService;
@@ -140,6 +143,7 @@ public final class VoucherCommand {
         this.fromhandGui = fromhandGui;
         this.migrationService = migrationService;
         this.stashService = stashService;
+        this.configReloaded = configReloaded;
     }
 
     /** Builds and registers {@code /voucher} (with {@code aliases}) for {@code plugin}. Call during {@code onEnable}. */
@@ -388,6 +392,7 @@ public final class VoucherCommand {
         Player viewer = asPlayer(source);
         if (plugin != null) {
             plugin.reloadConfig();
+            configReloaded.run();
         }
         messages.reload();
         List<String> errors = configManager.reload();

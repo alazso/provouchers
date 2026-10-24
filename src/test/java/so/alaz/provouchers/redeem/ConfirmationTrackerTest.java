@@ -13,7 +13,7 @@ class ConfirmationTrackerTest {
 
     @Test
     void firstClickNeedsConfirmSecondConfirms() {
-        ConfirmationTracker tracker = new ConfirmationTracker(5);
+        ConfirmationTracker tracker = new ConfirmationTracker(() -> 5);
         assertThat(tracker.needsConfirm(player, "vip")).isTrue();
         assertThat(tracker.needsConfirm(player, "vip")).isFalse();
         assertThat(tracker.needsConfirm(player, "vip")).isTrue();
@@ -21,7 +21,7 @@ class ConfirmationTrackerTest {
 
     @Test
     void differentVoucherRestartsConfirmation() {
-        ConfirmationTracker tracker = new ConfirmationTracker(5);
+        ConfirmationTracker tracker = new ConfirmationTracker(() -> 5);
         assertThat(tracker.needsConfirm(player, "vip")).isTrue();
         assertThat(tracker.needsConfirm(player, "daily")).isTrue();
         assertThat(tracker.needsConfirm(player, "daily")).isFalse();
@@ -30,7 +30,7 @@ class ConfirmationTrackerTest {
     @Test
     void confirmationExpiresAfterWindow() {
         AtomicLong now = new AtomicLong(0);
-        ConfirmationTracker tracker = new ConfirmationTracker(5, now::get);
+        ConfirmationTracker tracker = new ConfirmationTracker(() -> 5, now::get);
         assertThat(tracker.needsConfirm(player, "vip")).isTrue();
         now.set(6000);
         assertThat(tracker.needsConfirm(player, "vip")).isTrue();
@@ -38,6 +38,6 @@ class ConfirmationTrackerTest {
 
     @Test
     void windowSecondsReflectsConstructor() {
-        assertThat(new ConfirmationTracker(7).windowSeconds()).isEqualTo(7);
+        assertThat(new ConfirmationTracker(() -> 7).windowSeconds()).isEqualTo(7);
     }
 }
