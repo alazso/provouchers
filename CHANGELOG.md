@@ -7,6 +7,8 @@ All notable changes to ProVouchers are documented here. This project follows
 ## [Unreleased]
 
 ### Changed
+- Updated the database drivers: SQLite 3.53.4.0, MySQL 26.10.0, MariaDB 3.5.11 and
+  PostgreSQL 42.7.14. Paper downloads these at startup, so an upgrade replaces them.
 - Updated FastStats to 0.31.0. Its error tracking attributes an error to this plugin
   more accurately, so fewer reports from other plugins are filed against ProVouchers.
 
