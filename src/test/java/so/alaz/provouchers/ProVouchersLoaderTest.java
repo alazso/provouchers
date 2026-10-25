@@ -12,6 +12,10 @@ import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * The loader's coordinates are generated from the version catalog, so this guards the generator: a renamed or
+ * dropped catalog alias would otherwise change what Paper downloads without failing the build.
+ */
 class ProVouchersLoaderTest {
 
     /** Each loader library's {@code group:artifact} mapped to its catalog {@code [versions]} key. */

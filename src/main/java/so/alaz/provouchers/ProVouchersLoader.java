@@ -20,16 +20,10 @@ import java.util.List;
 public final class ProVouchersLoader implements PluginLoader {
 
     /**
-     * The top-level runtime libraries. Each version must match {@code gradle/libs.versions.toml}, which is
-     * not available at runtime; {@code ProVouchersLoaderTest} fails the build when they differ.
+     * The top-level runtime libraries, generated from {@code gradle/libs.versions.toml} at build time, so the
+     * versions Paper downloads are the versions the plugin was compiled against.
      */
-    public static final List<String> LIBRARIES = List.of(
-        "com.zaxxer:HikariCP:7.1.0",
-        "org.xerial:sqlite-jdbc:3.53.4.0",
-        "com.mysql:mysql-connector-j:26.10.0",
-        "org.mariadb.jdbc:mariadb-java-client:3.5.11",
-        "org.postgresql:postgresql:42.7.14"
-    );
+    public static final List<String> LIBRARIES = RuntimeLibraries.COORDINATES;
 
     @Override
     public void classloader(@NotNull PluginClasspathBuilder classpath) {

@@ -121,6 +121,7 @@ val coverageExclusions = listOf(
     "**/config/ConfigManager.class",
     "**/stash/StashService.class",
     "**/comficonf/ComfiConfIntegration.class",
+    "**/RuntimeLibraries.class",
 )
 
 tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
@@ -151,6 +152,54 @@ tasks.withType<Javadoc>().configureEach {
         addStringOption("Xdoclint:none", "-quiet")
         encoding = "UTF-8"
     }
+}
+
+// Coordinates of the libraries Paper downloads at startup, generated from the version catalog so the
+// loader and the catalog cannot drift apart. The order is the order Paper resolves them in.
+val runtimeLibraryCoordinates: Provider<List<String>> = providers.provider {
+    listOf(libs.hikari, libs.sqlite.jdbc, libs.mysql.connector, libs.mariadb.jdbc, libs.postgresql.jdbc)
+        .map { library ->
+            val dependency = library.get()
+            dependency.module.group + ":" + dependency.module.name + ":" +
+                dependency.versionConstraint.requiredVersion
+        }
+}
+
+val generatedSourcesDirectory: Provider<Directory> =
+    layout.buildDirectory.dir("generated/sources/runtimeLibraries/java/main")
+
+val generateRuntimeLibraries by tasks.registering {
+    val coordinates = runtimeLibraryCoordinates
+    val outputDirectory = generatedSourcesDirectory
+    inputs.property("coordinates", coordinates)
+    outputs.dir(outputDirectory)
+    doLast {
+        val entries = coordinates.get().joinToString(",\n") { "        \"" + it + "\"" }
+        val source = listOf(
+            "package so.alaz.provouchers;",
+            "",
+            "import java.util.List;",
+            "",
+            "/** Generated from gradle/libs.versions.toml at build time. Do not edit. */",
+            "final class RuntimeLibraries {",
+            "",
+            "    /** Maven coordinates of the libraries Paper downloads before the plugin loads. */",
+            "    static final List<String> COORDINATES = List.of(",
+            entries + ");",
+            "",
+            "    private RuntimeLibraries() {",
+            "    }",
+            "}",
+            ""
+        ).joinToString("\n")
+        val file = outputDirectory.get().file("so/alaz/provouchers/RuntimeLibraries.java").asFile
+        file.parentFile.mkdirs()
+        file.writeText(source)
+    }
+}
+
+sourceSets.named("main") {
+    java.srcDir(generateRuntimeLibraries)
 }
 
 tasks.named<ProcessResources>("processResources") {
