@@ -8,6 +8,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLTransactionRollbackException;
 import java.sql.Types;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -35,6 +36,13 @@ public final class VoucherStorage {
 
     /** Attempts a use-count write makes while concurrent writers keep moving the count it read. */
     private static final int MAX_WRITE_ATTEMPTS = 32;
+
+    /**
+     * How many times a use-count write restarts after the database rolled it back. MySQL, MariaDB and
+     * PostgreSQL break a deadlock by rolling one writer back and expect it to run again, which happens when a
+     * whole-key clear and a reservation lock the same rows in opposite orders.
+     */
+    private static final int MAX_ROLLBACK_ATTEMPTS = 4;
 
     /**
      * Delays before each retry of a failed open. Each is extended by random jitter of up to half its
@@ -126,6 +134,59 @@ public final class VoucherStorage {
                 + "or has shut down");
         }
         return provider.dataSource().getConnection();
+    }
+
+    /** A write that runs against storage and may be restarted after a rollback. */
+    @FunctionalInterface
+    interface Write<T> {
+        T run() throws SQLException;
+    }
+
+    /**
+     * Runs a write, restarting it when the database rolled the transaction back to break a deadlock. Each
+     * attempt takes a fresh connection, since the rolled back transaction released its locks. The pause
+     * between attempts is randomized, so two writers that collided do not collide again immediately.
+     */
+    <T> T retryOnRollback(Write<T> write) throws SQLException {
+        for (int attempt = 1; ; attempt++) {
+            try {
+                return write.run();
+            } catch (SQLException ex) {
+                if (attempt >= MAX_ROLLBACK_ATTEMPTS || !rolledBack(ex)) {
+                    throw ex;
+                }
+                pauseBeforeRetry(attempt);
+            }
+        }
+    }
+
+    /**
+     * Whether the database rolled a transaction back for a deadlock or a serialization failure. SQL state
+     * class 40 covers both ({@code 40001} on MySQL and MariaDB, {@code 40P01} on PostgreSQL), and a driver may
+     * wrap it, so the causes are checked too.
+     */
+    static boolean rolledBack(SQLException ex) {
+        for (Throwable error = ex; error != null; error = error.getCause()) {
+            if (error instanceof SQLTransactionRollbackException) {
+                return true;
+            }
+            if (error instanceof SQLException sql) {
+                String state = sql.getSQLState();
+                if (state != null && state.startsWith("40")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static void pauseBeforeRetry(int attempt) throws SQLException {
+        try {
+            Thread.sleep(ThreadLocalRandom.current().nextLong(5L * attempt, 20L * attempt + 1));
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new SQLException("interrupted while waiting to restart a rolled back write", interrupted);
+        }
     }
 
     /** Whether a voucher item's unique id has already been redeemed. */
@@ -256,6 +317,11 @@ public final class VoucherStorage {
         if (requested < 1) {
             throw new IllegalArgumentException("requested must be at least 1, was " + requested);
         }
+        return retryOnRollback(() -> reserveUsesOnce(key, player, requested, perPlayerCap, globalCap));
+    }
+
+    private UseReservation reserveUsesOnce(String key, UUID player, int requested, int perPlayerCap,
+                                           int globalCap) throws SQLException {
         try (Connection connection = connection()) {
             for (int attempt = 0; attempt < MAX_WRITE_ATTEMPTS; attempt++) {
                 long mine = ensurePlayerUses(connection, key, player);
@@ -285,6 +351,10 @@ public final class VoucherStorage {
         if (count < 1) {
             return 0;
         }
+        return retryOnRollback(() -> releaseUsesOnce(key, player, count));
+    }
+
+    private int releaseUsesOnce(String key, UUID player, int count) throws SQLException {
         try (Connection connection = connection()) {
             for (int attempt = 0; attempt < MAX_WRITE_ATTEMPTS; attempt++) {
                 Integer mine = playerUses(connection, key, player);
@@ -299,6 +369,13 @@ public final class VoucherStorage {
 
     /** Deletes every recorded use of this key (a code, or {@code "voucher:<id>"}) and its total. */
     public void clearUses(String key) throws SQLException {
+        retryOnRollback(() -> {
+            clearUsesOnce(key);
+            return null;
+        });
+    }
+
+    private void clearUsesOnce(String key) throws SQLException {
         try (Connection connection = connection()) {
             inTransaction(connection, () -> {
                 try (PreparedStatement statement = connection.prepareStatement(
@@ -318,6 +395,13 @@ public final class VoucherStorage {
 
     /** Deletes one player's recorded uses of this key, taking them off the key's total. */
     public void clearUses(String key, UUID player) throws SQLException {
+        retryOnRollback(() -> {
+            clearUsesOnce(key, player);
+            return null;
+        });
+    }
+
+    private void clearUsesOnce(String key, UUID player) throws SQLException {
         try (Connection connection = connection()) {
             for (int attempt = 0; attempt < MAX_WRITE_ATTEMPTS; attempt++) {
                 Integer mine = playerUses(connection, key, player);

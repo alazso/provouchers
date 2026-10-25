@@ -13,6 +13,9 @@ All notable changes to ProVouchers are documented here. This project follows
   more accurately, so fewer reports from other plugins are filed against ProVouchers.
 
 ### Fixed
+- Resetting a voucher's or code's use counts while players redeem it no longer fails on
+  MySQL, MariaDB or PostgreSQL. The database breaks such a deadlock by rolling one writer
+  back, and that write is now restarted instead of reported as an error.
 - `/voucher reload` now applies the anti-dupe and redeem settings, and the Stash menu
   title and height. They were read once at startup, so changing them did nothing until
   the server restarted, whatever the reload command reported.
