@@ -6,6 +6,10 @@ All notable changes to ProVouchers are documented here. This project follows
 
 ## [Unreleased]
 
+### Changed
+- Updated FastStats to 0.31.0. Its error tracking attributes an error to this plugin
+  more accurately, so fewer reports from other plugins are filed against ProVouchers.
+
 ### Fixed
 - `/voucher reload` now applies the anti-dupe and redeem settings, and the Stash menu
   title and height. They were read once at startup, so changing them did nothing until
