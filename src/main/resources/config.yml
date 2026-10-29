@@ -28,8 +28,8 @@ storage:
   password: ""
   pool-size: 10
 
-# The settings in anti-dupe and redeem below, and stash title and rows, apply as soon as
-# /voucher reload runs. Everything else here needs a restart.
+# The settings in anti-dupe and redeem below, and the stash title, rows and overflow, apply as
+# soon as /voucher reload runs. Everything else here needs a restart.
 anti-dupe:
   # Anti-dupe is chosen per voucher. Set "stackable: false" on a voucher to stamp
   # each item with a unique id: duplicates are caught, but those items do not stack.
@@ -84,7 +84,7 @@ stash:
   enabled: true
   command-aliases: [ rewards ]
   title: "<gradient:#FFD700:#FF8A00>Your Stash"
-  rows: 6                    # menu height, 1 to 6
+  rows: 6                    # menu height, 1 to 6; the menu always has at least 3 rows
   notify-on-join: true       # tell a joining player when rewards are waiting
   expire-after: ""           # entries lapse after this (e.g. 30d); blank = never
   overflow: drop             # when a give does not fit: drop the items, or stash them
