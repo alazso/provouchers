@@ -4,6 +4,8 @@ All notable changes to ProVouchers are documented here. This project follows
 [Semantic Versioning](https://semver.org). Releases before 0.5.0 are listed on the
 [GitHub releases](https://github.com/alazso/provouchers/releases) page.
 
+## [Unreleased]
+
 ## [1.6.0] - 2026-10-28
 
 ### Changed
