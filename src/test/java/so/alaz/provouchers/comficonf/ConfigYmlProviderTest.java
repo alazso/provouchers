@@ -15,6 +15,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,6 +28,7 @@ import java.util.function.UnaryOperator;
 import java.util.logging.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ConfigYmlProviderTest {
 
@@ -296,6 +299,17 @@ class ConfigYmlProviderTest {
         ValidationResult missing = provider.validate(values.with("locale.default", "xx"));
         assertThat(missing.isValid()).isTrue();
         assertThat(missing.warnings()).extracting(ValidationIssue::path).containsExactly("locale.default");
+    }
+
+    @Test
+    void refusesAFileThatIsNotUtf8AndLeavesItAlone() throws Exception {
+        byte[] legacy = new String(ConfigYmlMappingTest.shippedConfig(), StandardCharsets.UTF_8)
+            .replace("overflow: drop", "overflow: drop # Beh\u00e4lter")
+            .getBytes(Charset.forName("windows-1252"));
+        Files.write(file, legacy);
+
+        assertThatThrownBy(() -> provider.read()).isInstanceOf(IOException.class);
+        assertThat(Files.readAllBytes(file)).isEqualTo(legacy);
     }
 
     private static byte[] withCarriageReturns(byte[] content) {

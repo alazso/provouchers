@@ -41,11 +41,25 @@ public final class Messages {
 
     public Messages(File dataFolder, String defaultLocale, boolean perPlayer) {
         this.langDir = new File(dataFolder, "lang");
-        this.defaultLocale = defaultLocale == null || defaultLocale.isBlank()
-            ? "en" : defaultLocale.toLowerCase(Locale.ROOT);
+        this.defaultLocale = normalizeLocale(defaultLocale);
         this.perPlayer = perPlayer;
         this.bundled = loadBundled();
         reload();
+    }
+
+    /** A configured language code as it is matched against the {@code lang/} files: lower-cased, blank as en. */
+    public static String normalizeLocale(@Nullable String value) {
+        return value == null || value.isBlank() ? "en" : value.toLowerCase(Locale.ROOT);
+    }
+
+    /** The language in use, lower-cased, as it was read at startup. */
+    public String defaultLocale() {
+        return defaultLocale;
+    }
+
+    /** Whether each player is served their own client language, as it was read at startup. */
+    public boolean perPlayer() {
+        return perPlayer;
     }
 
     /** Reloads every {@code lang/<code>.yml} from disk. */

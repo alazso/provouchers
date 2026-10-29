@@ -3,6 +3,10 @@ package so.alaz.provouchers.comficonf;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 
 final class Yaml {
@@ -13,12 +17,29 @@ final class Yaml {
     /**
      * Parses YAML bytes with comments kept, so the document can be saved again without losing them. A
      * {@link YamlConfiguration} is not thread-safe: every callback parses its own.
+     *
+     * <p>Decoding is strict. A lossy decoder would turn every byte that is not UTF-8 into U+FFFD, and saving
+     * would then write those replacement characters over the comments and values they came from.
+     *
+     * @throws IOException when the bytes are not UTF-8
      */
-    static YamlConfiguration parse(byte[] content) throws InvalidConfigurationException {
+    static YamlConfiguration parse(byte[] content) throws IOException, InvalidConfigurationException {
         YamlConfiguration yaml = new YamlConfiguration();
         yaml.options().parseComments(true);
-        yaml.loadFromString(new String(content, StandardCharsets.UTF_8));
+        yaml.loadFromString(decode(content));
         return yaml;
+    }
+
+    private static String decode(byte[] content) throws IOException {
+        try {
+            return StandardCharsets.UTF_8.newDecoder()
+                .onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT)
+                .decode(ByteBuffer.wrap(content))
+                .toString();
+        } catch (CharacterCodingException e) {
+            throw new IOException("config.yml is not UTF-8 text. Save it as UTF-8 and try again.", e);
+        }
     }
 
     /**

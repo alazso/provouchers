@@ -13,6 +13,16 @@ All notable changes to ProVouchers are documented here. This project follows
   more accurately, so fewer reports from other plugins are filed against ProVouchers.
 
 ### Fixed
+- `/voucher reload` no longer discards the settings in effect when `config.yml` cannot be
+  read. A missing or malformed file left every live setting at its shipped default, which
+  could turn duplicate removal back on and send Stash overflow back to dropping items, and
+  the command still reported success. The reload now keeps the active settings and reports
+  the file as an error; the console says which line it is.
+- `/voucher doctor` reports what the server is actually running for the settings that need
+  a restart. It read `metrics.enabled` and the `locale` settings from the saved file, so
+  after a change to either it stated the opposite of what was in use, telling an owner that
+  statistics were off while bStats and FastStats kept submitting. A saved change that is
+  waiting for a restart is now marked as such.
 - Resetting a voucher's or code's use counts while players redeem it no longer fails on
   MySQL, MariaDB or PostgreSQL. The database breaks such a deadlock by rolling one writer
   back, and that write is now restarted instead of reported as an error.
@@ -25,7 +35,8 @@ All notable changes to ProVouchers are documented here. This project follows
   web editor (https://docs.comficonf.com). Needs the ComfiConf bridge 0.1.0 or
   newer; without it nothing changes. Each save keeps the comments, the line endings
   and the other keys of `config.yml`, and backs up the previous file in
-  `plugins/ProVouchers/backups/`.
+  `plugins/ProVouchers/backups/`. A `config.yml` that is not UTF-8 text is reported
+  rather than saved, so a save cannot rewrite bytes it could not read.
   The anti-dupe and redeem settings, the Stash title, height and overflow apply at
   once; storage, aliases and the other startup settings after a restart.
 

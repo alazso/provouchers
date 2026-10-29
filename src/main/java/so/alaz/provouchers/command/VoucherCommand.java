@@ -40,11 +40,13 @@ import so.alaz.provouchers.voucher.Voucher;
 import so.alaz.provouchers.voucher.VoucherRegistry;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -110,7 +112,7 @@ public final class VoucherCommand {
     private final MigrationService migrationService;
     private final StashService stashService;
     /** Runs after {@code /voucher reload} re-read config.yml. */
-    private final Runnable configReloaded;
+    private final BooleanSupplier configReloaded;
     /** Set when the command is registered; used to re-read config.yml on reload. */
     private Plugin plugin;
 
@@ -128,7 +130,7 @@ public final class VoucherCommand {
         FromhandGui fromhandGui,
         MigrationService migrationService,
         StashService stashService,
-        Runnable configReloaded
+        BooleanSupplier configReloaded
     ) {
         this.registry = registry;
         this.giveService = giveService;
@@ -390,12 +392,13 @@ public final class VoucherCommand {
 
     private void reloadAll(CommandSourceStack source) {
         Player viewer = asPlayer(source);
-        if (plugin != null) {
-            plugin.reloadConfig();
-            configReloaded.run();
+        List<String> errors = new ArrayList<>();
+        if (plugin != null && !configReloaded.getAsBoolean()) {
+            errors.add("config.yml could not be read, so the settings in effect are unchanged. "
+                + "The console says which line it is.");
         }
         messages.reload();
-        List<String> errors = configManager.reload();
+        errors.addAll(configManager.reload());
         if (errors.isEmpty()) {
             reply(source, messages.get(viewer, "command.reload.success",
                 "vouchers", registry.voucherCount(), "codes", registry.codeCount()));

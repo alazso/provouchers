@@ -1,8 +1,6 @@
 package so.alaz.provouchers;
 
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.configuration.InvalidConfigurationException;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -14,6 +12,7 @@ import so.alaz.provouchers.command.StashCommand;
 import so.alaz.provouchers.command.VoucherCommand;
 import so.alaz.provouchers.comficonf.ComfiConfIntegration;
 import so.alaz.provouchers.condition.ConditionRegistry;
+import so.alaz.provouchers.config.ConfigFile;
 import so.alaz.provouchers.config.ConfigManager;
 import so.alaz.provouchers.config.LiveSettings;
 import so.alaz.provouchers.migrate.CrazyVouchersMigrator;
@@ -72,7 +71,6 @@ import so.alaz.provouchers.voucher.VoucherItemFactory;
 import so.alaz.provouchers.voucher.VoucherRegistry;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
@@ -226,7 +224,8 @@ public final class ProVouchersPlugin extends JavaPlugin {
         getServer().getOnlinePlayers().forEach(player -> cooldowns.hydrate(player.getUniqueId()));
         // The metrics handle is read live, since metrics start after the command is registered.
         Diagnostics diagnostics = new Diagnostics(this, storage, registry, hooks, messages,
-            () -> backend.name().toLowerCase(Locale.ROOT), () -> metrics, this::comfiConfStatus);
+            () -> backend.name().toLowerCase(Locale.ROOT), () -> metrics, this::comfiConfStatus,
+            getConfig().getBoolean("metrics.enabled", true));
         FromhandGui fromhandGui = new FromhandGui(guiManager, configManager, messages, text, getDataFolder());
         MigrationService migrationService = new MigrationService(
             new CrazyVouchersMigrator(getDataFolder(), registry));
@@ -341,7 +340,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
         Path dataFolder = getDataFolder().toPath();
         try {
             comfiConf = ComfiConfIntegration.register(this, dataFolder.resolve("config.yml"),
-                dataFolder.resolve("backups"), this::reloadSavedConfig);
+                dataFolder.resolve("backups"), this::reloadMainConfig);
             getLogger().info("Registered " + comfiConf.resourceId() + " with ComfiConf");
         } catch (LinkageError e) {
             Plugin bridge = getServer().getPluginManager().getPlugin(COMFICONF);
@@ -364,16 +363,14 @@ public final class ProVouchersPlugin extends JavaPlugin {
     }
 
     /**
-     * Re-reads config.yml into the copy {@link #getConfig()} returns, after ComfiConf saved it. Returns false and
-     * keeps the loaded copy when the file does not parse, which {@link #reloadConfig()} alone would hide. Runs on the
-     * server main thread.
+     * Re-reads config.yml into the copy {@link #getConfig()} returns and applies the settings that need no restart.
+     * Returns false and keeps the loaded copy when the file is missing or does not parse, which
+     * {@link #reloadConfig()} alone would hide by loading an empty configuration. Runs on the server main thread.
      */
-    private boolean reloadSavedConfig() {
-        try {
-            new YamlConfiguration().load(new File(getDataFolder(), "config.yml"));
-        } catch (IOException | InvalidConfigurationException e) {
-            getLogger().warning("config.yml could not be read after ComfiConf saved it; the loaded settings stay "
-                + "active until /voucher reload or a restart");
+    private boolean reloadMainConfig() {
+        String unreadable = ConfigFile.unreadableReason(new File(getDataFolder(), "config.yml"));
+        if (unreadable != null) {
+            getLogger().warning("config.yml could not be read, so the settings in effect stay active: " + unreadable);
             return false;
         }
         reloadConfig();
@@ -396,15 +393,18 @@ public final class ProVouchersPlugin extends JavaPlugin {
     }
 
     /**
-     * Runs after {@code /voucher reload} re-read config.yml: applies the settings that need no restart, then tells
-     * ComfiConf that the file changed outside it, so open editors load the newer values.
+     * Applies config.yml for {@code /voucher reload}, then tells ComfiConf that the file changed outside it, so open
+     * editors load the newer values. Returns false when the file could not be read and nothing was applied.
      */
-    private void onConfigReloaded() {
-        liveSettings.set(LiveSettings.from(getConfig()));
+    private boolean onConfigReloaded() {
+        if (!reloadMainConfig()) {
+            return false;
+        }
         ComfiConfHook registration = comfiConf;
         if (registration != null) {
             registration.notifyChanged();
         }
+        return true;
     }
 
     /** The {@code cooldown.tiers} config section as tier-name to multiplier; read once at enable. */

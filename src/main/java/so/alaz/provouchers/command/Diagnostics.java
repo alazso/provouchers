@@ -34,10 +34,12 @@ public final class Diagnostics {
     private final Supplier<String> backend;
     private final Supplier<Metrics> metrics;
     private final Supplier<String> comfiConf;
+    private final boolean metricsEnabledAtStartup;
 
     public Diagnostics(JavaPlugin plugin, VoucherStorage storage, VoucherRegistry registry,
                        HookRegistry hooks, Messages messages, Supplier<String> backend,
-                       Supplier<Metrics> metrics, Supplier<String> comfiConf) {
+                       Supplier<Metrics> metrics, Supplier<String> comfiConf,
+                       boolean metricsEnabledAtStartup) {
         this.plugin = plugin;
         this.storage = storage;
         this.registry = registry;
@@ -46,6 +48,7 @@ public final class Diagnostics {
         this.backend = backend;
         this.metrics = metrics;
         this.comfiConf = comfiConf;
+        this.metricsEnabledAtStartup = metricsEnabledAtStartup;
     }
 
     /** The report lines, as MiniMessage strings. */
@@ -62,9 +65,9 @@ public final class Diagnostics {
         lines.add("<gray>Permissions: " + providerName(hooks.get(PermissionHook.class)));
         lines.add("<gray>Items: " + itemProviders());
         lines.add("<gray>Regions: " + providerName(hooks.get(RegionHook.class)));
-        lines.add("<gray>Locale: <white>" + plugin.getConfig().getString("locale.default", "en")
-            + (plugin.getConfig().getBoolean("locale.per-player", true) ? " <dark_gray>(per-player)" : "")
-            + " <gray>| langs: <white>" + languages());
+        lines.add("<gray>Locale: <white>" + messages.defaultLocale()
+            + (messages.perPlayer() ? " <dark_gray>(per-player)" : "")
+            + " <gray>| langs: <white>" + languages() + localePending());
         lines.add("<gray>Metrics: " + metricsState());
         lines.add("<gray>ComfiConf: " + comfiConf.get());
         return lines;
@@ -72,19 +75,33 @@ public final class Diagnostics {
 
     /**
      * What each metrics provider is doing: whether it started, and for FastStats its SDK version,
-     * whether it submits metrics, and whether error reports are submitted. A provider that failed to
-     * start, or a server that opted out of FastStats, reads differently from the config switch alone.
+     * whether it submits metrics, and whether error reports are submitted. The state comes from the providers
+     * themselves, not from the saved {@code metrics.enabled}: that switch is read once at startup, so a change to
+     * it is still waiting for a restart and would otherwise be reported as what the server is doing.
      */
     private String metricsState() {
-        if (!plugin.getConfig().getBoolean("metrics.enabled", true)) {
-            return "<gray>off <dark_gray>(metrics.enabled: false)";
-        }
         Metrics handle = metrics.get();
         if (handle == null) {
-            return "<red>not started <dark_gray>(no provider configured, or enable failed)";
+            return (metricsEnabledAtStartup
+                ? "<red>not started <dark_gray>(no provider configured, or enable failed)"
+                : "<gray>off <dark_gray>(metrics.enabled: false)") + metricsPending();
         }
         return "<white>bStats " + (handle.bStatsStarted() ? "<green>on" : "<red>not started")
-            + "<gray>, " + fastStatsState(handle);
+            + "<gray>, " + fastStatsState(handle) + metricsPending();
+    }
+
+    /** Says so when the saved {@code metrics.enabled} no longer matches the value the providers started with. */
+    private String metricsPending() {
+        return plugin.getConfig().getBoolean("metrics.enabled", true) == metricsEnabledAtStartup
+            ? "" : " <yellow>(metrics.enabled changed; takes effect after a restart)";
+    }
+
+    /** Says so when the saved locale settings no longer match the ones the messages were loaded with. */
+    private String localePending() {
+        boolean same = messages.defaultLocale()
+            .equals(Messages.normalizeLocale(plugin.getConfig().getString("locale.default")))
+            && messages.perPlayer() == plugin.getConfig().getBoolean("locale.per-player", true);
+        return same ? "" : " <yellow>(locale changed; takes effect after a restart)";
     }
 
     private static String fastStatsState(Metrics handle) {
