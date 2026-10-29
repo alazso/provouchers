@@ -32,6 +32,7 @@ Create vouchers and redeemable codes backed by a **powerful ecosystem of integra
 | 🛡️ **Anti-dupe that holds** | Per-item stamps in persistent storage. Clones are rejected; creative, crafting, and item frames are blocked. |
 | ⏳ **Persistent limits** | Cooldowns and usage caps survive restarts and apply network-wide on a shared database. |
 | 🔌 **Drop-in integrations** | ItemsAdder, Oraxen, Nexo, Head Database, Vault, LuckPerms, PlaceholderAPI, MiniPlaceholders, WorldGuard. |
+| 🖥️ **Settings in your browser** | Optional ComfiConf support: edit `config.yml` in a web editor, with the anti-dupe, redeem, and Stash menu settings applying without a restart. |
 
 <br>
 
@@ -122,7 +123,7 @@ Drop ProVouchers in beside it and run **`/voucher import crazyvouchers`**. It co
 | **Minecraft** | 26.1 or newer |
 | **Java** | 25 |
 
-**Optional integrations:** Vault (economy), LuckPerms, PlaceholderAPI, MiniPlaceholders, WorldGuard, ItemsAdder, Oraxen, Nexo, Head Database. Each is detected automatically when installed; nothing breaks when it is absent.
+**Optional integrations:** Vault (economy), LuckPerms, PlaceholderAPI, MiniPlaceholders, WorldGuard, ItemsAdder, Oraxen, Nexo, Head Database, and [ComfiConf](https://alaz.so/provouchers/docs/comficonf) for editing the settings in a browser. Each is detected automatically when installed; nothing breaks when it is absent.
 
 <br>
 
