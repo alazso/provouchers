@@ -34,6 +34,10 @@ updates:
       - dependency-name: "io.papermc.paper:paper-api"
       # Pinned to the WorldEdit version WorldGuard is built against; bumped by hand with WorldGuard.
       - dependency-name: "com.sk89q.worldedit:*"
+      # 4.0.0 defaults sslMode to verify-full; ProVouchers builds JDBC URLs without it, so every plain
+      # connection would fail. Held until config.yml can set the SSL mode.
+      - dependency-name: "org.mariadb.jdbc:mariadb-java-client"
+        update-types: ["version-update:semver-major"]
     groups:
       # compileOnly plugin APIs - low urgency w/ one collective PR.
       integration-apis:
