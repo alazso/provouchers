@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.UnaryOperator;
 import java.util.logging.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -87,6 +88,44 @@ class ConfigYmlProviderTest {
         assertThat(reloads).hasValue(1);
         assertThat(loaded.get().getString("stash.overflow")).isEqualTo("stash");
         assertThat(SafeFileWriter.listBackups(file, BackupPolicy.in(backups))).hasSize(1);
+    }
+
+    @Test
+    void savesAFileWrittenWithCarriageReturnsWithCarriageReturns() throws Exception {
+        Files.write(file, withCarriageReturns(ConfigYmlMappingTest.shippedConfig()));
+        ConfigSnapshot current = provider.read();
+
+        ApplyResult result = provider.apply(TestApplyContext.changing(current.revision(), current.values(),
+            "stash.overflow", "stash", ApplyMode.LIVE));
+
+        assertThat(result.status()).isEqualTo(ApplyStatus.APPLIED);
+        String written = Files.readString(file);
+        assertThat(written).contains("overflow: stash");
+        assertThat(written.replace("\r\n", "")).doesNotContain("\n").doesNotContain("\r");
+    }
+
+    @Test
+    void savesAFileWrittenWithLineFeedsWithLineFeeds() throws Exception {
+        Files.write(file, withLineFeeds(ConfigYmlMappingTest.shippedConfig()));
+        ConfigSnapshot current = provider.read();
+
+        ApplyResult result = provider.apply(TestApplyContext.changing(current.revision(), current.values(),
+            "stash.overflow", "stash", ApplyMode.LIVE));
+
+        assertThat(result.status()).isEqualTo(ApplyStatus.APPLIED);
+        assertThat(Files.readString(file)).contains("overflow: stash").doesNotContain("\r");
+    }
+
+    @Test
+    void readsBackTheValuesOfAFileSavedWithCarriageReturns() throws Exception {
+        Files.write(file, withCarriageReturns(ConfigYmlMappingTest.shippedConfig()));
+        ConfigSnapshot current = provider.read();
+
+        provider.apply(TestApplyContext.changing(current.revision(), current.values(), "stash.rows", 4L,
+            ApplyMode.LIVE));
+
+        assertThat(loaded.get().getInt("stash.rows")).isEqualTo(4);
+        assertThat(loaded.get().getString("stash.overflow")).isEqualTo("drop");
     }
 
     @Test
@@ -168,7 +207,8 @@ class ConfigYmlProviderTest {
         provider.apply(TestApplyContext.changing(current.revision(), current.values(),
             "redeem.confirm-window-seconds", 10L, ApplyMode.RESTART));
 
-        assertThat(Files.readString(file)).contains("confirm-window-seconds: 10\n").doesNotContain("10.0");
+        assertThat(new String(withLineFeeds(Files.readAllBytes(file)), StandardCharsets.UTF_8))
+            .contains("confirm-window-seconds: 10\n").doesNotContain("10.0");
         assertThat(loaded.get().getLong("redeem.confirm-window-seconds")).isEqualTo(10L);
     }
 
@@ -256,5 +296,17 @@ class ConfigYmlProviderTest {
         ValidationResult missing = provider.validate(values.with("locale.default", "xx"));
         assertThat(missing.isValid()).isTrue();
         assertThat(missing.warnings()).extracting(ValidationIssue::path).containsExactly("locale.default");
+    }
+
+    private static byte[] withCarriageReturns(byte[] content) {
+        return withText(content, text -> text.replace("\r\n", "\n").replace("\n", "\r\n"));
+    }
+
+    private static byte[] withLineFeeds(byte[] content) {
+        return withText(content, text -> text.replace("\r\n", "\n"));
+    }
+
+    private static byte[] withText(byte[] content, UnaryOperator<String> change) {
+        return change.apply(new String(content, StandardCharsets.UTF_8)).getBytes(StandardCharsets.UTF_8);
     }
 }

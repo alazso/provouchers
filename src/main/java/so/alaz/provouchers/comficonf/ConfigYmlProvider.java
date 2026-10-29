@@ -19,7 +19,6 @@ import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -129,7 +128,7 @@ final class ConfigYmlProvider implements ConfigProvider {
         }
         YamlConfiguration yaml = Yaml.parse(current);
         mapper.write(context.proposed(), yaml);
-        byte[] updated = yaml.saveToString().getBytes(StandardCharsets.UTF_8);
+        byte[] updated = Yaml.encodeLike(yaml.saveToString(), current);
         List<String> altered = alteredPaths(context.proposed(), Yaml.parse(updated));
         if (!altered.isEmpty()) {
             ValidationResult.Builder rejection = ValidationResult.builder();

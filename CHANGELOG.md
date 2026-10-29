@@ -23,8 +23,9 @@ All notable changes to ProVouchers are documented here. This project follows
 ### Added
 - Optional ComfiConf support: edit the settings of `config.yml` in the ComfiConf
   web editor (https://docs.comficonf.com). Needs the ComfiConf bridge 0.1.0 or
-  newer; without it nothing changes. Each save keeps the comments and other keys
-  of `config.yml` and backs up the previous file in `plugins/ProVouchers/backups/`.
+  newer; without it nothing changes. Each save keeps the comments, the line endings
+  and the other keys of `config.yml`, and backs up the previous file in
+  `plugins/ProVouchers/backups/`.
   The anti-dupe and redeem settings, the Stash title, height and overflow apply at
   once; storage, aliases and the other startup settings after a restart.
 
