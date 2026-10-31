@@ -9,6 +9,7 @@ import net.luckperms.api.node.types.PermissionNode;
 import net.luckperms.api.query.QueryOptions;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
+import so.alaz.provouchers.metrics.ErrorReports;
 import so.alaz.provouchers.platform.Classes;
 
 import java.time.Duration;
@@ -40,7 +41,8 @@ public final class LuckPermsPermissionHook implements PermissionHook {
         try {
             LuckPermsProvider.get();
             return true;
-        } catch (Throwable ignored) {
+        } catch (Throwable ex) {
+            ErrorReports.report("hook.luckperms", ex);
             return false;
         }
     }
@@ -62,7 +64,8 @@ public final class LuckPermsPermissionHook implements PermissionHook {
             return user.getInheritedGroups(QueryOptions.nonContextual()).stream()
                 .map(group -> group.getName())
                 .toList();
-        } catch (Throwable ignored) {
+        } catch (Throwable ex) {
+            ErrorReports.report("hook.luckperms", ex);
             return List.of();
         }
     }
@@ -110,7 +113,8 @@ public final class LuckPermsPermissionHook implements PermissionHook {
     private User user(Player player) {
         try {
             return LuckPermsProvider.get().getUserManager().getUser(player.getUniqueId());
-        } catch (Throwable ignored) {
+        } catch (Throwable ex) {
+            ErrorReports.report("hook.luckperms", ex);
             return null;
         }
     }
@@ -128,7 +132,8 @@ public final class LuckPermsPermissionHook implements PermissionHook {
                 manager.saveUser(user).join();
             }
             return changed;
-        } catch (Throwable ignored) {
+        } catch (Throwable ex) {
+            ErrorReports.report("hook.luckperms", ex);
             // A missing or version-incompatible LuckPerms degrades to "not changed".
             return false;
         }

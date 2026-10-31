@@ -4,6 +4,7 @@ import me.arcaniax.hdb.api.HeadDatabaseAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
+import so.alaz.provouchers.metrics.ErrorReports;
 import so.alaz.provouchers.platform.Classes;
 
 import java.util.List;
@@ -39,7 +40,8 @@ public final class HeadDatabaseItemHook implements ItemHook {
             // getItemHead returns a placeholder head for an unknown id, which would stop the other
             // item providers from resolving it.
             return api.isHead(head) ? api.getItemHead(head) : null;
-        } catch (Throwable ignored) {
+        } catch (Throwable ex) {
+            ErrorReports.report("hook.headdatabase", ex);
             return null;
         }
     }

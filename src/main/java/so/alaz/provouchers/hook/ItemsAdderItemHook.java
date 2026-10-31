@@ -4,6 +4,7 @@ import dev.lone.itemsadder.api.CustomStack;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
+import so.alaz.provouchers.metrics.ErrorReports;
 import so.alaz.provouchers.platform.Classes;
 
 /**
@@ -30,7 +31,8 @@ public final class ItemsAdderItemHook implements ItemHook {
         try {
             CustomStack stack = CustomStack.getInstance(id);
             return stack != null ? stack.getItemStack() : null;
-        } catch (Throwable ignored) {
+        } catch (Throwable ex) {
+            ErrorReports.report("hook.itemsadder", ex);
             return null;
         }
     }

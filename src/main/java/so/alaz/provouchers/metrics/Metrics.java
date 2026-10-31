@@ -1,5 +1,6 @@
 package so.alaz.provouchers.metrics;
 
+import dev.faststats.Attributes;
 import dev.faststats.SdkInfo;
 import dev.faststats.bukkit.BukkitContext;
 import org.jetbrains.annotations.Nullable;
@@ -59,6 +60,27 @@ public final class Metrics {
     public boolean fastStatsErrorTracking() {
         return reads(context -> context.errorTrackerService().isPresent()
             && context.getConfig().errorTracking());
+    }
+
+    /**
+     * Reports an error the plugin caught and handled, so it reaches the provider's error tracking.
+     * Automatic capture only sees an error that escapes to the server or kills a thread, so an error
+     * handled here is invisible without this call. Does nothing without a provider, and never throws.
+     *
+     * @param source where the error was handled, as a short stable key
+     */
+    public void report(String source, Throwable error) {
+        if (fastStats == null) {
+            return;
+        }
+        try {
+            fastStats.errorTrackerService().ifPresent(service -> service.globalErrorTracker()
+                .trackError(error)
+                .attributes(Attributes.empty().put("source", source))
+                .handled(true));
+        } catch (RuntimeException ignored) {
+            // Reporting an error must never raise one.
+        }
     }
 
     /** Stops submission for all enabled providers. Idempotent. */

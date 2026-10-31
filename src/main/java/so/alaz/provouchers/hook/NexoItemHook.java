@@ -5,6 +5,7 @@ import com.nexomc.nexo.items.ItemBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
+import so.alaz.provouchers.metrics.ErrorReports;
 import so.alaz.provouchers.platform.Classes;
 
 /**
@@ -34,7 +35,8 @@ public final class NexoItemHook implements ItemHook {
             }
             ItemBuilder builder = NexoItems.itemFromId(id);
             return builder != null ? builder.build() : null;
-        } catch (Throwable ignored) {
+        } catch (Throwable ex) {
+            ErrorReports.report("hook.nexo", ex);
             return null;
         }
     }

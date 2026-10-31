@@ -4,6 +4,7 @@ import io.th0rgal.oraxen.api.OraxenItems;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
+import so.alaz.provouchers.metrics.ErrorReports;
 import so.alaz.provouchers.platform.Classes;
 
 /**
@@ -29,7 +30,8 @@ public final class OraxenItemHook implements ItemHook {
     public ItemStack createItem(String id) {
         try {
             return OraxenItems.exists(id) ? OraxenItems.getItemById(id).build() : null;
-        } catch (Throwable ignored) {
+        } catch (Throwable ex) {
+            ErrorReports.report("hook.oraxen", ex);
             return null;
         }
     }

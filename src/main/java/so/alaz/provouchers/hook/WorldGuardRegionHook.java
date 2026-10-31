@@ -7,6 +7,7 @@ import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
+import so.alaz.provouchers.metrics.ErrorReports;
 import so.alaz.provouchers.platform.Classes;
 
 import java.util.List;
@@ -44,7 +45,8 @@ public final class WorldGuardRegionHook implements RegionHook {
             return manager.getApplicableRegions(BukkitAdapter.asBlockVector(location)).getRegions().stream()
                 .map(ProtectedRegion::getId)
                 .toList();
-        } catch (Throwable ignored) {
+        } catch (Throwable ex) {
+            ErrorReports.report("hook.worldguard", ex);
             return List.of();
         }
     }

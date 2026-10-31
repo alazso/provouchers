@@ -1,5 +1,6 @@
 package so.alaz.provouchers.antidupe;
 
+import so.alaz.provouchers.metrics.ErrorReports;
 import so.alaz.provouchers.storage.VoucherStorage;
 
 import java.sql.SQLException;
@@ -31,6 +32,7 @@ public final class DupeDetector {
             return storage.isUsed(uid) ? StampStatus.DUPLICATE : StampStatus.VALID;
         } catch (SQLException | RuntimeException ex) {
             // Any failure, including a pool that is not open, is unverifiable.
+            ErrorReports.report("antidupe.check", ex);
             return StampStatus.UNKNOWN;
         }
     }
@@ -46,6 +48,7 @@ public final class DupeDetector {
         try {
             return storage.recordUse(uid, player, claimedAt) ? ClaimOutcome.CLAIMED : ClaimOutcome.TAKEN;
         } catch (SQLException | RuntimeException ex) {
+            ErrorReports.report("antidupe.claim", ex);
             return ClaimOutcome.UNKNOWN;
         }
     }
@@ -61,6 +64,7 @@ public final class DupeDetector {
             storage.deleteUse(uid, player, claimedAt);
             return true;
         } catch (SQLException | RuntimeException ex) {
+            ErrorReports.report("antidupe.release", ex);
             return false;
         }
     }
