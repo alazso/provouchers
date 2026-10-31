@@ -1,6 +1,7 @@
 package so.alaz.provouchers.cooldown;
 
 import so.alaz.provouchers.storage.VoucherStorage;
+import so.alaz.provouchers.metrics.ErrorReports;
 import so.alaz.provouchers.platform.CooldownManager;
 import so.alaz.provouchers.platform.Scheduler;
 
@@ -53,6 +54,7 @@ public final class CooldownService {
                 storage.setCooldown(player, voucherId, expiresAt);
             } catch (SQLException | RuntimeException ex) {
                 // Best-effort: the cooldown still holds in memory for this session.
+                ErrorReports.report("cooldown.persist", ex);
             }
         });
     }
@@ -99,6 +101,7 @@ public final class CooldownService {
         try {
             active = storage.activeCooldowns(player, now);
         } catch (SQLException | RuntimeException ex) {
+            ErrorReports.report("cooldown.load", ex);
             Duration delay = readiness.fail(load);
             if (delay != null) {
                 scheduler.delayedAsync(() -> attemptLoad(load), delay.toMillis(), TimeUnit.MILLISECONDS);

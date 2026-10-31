@@ -55,6 +55,7 @@ import so.alaz.provouchers.listener.VoucherInteractListener;
 import so.alaz.provouchers.listener.VoucherStationListener;
 import so.alaz.provouchers.metrics.MetricCounters;
 import so.alaz.provouchers.metrics.Metrics;
+import so.alaz.provouchers.metrics.ErrorReports;
 import so.alaz.provouchers.metrics.VoucherMetrics;
 import so.alaz.provouchers.platform.CooldownManager;
 import so.alaz.provouchers.platform.DiscordWebhook;
@@ -240,6 +241,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
 
         metrics = VoucherMetrics.start(this, registry, counters,
             () -> backend.name().toLowerCase(Locale.ROOT));
+        ErrorReports.install(metrics);
 
         hookComfiConf();
 
@@ -257,6 +259,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
         if (guiManager != null) {
             closeQuietly("close open menus", guiManager::closeAll);
         }
+        ErrorReports.clear();
         if (metrics != null) {
             closeQuietly("stop metrics", metrics::shutdown);
         }
@@ -296,6 +299,7 @@ public final class ProVouchersPlugin extends JavaPlugin {
             }
             getComponentLogger().warn(text("ProVouchers: failed to " + what + " during shutdown: "
                 + t, NamedTextColor.RED));
+            ErrorReports.report("shutdown", t);
         }
     }
 

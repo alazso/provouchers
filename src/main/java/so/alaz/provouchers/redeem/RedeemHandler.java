@@ -48,6 +48,7 @@ import so.alaz.provouchers.config.LiveSettings;
 import so.alaz.provouchers.cooldown.CooldownService;
 import so.alaz.provouchers.cooldown.CooldownTiers;
 import so.alaz.provouchers.gui.ConfirmGui;
+import so.alaz.provouchers.metrics.ErrorReports;
 import so.alaz.provouchers.locale.Messages;
 import so.alaz.provouchers.platform.PendingSettlements;
 import so.alaz.provouchers.platform.Scheduler;
@@ -550,6 +551,7 @@ public final class RedeemHandler {
             };
             return new Reservation(result.reserved(), denialKey);
         } catch (SQLException | RuntimeException ex) {
+            ErrorReports.report("redeem.reserve", ex);
             return new Reservation(0, "redeem.verify-failed");
         }
     }
@@ -561,7 +563,8 @@ public final class RedeemHandler {
         }
         try {
             storage.releaseUses(key, player, count);
-        } catch (SQLException | RuntimeException ignored) {
+        } catch (SQLException | RuntimeException ex) {
+            ErrorReports.report("redeem.release-uses", ex);
         }
     }
 
@@ -818,6 +821,7 @@ public final class RedeemHandler {
                         : reservation.limit() == UseLimit.PER_PLAYER ? "code.already-redeemed"
                         : "code.global-limit";
                 } catch (SQLException | RuntimeException ex) {
+                    ErrorReports.report("code.reserve", ex);
                     denialKey = "code.verify-failed";
                 }
                 if (denialKey != null) {

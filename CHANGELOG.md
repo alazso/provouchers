@@ -6,6 +6,13 @@ All notable changes to ProVouchers are documented here. This project follows
 
 ## [Unreleased]
 
+### Changed
+- An error the plugin catches and recovers from is now included in the error reports it
+  submits, which previously carried only an error that reached the server itself. This
+  covers the anti-dupe check, cooldown storage, use and code reservation, a reward that
+  failed, a shutdown step that failed, and an integration that is installed but
+  incompatible. `metrics.enabled: false` still submits nothing at all.
+
 ## [1.6.0] - 2026-10-28
 
 ### Changed

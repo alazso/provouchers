@@ -19,6 +19,7 @@ import so.alaz.provouchers.reward.RewardType;
 import so.alaz.provouchers.reward.XpRewardPayload;
 import so.alaz.provouchers.util.Placeholders;
 import so.alaz.provouchers.hook.EconomyHook;
+import so.alaz.provouchers.metrics.ErrorReports;
 import so.alaz.provouchers.hook.HookRegistry;
 import so.alaz.provouchers.hook.PermissionHook;
 import so.alaz.provouchers.platform.DiscordWebhook;
@@ -88,6 +89,7 @@ public final class RewardExecutor {
                 execute(player, source, reward, arg, quiet, namedRolls, definedItems, webhooks);
             } catch (RuntimeException ex) {
                 warn(source, reward.type().name().toLowerCase(), reward.payload(), ex.getMessage());
+                ErrorReports.report("reward." + reward.type().name().toLowerCase(), ex);
             }
         }
     }

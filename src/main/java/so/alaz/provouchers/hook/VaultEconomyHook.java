@@ -4,6 +4,7 @@ import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.Nullable;
+import so.alaz.provouchers.metrics.ErrorReports;
 import so.alaz.provouchers.platform.Classes;
 
 /**
@@ -48,7 +49,8 @@ public final class VaultEconomyHook implements EconomyHook {
         try {
             var registration = Bukkit.getServicesManager().getRegistration(Economy.class);
             return registration != null ? registration.getProvider() : null;
-        } catch (Throwable ignored) {
+        } catch (Throwable ex) {
+            ErrorReports.report("hook.vault", ex);
             // A broken or version-incompatible Vault degrades to unavailable.
             return null;
         }
