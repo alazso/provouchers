@@ -45,7 +45,7 @@ public final class Metrics {
 
     /**
      * Whether FastStats is enabled for this server. It is off when the server owner opted out in
-     * {@code config/faststats/config.properties} or with {@code -Dfaststats.enabled=false}.
+     * {@code plugins/faststats/config.properties} or with {@code -Dfaststats.enabled=false}.
      */
     public boolean fastStatsEnabled() {
         return reads(context -> context.getConfig().enabled());
