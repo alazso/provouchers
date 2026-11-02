@@ -89,7 +89,7 @@ public final class VoucherCommand {
         new Sub("giveall", "giveall <id> [amount] [permission]", PERM_GIVEALL),
         new Sub("stashgive", "stashgive <player> <id> [amount] [argument]", PERM_STASHGIVE),
         new Sub("redeem", "redeem <code> [argument]", PERM_REDEEM),
-        new Sub("preview", "preview", PERM_PREVIEW),
+        new Sub("preview", "preview [id]", PERM_PREVIEW),
         new Sub("list", "list", PERM_LIST),
         new Sub("reload", "reload [id]", PERM_RELOAD),
         new Sub("resetuses", "resetuses <id> [player]", PERM_RESETUSES),
@@ -164,7 +164,10 @@ public final class VoucherCommand {
             .then(stashGiveTree())
             .then(redeemTree())
             .then(Commands.literal("preview").requires(perm(PERM_PREVIEW))
-                .executes(run(ctx -> preview(ctx.getSource()))))
+                .executes(run(ctx -> preview(ctx.getSource())))
+                .then(Commands.argument("id", StringArgumentType.word())
+                    .suggests((ctx, builder) -> suggest(builder, registry.voucherIds()))
+                    .executes(run(this::previewVoucher))))
             .then(Commands.literal("list").requires(perm(PERM_LIST))
                 .executes(run(ctx -> list(ctx.getSource()))))
             .then(Commands.literal("reload").requires(perm(PERM_RELOAD))
@@ -377,6 +380,22 @@ public final class VoucherCommand {
             return;
         }
         previewGui.open(player);
+    }
+
+    private void previewVoucher(CommandContext<CommandSourceStack> ctx) {
+        CommandSourceStack source = ctx.getSource();
+        Player player = asPlayer(source);
+        if (player == null) {
+            reply(source, messages.get(null, "command.preview.players-only"));
+            return;
+        }
+        String id = StringArgumentType.getString(ctx, "id");
+        Voucher voucher = registry.getVoucher(id).orElse(null);
+        if (voucher == null) {
+            reply(source, messages.get(player, "command.unknown-voucher", "id", id));
+            return;
+        }
+        previewGui.openVoucher(player, voucher);
     }
 
     private void list(CommandSourceStack source) {

@@ -22,6 +22,10 @@ All notable changes to ProVouchers are documented here. This project follows
   turn it off if your server relies on those. Item frames stay blocked either way, and other
   players are never affected.
 
+### Added
+- `/voucher preview <id>` opens one voucher's admin menu directly, with the id tab-completed
+  from the loaded vouchers. Going back from that menu opens the full browser.
+
 ## [1.6.0] - 2026-10-28
 
 ### Changed
