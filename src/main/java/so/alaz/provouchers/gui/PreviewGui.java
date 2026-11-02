@@ -20,7 +20,7 @@ import java.util.concurrent.CompletableFuture;
 /**
  * The staff voucher browser: a paginated chest of every loaded voucher. Right-clicking an
  * entry gives the viewer one; any other click opens its admin info menu. Opened by
- * {@code /voucher preview}, which requires {@code provouchers.preview}.
+ * {@code /voucher preview [id]}, which requires {@code provouchers.preview}.
  */
 public final class PreviewGui {
 
@@ -68,6 +68,12 @@ public final class PreviewGui {
         });
     }
 
+    /** Opens one voucher's admin info menu once its icon is built. Back opens the full browser. */
+    public void openVoucher(Player viewer, Voucher voucher) {
+        factory.buildDisplay(voucher, viewer).thenAccept(icon ->
+            scheduler.entity(viewer, () -> guiManager.open(infoMenu(voucher, icon), viewer)));
+    }
+
     private Button entry(Voucher voucher, ItemStack icon) {
         return Button.of(icon, click -> {
             if (click.getClickType().isRightClick()) {
@@ -75,10 +81,14 @@ public final class PreviewGui {
                 return GuiAction.none()
                     .withMessage(text.render("<green>Gave <gold>" + voucher.id() + "</gold>."));
             }
-            return GuiAction.open(adminMenu.build(voucher, icon, back -> {
-                open(back.getPlayer());
-                return GuiAction.none();
-            }));
+            return GuiAction.open(infoMenu(voucher, icon));
+        });
+    }
+
+    private Gui infoMenu(Voucher voucher, ItemStack icon) {
+        return adminMenu.build(voucher, icon, back -> {
+            open(back.getPlayer());
+            return GuiAction.none();
         });
     }
 
