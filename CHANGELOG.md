@@ -13,6 +13,15 @@ All notable changes to ProVouchers are documented here. This project follows
   failed, a shutdown step that failed, and an integration that is installed but
   incompatible. `metrics.enabled: false` still submits nothing at all.
 
+### Fixed
+- A voucher can no longer be used on a mob, armor stand or other entity, where the game
+  could spend it with no reward: a voucher made from a name tag named the target, one made
+  from a lead, saddle, dye or breeding food was used up the same way, and an armor stand
+  could take any voucher. `redeem.block-entity-use` controls this and is on by default.
+  While a voucher is held it also stops trading, mounting and clicking a non-player NPC, so
+  turn it off if your server relies on those. Item frames stay blocked either way, and other
+  players are never affected.
+
 ## [1.6.0] - 2026-10-28
 
 ### Changed

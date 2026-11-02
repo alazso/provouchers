@@ -52,6 +52,12 @@ redeem:
   # Left-click a held voucher to preview its rewards in a GUI.
   # Experimental; off by default.
   left-click-preview: false
+  # Keep a held voucher from acting on a mob, armor stand or other entity. Without this,
+  # the game spends a voucher made from a name tag, lead, saddle, dye or breeding food with
+  # no reward, and an armor stand can take any voucher. While a voucher is held this also
+  # stops trading, mounting and clicking a non-player NPC, so turn it off if your server
+  # relies on those. Item frames are always blocked; other players are never affected.
+  block-entity-use: true
   # When batch-opening a stack (shift-right-click), suppress the per-item reward
   # feedback (messages, titles, sounds) and show one summary line instead of many.
   batch-open-quiet: true

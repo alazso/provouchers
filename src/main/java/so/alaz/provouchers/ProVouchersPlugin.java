@@ -210,7 +210,8 @@ public final class ProVouchersPlugin extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(
             new VoucherInteractListener(stamp, redeemHandler, registry, rewardPreviewGui,
-                () -> liveSettings.get().leftClickPreview()), this);
+                () -> liveSettings.get().leftClickPreview(),
+                () -> liveSettings.get().blockEntityUse()), this);
         getServer().getPluginManager().registerEvents(new CooldownLoadListener(cooldowns), this);
         getServer().getPluginManager().registerEvents(new GuiListener(guiManager), this);
         getServer().getPluginManager().registerEvents(new VoucherStationListener(stamp), this);

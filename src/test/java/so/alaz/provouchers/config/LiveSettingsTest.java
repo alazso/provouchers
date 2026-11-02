@@ -29,6 +29,7 @@ class LiveSettingsTest {
             assertThat(settings.confirmWindowSeconds()).isEqualTo(5);
             assertThat(settings.guiConfirm()).isFalse();
             assertThat(settings.leftClickPreview()).isFalse();
+            assertThat(settings.blockEntityUse()).isTrue();
             assertThat(settings.stashRows()).isEqualTo(6);
             assertThat(settings.stashTitle()).contains("Your Stash");
         }
@@ -46,6 +47,7 @@ class LiveSettingsTest {
                 enabled: false
             redeem:
               left-click-preview: true
+              block-entity-use: false
               batch-open-quiet: false
               confirm-window-seconds: 30
               confirm-style: gui
@@ -54,7 +56,7 @@ class LiveSettingsTest {
               rows: 3
             """));
         assertThat(settings).isEqualTo(new LiveSettings(false, true, "<gold>copied", false, false, 30, true, true,
-            "<red>Rewards", 3));
+            false, "<red>Rewards", 3));
     }
 
     @Test
