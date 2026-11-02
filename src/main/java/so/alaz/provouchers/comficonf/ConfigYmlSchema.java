@@ -87,6 +87,11 @@ final class ConfigYmlSchema {
                 ConfigField.bool("left-click-preview")
                     .description("Left-click a held voucher to preview its rewards in a menu. Experimental.")
                     .optional(),
+                ConfigField.bool("block-entity-use")
+                    .description("Keep a held voucher from acting on a mob, armor stand or other entity, where "
+                        + "the game can spend it with no reward. While a voucher is held this also stops "
+                        + "trading, mounting and clicking a non-player NPC. Item frames are always blocked.")
+                    .optional(),
                 ConfigField.bool("batch-open-quiet")
                     .description("When a stack is opened at once (shift-right-click), show one summary line "
                         + "instead of the messages, titles and sounds of every voucher.")

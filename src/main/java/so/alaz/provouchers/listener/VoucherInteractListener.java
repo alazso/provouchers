@@ -1,9 +1,12 @@
 package so.alaz.provouchers.listener;
 
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemFrame;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 
@@ -19,7 +22,7 @@ import so.alaz.provouchers.voucher.VoucherRegistry;
 /**
  * Turns interactions with a voucher item into actions: a right-click redeems it (a
  * sneak-right-click batch-opens a stack), an optional left-click previews its rewards in
- * a GUI, and placing a voucher into an item frame is blocked.
+ * a GUI, and using a voucher on an entity is blocked.
  */
 public final class VoucherInteractListener implements Listener {
 
@@ -28,14 +31,17 @@ public final class VoucherInteractListener implements Listener {
     private final VoucherRegistry registry;
     private final RewardPreviewGui previewGui;
     private final BooleanSupplier leftClickPreview;
+    private final BooleanSupplier blockEntityUse;
 
     public VoucherInteractListener(VoucherStamp stamp, RedeemHandler handler, VoucherRegistry registry,
-                                   RewardPreviewGui previewGui, BooleanSupplier leftClickPreview) {
+                                   RewardPreviewGui previewGui, BooleanSupplier leftClickPreview,
+                                   BooleanSupplier blockEntityUse) {
         this.stamp = stamp;
         this.handler = handler;
         this.registry = registry;
         this.previewGui = previewGui;
         this.leftClickPreview = leftClickPreview;
+        this.blockEntityUse = blockEntityUse;
     }
 
     @EventHandler
@@ -65,9 +71,15 @@ public final class VoucherInteractListener implements Listener {
         }
     }
 
+    /**
+     * Keeps a held voucher from acting on an entity, where the game would spend it with no reward (a
+     * name tag names the target, a lead leashes it, food breeds it) or take it (an item frame or armor
+     * stand holds it, an allay carries it). {@link PlayerInteractAtEntityEvent}, the event the server
+     * fires for an entity click, has no handler list of its own, so this listener receives it.
+     */
     @EventHandler
-    public void onPlaceInItemFrame(PlayerInteractEntityEvent event) {
-        if (!(event.getRightClicked() instanceof ItemFrame)) {
+    public void onUseOnEntity(PlayerInteractEntityEvent event) {
+        if (!blocksUseOn(event.getRightClicked(), blockEntityUse.getAsBoolean())) {
             return;
         }
         ItemStack item = event.getPlayer().getInventory().getItem(event.getHand());
@@ -78,5 +90,18 @@ public final class VoucherInteractListener implements Listener {
         if (meta != null && stamp.isVoucher(meta)) {
             event.setCancelled(true);
         }
+    }
+
+    /**
+     * Whether a voucher is kept from acting on {@code target}. Item frames are always covered. Other
+     * entities follow {@code redeem.block-entity-use}, because cancelling also stops the entity's own
+     * interaction while a voucher is held: trading, mounting, clicking a mob-type NPC. Players are never
+     * covered: no item acts on a player, and a player-type NPC has to stay clickable.
+     */
+    static boolean blocksUseOn(Entity target, boolean blockEntityUse) {
+        if (target instanceof Player) {
+            return false;
+        }
+        return target instanceof ItemFrame || blockEntityUse;
     }
 }

@@ -65,6 +65,7 @@ class ConfigYmlMappingTest {
             "anti-dupe.warning.text",
             "anti-dupe.notify.enabled",
             "redeem.left-click-preview",
+            "redeem.block-entity-use",
             "redeem.batch-open-quiet",
             "redeem.confirm-window-seconds",
             "redeem.confirm-style",

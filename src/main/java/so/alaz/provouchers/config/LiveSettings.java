@@ -17,6 +17,7 @@ import org.bukkit.configuration.file.FileConfiguration;
  * @param confirmWindowSeconds how long a two-step confirmation stays valid
  * @param guiConfirm ask for the second confirmation click in a menu instead of chat
  * @param leftClickPreview left-click a held voucher to preview its rewards
+ * @param blockEntityUse keep a held voucher from acting on a mob, armor stand or other entity
  * @param stashTitle title of the Stash menu, as MiniMessage
  * @param stashRows height of the Stash menu
  */
@@ -29,6 +30,7 @@ public record LiveSettings(
     long confirmWindowSeconds,
     boolean guiConfirm,
     boolean leftClickPreview,
+    boolean blockEntityUse,
     String stashTitle,
     int stashRows
 ) {
@@ -44,6 +46,7 @@ public record LiveSettings(
             config.getLong("redeem.confirm-window-seconds", 5L),
             "gui".equalsIgnoreCase(config.getString("redeem.confirm-style", "chat")),
             config.getBoolean("redeem.left-click-preview", false),
+            config.getBoolean("redeem.block-entity-use", true),
             config.getString("stash.title", "<gradient:#FFD700:#FF8A00>Your Stash"),
             config.getInt("stash.rows", 6));
     }
