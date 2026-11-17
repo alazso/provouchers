@@ -22,9 +22,7 @@ import java.util.function.BooleanSupplier;
  *
  * <p>A target who logs out before the items reach them gets the whole amount queued in their Stash
  * whenever the Stash is enabled, whatever the overflow policy. With the Stash disabled, the undelivered
- * amount is logged. Paper runs neither callback of a hop still scheduled when the plugin disables, so
- * each hop is tracked until it starts, and {@link #settleForShutdown} treats a give whose hop never ran
- * the same way.
+ * amount is logged.
  */
 public final class VoucherGiveService {
 
