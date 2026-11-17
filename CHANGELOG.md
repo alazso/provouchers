@@ -12,6 +12,7 @@ All notable changes to ProVouchers are documented here. This project follows
   covers the anti-dupe check, cooldown storage, use and code reservation, a reward that
   failed, a shutdown step that failed, and an integration that is installed but
   incompatible. `metrics.enabled: false` still submits nothing at all.
+- Updated the SQLite driver to 3.54.1.0.
 
 ### Fixed
 - A voucher can no longer be used on a mob, armor stand or other entity, where the game
