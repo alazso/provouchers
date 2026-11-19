@@ -22,6 +22,8 @@ All notable changes to ProVouchers are documented here. This project follows
   While a voucher is held it also stops trading, mounting and clicking a non-player NPC, so
   turn it off if your server relies on those. Item frames stay blocked either way, and other
   players are never affected.
+- Stopping or restarting the server no longer waits on a stalled connection to the metrics
+  service: the final metrics send now gets at most 5 seconds.
 
 ### Added
 - `/voucher preview <id>` opens one voucher's admin menu directly, with the id tab-completed

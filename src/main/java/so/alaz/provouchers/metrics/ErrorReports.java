@@ -22,7 +22,7 @@ public final class ErrorReports {
         metrics = handle;
     }
 
-    /** Stops reporting. Called on disable, before the provider shuts down. */
+    /** Stops reporting. Called on disable after every other shutdown step, right before the provider shuts down. */
     public static void clear() {
         metrics = null;
     }
