@@ -100,6 +100,9 @@ public final class ProVouchersPlugin extends JavaPlugin {
     /** How long disabling waits for the storage pool to close. */
     private static final long STORAGE_CLOSE_TIMEOUT_SECONDS = 10;
 
+    /** How long disabling waits for the final FastStats send, which a stalled network would otherwise hold open. */
+    private static final Duration METRICS_SEND_WAIT = Duration.ofSeconds(5);
+
     /** Name of the ComfiConf bridge plugin. Written out here: the API's constant would load an API class. */
     private static final String COMFICONF = "ComfiConf";
 
@@ -260,10 +263,6 @@ public final class ProVouchersPlugin extends JavaPlugin {
         if (guiManager != null) {
             closeQuietly("close open menus", guiManager::closeAll);
         }
-        ErrorReports.clear();
-        if (metrics != null) {
-            closeQuietly("stop metrics", metrics::shutdown);
-        }
         // Settling pending work writes to storage, so it must run before storage closes.
         if (giveService != null) {
             closeQuietly("settle undelivered gives", giveService::settleForShutdown);
@@ -280,6 +279,11 @@ public final class ProVouchersPlugin extends JavaPlugin {
         }
         if (discordWebhook != null) {
             closeQuietly("close the webhook client", discordWebhook::close);
+        }
+        // Reporting stays on until here, so a failure in any step above reaches error tracking.
+        ErrorReports.clear();
+        if (metrics != null) {
+            closeQuietly("stop metrics", () -> metrics.shutdown(METRICS_SEND_WAIT));
         }
         getComponentLogger().info(text("ProVouchers disabled.", NamedTextColor.GOLD));
     }

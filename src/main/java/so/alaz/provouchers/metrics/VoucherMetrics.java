@@ -46,7 +46,7 @@ public final class VoucherMetrics {
     /**
      * Starts metrics submission, or returns {@code null} when metrics are disabled
      * in config or no provider credential is configured. The caller keeps the handle
-     * and calls {@link Metrics#shutdown()} on plugin disable.
+     * and calls {@link Metrics#shutdown(java.time.Duration)} on plugin disable.
      */
     @Nullable
     public static Metrics start(JavaPlugin plugin, VoucherRegistry registry, MetricCounters counters,
